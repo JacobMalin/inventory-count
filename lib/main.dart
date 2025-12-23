@@ -1,7 +1,20 @@
+import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MainApp());
+  var debug = false;
+
+  if (debug) {
+    runApp(
+      DevicePreview(
+        builder: (context) {
+          return const MainApp();
+        },
+      ),
+    );
+  } else {
+    runApp(const MainApp());
+  }
 }
 
 class MainApp extends StatelessWidget {
@@ -9,12 +22,11 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      locale: DevicePreview.locale(context),
+      builder: DevicePreview.appBuilder,
+      home: Scaffold(body: Center(child: Text('Hello World!'))),
     );
   }
 }
