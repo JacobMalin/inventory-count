@@ -1,2 +1,3 @@
-# inventory-count
+# inventory_count
 
+A new Flutter project.
