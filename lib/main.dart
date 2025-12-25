@@ -26,7 +26,7 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       locale: DevicePreview.locale(context),
       builder: DevicePreview.appBuilder,
-      home: Scaffold(body: Center(child: Text('Hello World!'))),
+      home: Scaffold(body: Center(child: Text('Hello World!!'))),
     );
   }
 }
