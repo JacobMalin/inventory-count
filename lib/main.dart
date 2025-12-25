@@ -1,8 +1,14 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:inventory_count/count_page.dart';
 
-void main() {
+void main() async {
+  await Hive.initFlutter('inventory_count');
+  await Hive.openBox('areas');
+  await Hive.openBox('shelves');
+
   runApp(
     kDebugMode
         ? DevicePreview(builder: (context) => const MainApp())
@@ -19,7 +25,13 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       locale: DevicePreview.locale(context),
       builder: DevicePreview.appBuilder,
-      theme: ThemeData.dark(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 18, 75, 99),
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
       home: const HomePage(),
     );
   }
@@ -52,19 +64,10 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: [
-        CountPage(),
+        const CountPage(),
         const Center(child: Text('Fix Page')),
         const Center(child: Text('Print Page')),
       ][currentPageIndex],
     );
-  }
-}
-
-class CountPage extends StatelessWidget {
-  const CountPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Count Page'));
   }
 }
