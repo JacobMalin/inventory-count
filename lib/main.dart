@@ -11,7 +11,7 @@ void main() async {
 
   Hive.registerAdapter<Area>(AreaAdapter());
 
-  await Hive.openBox<Area>('areas');
+  await Hive.openBox('areas');
   await Hive.openBox('shelves');
 
   runApp(
