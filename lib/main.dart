@@ -10,6 +10,8 @@ void main() async {
   await Hive.initFlutter('inventory_count');
 
   Hive.registerAdapter<Area>(AreaAdapter());
+  Hive.registerAdapter<Shelf>(ShelfAdapter());
+  Hive.registerAdapter<Item>(ItemAdapter());
 
   await Hive.openBox('areas');
   await Hive.openBox('shelves');

@@ -10,26 +10,60 @@ class SetupPage extends StatefulWidget {
 }
 
 class _SetupPageState extends State<SetupPage> {
-  var selectedArea = -1;
+  var selectedOrder = <int>[];
 
-  void selectArea(int selectedArea) {
+  void select(int index) {
     setState(() {
-      this.selectedArea = selectedArea;
+      selectedOrder.add(index);
+    });
+  }
+
+  void deselect() {
+    setState(() {
+      selectedOrder.removeLast();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return selectedArea != -1
-        ? ShelvesPage(selectArea: selectArea, areaIndex: selectedArea)
-        : AreasPage(selectArea: selectArea);
+    switch (selectedOrder.length) {
+      case 0:
+        return AreasPage(select: select);
+      case 1:
+        return AreaPage(
+          select: select,
+          deselect: deselect,
+          selectedOrder: selectedOrder,
+        );
+      default:
+        Area area = Hive.box('areas').get('areas')[selectedOrder.first];
+        dynamic shelfOrItem = area.shelvesAndItems[selectedOrder[1]];
+        for (int i = 2; i < selectedOrder.length; i++) {
+          shelfOrItem = shelfOrItem.shelvesAndItems[selectedOrder[i]];
+        }
+
+        if (shelfOrItem is Shelf) {
+          return ShelfPage(
+            select: select,
+            deselect: deselect,
+            shelf: shelfOrItem,
+            selectedOrder: selectedOrder,
+          );
+        } else {
+          return ItemPage(
+            deselect: deselect,
+            item: shelfOrItem,
+            selectedOrder: selectedOrder,
+          );
+        }
+    }
   }
 }
 
 class AreasPage extends StatelessWidget {
-  const AreasPage({super.key, required this.selectArea});
+  const AreasPage({super.key, required this.select});
 
-  final void Function(int) selectArea;
+  final void Function(int) select;
 
   @override
   Widget build(BuildContext context) {
@@ -37,98 +71,113 @@ class AreasPage extends StatelessWidget {
       appBar: AppBar(
         title: Text('Areas', style: Theme.of(context).textTheme.headlineLarge),
         centerTitle: true,
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).colorScheme.surface,
       ),
-      body: AreaList(selectArea: selectArea),
+      body: AreaList(select: select),
     );
   }
 }
 
 class AreaList extends StatelessWidget {
-  const AreaList({super.key, required this.selectArea});
+  const AreaList({super.key, required this.select});
 
-  final void Function(int) selectArea;
+  final void Function(int) select;
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: Hive.box('areas').listenable(),
       builder: (context, box, child) {
-        return Column(
-          children: [
-            ReorderableListView(
-              shrinkWrap: true,
-              children: <Widget>[
-                for (
-                  int index = 0;
-                  index < (box.get('areas')?.length ?? 0);
-                  index += 1
-                )
-                  ListTile(
-                    key: Key('$index'),
-                    textColor: box.get('areas')[index].color,
-                    tileColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    title: Text(box.get('areas')[index].name),
-                    trailing: const Icon(Icons.drag_handle),
-                    onTap: () => selectArea(index),
-                  ),
-              ],
-              onReorder: (int oldIndex, int newIndex) {
-                final List items = box.get('areas', defaultValue: []);
-
-                if (newIndex > oldIndex) {
-                  newIndex -= 1;
-                }
-
-                items.insert(newIndex, items.removeAt(oldIndex));
-                box.put('areas', items);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.add),
-              title: const Text('Add Area'),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Enter Area Name'),
-                    content: TextField(
-                      autofocus: true,
-                      onSubmitted: (value) {
-                        if (value.isNotEmpty) {
-                          final List areas = box.get('areas', defaultValue: []);
-                          box.put('areas', [...areas, Area(value)]);
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
+        return Scrollable(
+          viewportBuilder: (context, position) => Viewport(
+            axisDirection: AxisDirection.down,
+            offset: position,
+            slivers: [
+              SliverList(
+                delegate: SliverChildListDelegate([
+                  ReorderableListView(
+                    shrinkWrap: true,
+                    children: <Widget>[
+                      for (
+                        int index = 0;
+                        index < (box.get('areas')?.length ?? 0);
+                        index += 1
+                      )
+                        ListTile(
+                          key: Key('$index'),
+                          textColor: box.get('areas')[index].color,
+                          tileColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          title: Text(box.get('areas')[index].name),
+                          trailing: const Icon(Icons.drag_handle),
+                          onTap: () => select(index),
+                        ),
                     ],
+                    onReorder: (int oldIndex, int newIndex) {
+                      final List items = box.get('areas', defaultValue: []);
+
+                      if (newIndex > oldIndex) {
+                        newIndex -= 1;
+                      }
+
+                      items.insert(newIndex, items.removeAt(oldIndex));
+                      box.put('areas', items);
+                    },
                   ),
-                );
-              },
-            ),
-          ],
+                  ListTile(
+                    leading: const Icon(Icons.add),
+                    title: const Text('Add Area'),
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Enter Area Name'),
+                          content: TextField(
+                            autofocus: true,
+                            onSubmitted: (value) {
+                              if (value.isNotEmpty) {
+                                final List areas = box.get(
+                                  'areas',
+                                  defaultValue: [],
+                                );
+                                box.put('areas', [...areas, Area(value)]);
+                                Navigator.pop(context);
+                              }
+                            },
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ]),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 }
 
-class ShelvesPage extends StatelessWidget {
-  const ShelvesPage({
+class AreaPage extends StatelessWidget {
+  const AreaPage({
     super.key,
-    required this.selectArea,
-    required this.areaIndex,
+    required this.select,
+    required this.deselect,
+    required this.selectedOrder,
   });
 
-  final void Function(int) selectArea;
-  final int areaIndex;
+  final void Function(int) select;
+  final void Function() deselect;
+  final List<int> selectedOrder;
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +187,178 @@ class ShelvesPage extends StatelessWidget {
           valueListenable: Hive.box('areas').listenable(),
           builder: (context, box, widget) {
             return Text(
-              box.get('areas')[areaIndex].name,
+              box.get('areas')[selectedOrder.last].name,
+              style: Theme.of(context).textTheme.headlineLarge!.copyWith(
+                color: box.get('areas')[selectedOrder.last].color,
+              ),
+            );
+          },
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: deselect,
+        ),
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+      ),
+      body: ShelfList(select: select, selectedOrder: selectedOrder),
+    );
+  }
+}
+
+class ShelfList extends StatelessWidget {
+  const ShelfList({
+    super.key,
+    required this.select,
+    required this.selectedOrder,
+  });
+
+  final void Function(int) select;
+  final List<int> selectedOrder;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: Hive.box('areas').listenable(),
+      builder: (context, box, child) {
+        Area area = box.get('areas')[selectedOrder.last];
+
+        return Column(
+          children: [
+            ReorderableListView(
+              shrinkWrap: true,
+              children: <Widget>[
+                for (
+                  int index = 0;
+                  index < (area.shelvesAndItems.length);
+                  index += 1
+                )
+                  ListTile(
+                    key: Key('$index'),
+                    tileColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    title: Text(area.shelvesAndItems[index].name),
+                    trailing: const Icon(Icons.drag_handle),
+                    onTap: () => select(index),
+                  ),
+              ],
+              onReorder: (int oldIndex, int newIndex) {
+                final List items = area.shelvesAndItems;
+
+                if (newIndex > oldIndex) {
+                  newIndex -= 1;
+                }
+
+                items.insert(newIndex, items.removeAt(oldIndex));
+                List areas = box.get('areas');
+                areas[selectedOrder.last].shelves_and_items = items;
+                box.put('areas', areas);
+              },
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: ListTile(
+                    leading: const Icon(Icons.add),
+                    title: const Text('Add Shelf'),
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Enter Shelf Name'),
+                          content: TextField(
+                            autofocus: true,
+                            onSubmitted: (value) {
+                              if (value.isNotEmpty) {
+                                area.shelvesAndItems.add(Shelf(value));
+
+                                List areas = box.get('areas');
+                                areas[selectedOrder.last] = area;
+                                box.put('areas', areas);
+
+                                Navigator.pop(context);
+                              }
+                            },
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: ListTile(
+                    leading: const Icon(Icons.add),
+                    title: const Text('Add Item'),
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Enter Item Name'),
+                          content: TextField(
+                            autofocus: true,
+                            onSubmitted: (value) {
+                              if (value.isNotEmpty) {
+                                area.shelvesAndItems.add(Item(value));
+
+                                List areas = box.get('areas');
+                                areas[selectedOrder.last] = area;
+                                box.put('areas', areas);
+
+                                Navigator.pop(context);
+                              }
+                            },
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class ShelfPage extends StatelessWidget {
+  const ShelfPage({
+    super.key,
+    required this.select,
+    required this.deselect,
+    required this.shelf,
+    required this.selectedOrder,
+  });
+
+  final void Function(int) select;
+  final void Function() deselect;
+  final Shelf shelf;
+  final List<int> selectedOrder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: ValueListenableBuilder(
+          valueListenable: Hive.box('shelves').listenable(),
+          builder: (context, box, widget) {
+            return Text(
+              shelf.name,
               style: Theme.of(context).textTheme.headlineLarge,
             );
           },
@@ -147,90 +367,46 @@ class ShelvesPage extends StatelessWidget {
         toolbarHeight: 40,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
-          onPressed: () => selectArea(-1),
+          onPressed: deselect,
         ),
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).colorScheme.surface,
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-          ),
-          itemCount: 15,
-          itemBuilder: (context, index) {
-            const double radius = 12;
-            return ValueListenableBuilder(
-              valueListenable: Hive.box('shelves').listenable(),
-              builder: (context, box, widget) {
-                var isShelf = box.containsKey(index);
+      body: const Center(child: Text('Shelf Page')),
+    );
+  }
+}
 
-                return Card(
-                  color: isShelf ? null : Colors.transparent,
-                  shadowColor: isShelf ? null : Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(radius),
-                    onTap: () {
-                      if (isShelf) {
-                        selectArea(index);
-                      } else {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Enter Shelf Name'),
-                            content: TextField(
-                              autofocus: true,
-                              onSubmitted: (value) {
-                                if (value.isNotEmpty) {
-                                  box.put(index, value);
-                                  Navigator.pop(context);
-                                }
-                              },
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Cancel'),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: isShelf
-                            ? [
-                                Icon(
-                                  Icons.inventory,
-                                  size: 40,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                Text(
-                                  box.get(index),
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyLarge!.copyWith(fontSize: 18),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ]
-                            : [
-                                Icon(
-                                  Icons.add,
-                                  size: 40,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          },
+class ItemPage extends StatelessWidget {
+  const ItemPage({
+    super.key,
+    required this.deselect,
+    required this.item,
+    required this.selectedOrder,
+  });
+
+  final Function() deselect;
+  final Item item;
+  final List<int> selectedOrder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          item.name,
+          style: Theme.of(context).textTheme.headlineLarge,
         ),
+        centerTitle: true,
+        toolbarHeight: 40,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: deselect,
+        ),
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).colorScheme.surface,
       ),
+      body: const Center(child: Text('Item Detail Page')),
     );
   }
 }
