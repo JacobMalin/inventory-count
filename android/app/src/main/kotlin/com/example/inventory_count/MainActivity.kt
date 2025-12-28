@@ -1,4 +1,4 @@
-package com.example.inventory_count
+package com.rexvos.inventoryCount
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:inventory_count/area.dart';
+import 'package:inventory_count/area_model.dart';
 import 'package:inventory_count/count_page.dart';
 import 'package:inventory_count/setup_page.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   await Hive.initFlutter('inventory_count');
@@ -12,9 +14,9 @@ void main() async {
   Hive.registerAdapter<Area>(AreaAdapter());
   Hive.registerAdapter<Shelf>(ShelfAdapter());
   Hive.registerAdapter<Item>(ItemAdapter());
+  Hive.registerAdapter<CountStrategy>(CountStrategyAdapter());
 
   await Hive.openBox('areas');
-  await Hive.openBox('shelves');
 
   runApp(
     kDebugMode
@@ -39,7 +41,12 @@ class MainApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: ChangeNotifierProvider(
+        create: (context) => AreaModel(),
+        builder: (context, child) {
+          return const HomePage();
+        },
+      ),
     );
   }
 }

@@ -18,6 +18,7 @@ class AreaAdapter extends TypeAdapter<Area> {
     };
     return Area(
       fields[0] as String,
+      shelvesAndItems: (fields[2] as List?)?.cast<dynamic>(),
     );
   }
 
@@ -27,10 +28,10 @@ class AreaAdapter extends TypeAdapter<Area> {
       ..writeByte(3)
       ..writeByte(0)
       ..write(obj.name)
-      ..writeByte(1)
-      ..write(obj.colorInt)
       ..writeByte(2)
-      ..write(obj.shelvesAndItems);
+      ..write(obj.shelvesAndItems)
+      ..writeByte(1)
+      ..write(obj.colorInt);
   }
 
   @override
@@ -56,6 +57,7 @@ class ShelfAdapter extends TypeAdapter<Shelf> {
     };
     return Shelf(
       fields[0] as String,
+      items: (fields[1] as List?)?.cast<dynamic>(),
     );
   }
 
@@ -66,7 +68,7 @@ class ShelfAdapter extends TypeAdapter<Shelf> {
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.shelvesAndItems);
+      ..write(obj.items);
   }
 
   @override
@@ -92,17 +94,27 @@ class ItemAdapter extends TypeAdapter<Item> {
     };
     return Item(
       fields[0] as String,
-    )..count = fields[1] as int?;
+      count: fields[1] as int?,
+      strategy: fields[2] as CountStrategy,
+      strategyInt: fields[3] as int?,
+      countName: fields[4] as String?,
+    );
   }
 
   @override
   void write(BinaryWriter writer, Item obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.count);
+      ..write(obj.count)
+      ..writeByte(2)
+      ..write(obj.strategy)
+      ..writeByte(3)
+      ..write(obj.strategyInt)
+      ..writeByte(4)
+      ..write(obj.countName);
   }
 
   @override
@@ -112,6 +124,55 @@ class ItemAdapter extends TypeAdapter<Item> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ItemAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class CountStrategyAdapter extends TypeAdapter<CountStrategy> {
+  @override
+  final int typeId = 3;
+
+  @override
+  CountStrategy read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return CountStrategy.singular;
+      case 1:
+        return CountStrategy.boxes;
+      case 2:
+        return CountStrategy.singularAndBoxes;
+      case 3:
+        return CountStrategy.negative;
+      default:
+        return CountStrategy.singular;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, CountStrategy obj) {
+    switch (obj) {
+      case CountStrategy.singular:
+        writer.writeByte(0);
+        break;
+      case CountStrategy.boxes:
+        writer.writeByte(1);
+        break;
+      case CountStrategy.singularAndBoxes:
+        writer.writeByte(2);
+        break;
+      case CountStrategy.negative:
+        writer.writeByte(3);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CountStrategyAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

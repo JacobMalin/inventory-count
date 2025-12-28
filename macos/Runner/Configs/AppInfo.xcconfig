@@ -8,7 +8,7 @@
 PRODUCT_NAME = inventory_count
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.inventoryCount
+PRODUCT_BUNDLE_IDENTIFIER = com.rexvos.inventoryCount
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2025 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2025 com.rexvos. All rights reserved.
