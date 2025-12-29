@@ -109,7 +109,7 @@ class AreaPage extends StatelessWidget {
   }
 }
 
-class ShelfList extends StatelessWidget {
+class ShelfList extends StatefulWidget {
   const ShelfList({
     super.key,
     required this.select,
@@ -120,10 +120,35 @@ class ShelfList extends StatelessWidget {
   final List<int> selectedOrder;
 
   @override
+  State<ShelfList> createState() => _ShelfListState();
+}
+
+class _ShelfListState extends State<ShelfList> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
-        Area area = areaModel.getArea(selectedOrder.last);
+        Area area = areaModel.getArea(widget.selectedOrder.last);
 
         return Column(
           children: [
@@ -133,6 +158,7 @@ class ShelfList extends StatelessWidget {
                   child: ListTile(
                     leading: const Icon(Icons.add),
                     title: const Text('Add Shelf'),
+                    tileColor: Theme.of(context).colorScheme.surface,
                     onTap: () {
                       showDialog(
                         context: context,
@@ -143,11 +169,12 @@ class ShelfList extends StatelessWidget {
                             onSubmitted: (value) {
                               if (value.isNotEmpty) {
                                 areaModel.addShelfToArea(
-                                  selectedOrder.last,
+                                  widget.selectedOrder.last,
                                   Shelf(value),
                                 );
 
                                 Navigator.pop(context);
+                                _scrollToBottom();
                               }
                             },
                           ),
@@ -166,6 +193,7 @@ class ShelfList extends StatelessWidget {
                   child: ListTile(
                     leading: const Icon(Icons.add),
                     title: const Text('Add Item'),
+                    tileColor: Theme.of(context).colorScheme.surface,
                     onTap: () {
                       showDialog(
                         context: context,
@@ -176,11 +204,12 @@ class ShelfList extends StatelessWidget {
                             onSubmitted: (value) {
                               if (value.isNotEmpty) {
                                 areaModel.addItemToArea(
-                                  selectedOrder.last,
+                                  widget.selectedOrder.last,
                                   Item(value),
                                 );
 
                                 Navigator.pop(context);
+                                _scrollToBottom();
                               }
                             },
                           ),
@@ -201,38 +230,41 @@ class ShelfList extends StatelessWidget {
               child: Overlay(
                 initialEntries: [
                   OverlayEntry(
-                    builder: (context) => ReorderableListView(
-                      children: <Widget>[
-                        for (
-                          int index = 0;
-                          index < (area.shelvesAndItems.length);
-                          index += 1
-                        )
-                          area.shelvesAndItems[index] is Shelf
-                              ? ShelfTile(
-                                  key: Key('$index'),
-                                  index: index,
-                                  selectedOrder: selectedOrder,
-                                  select: select,
-                                )
-                              : ItemTile(
-                                  key: Key('$index'),
-                                  index: index,
-                                  selectedOrder: selectedOrder,
-                                  select: select,
-                                ),
-                      ],
-                      onReorder: (int oldIndex, int newIndex) {
-                        if (newIndex > oldIndex) {
-                          newIndex -= 1;
-                        }
+                    builder: (context) => Material(
+                      child: ReorderableListView(
+                        scrollController: _scrollController,
+                        children: <Widget>[
+                          for (
+                            int index = 0;
+                            index < (area.shelvesAndItems.length);
+                            index += 1
+                          )
+                            area.shelvesAndItems[index] is Shelf
+                                ? ShelfTile(
+                                    key: Key('$index'),
+                                    index: index,
+                                    selectedOrder: widget.selectedOrder,
+                                    select: widget.select,
+                                  )
+                                : ItemTile(
+                                    key: Key('$index'),
+                                    index: index,
+                                    selectedOrder: widget.selectedOrder,
+                                    select: widget.select,
+                                  ),
+                        ],
+                        onReorder: (int oldIndex, int newIndex) {
+                          if (newIndex > oldIndex) {
+                            newIndex -= 1;
+                          }
 
-                        areaModel.moveShelfOrItemInArea(
-                          selectedOrder.last,
-                          oldIndex,
-                          newIndex,
-                        );
-                      },
+                          areaModel.moveShelfOrItemInArea(
+                            widget.selectedOrder.last,
+                            oldIndex,
+                            newIndex,
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],

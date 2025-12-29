@@ -21,6 +21,7 @@ class AreaModel with ChangeNotifier {
     var currentAreas = _areasBox.get('areas');
     currentAreas.removeAt(index);
     _areasBox.put('areas', currentAreas);
+    maintainExportList();
     notifyListeners();
   }
 
@@ -53,6 +54,7 @@ class AreaModel with ChangeNotifier {
     var currentAreas = _areasBox.get('areas');
     currentAreas[areaIndex].shelvesAndItems.add(item);
     _areasBox.put('areas', currentAreas);
+    maintainExportList();
     notifyListeners();
   }
 
@@ -60,6 +62,7 @@ class AreaModel with ChangeNotifier {
     var currentAreas = _areasBox.get('areas');
     currentAreas[areaIndex].shelvesAndItems.removeAt(index);
     _areasBox.put('areas', currentAreas);
+    maintainExportList();
     notifyListeners();
   }
 
@@ -83,6 +86,7 @@ class AreaModel with ChangeNotifier {
     var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
     shelf.items.add(item);
     _areasBox.put('areas', currentAreas);
+    maintainExportList();
     notifyListeners();
   }
 
@@ -104,6 +108,7 @@ class AreaModel with ChangeNotifier {
     }
 
     _areasBox.put('areas', currentAreas);
+    maintainExportList();
     notifyListeners();
   }
 
@@ -161,8 +166,12 @@ class AreaModel with ChangeNotifier {
       item = shelf.items[itemIndex] as Item;
     }
 
+    var exportListNeedsUpdate = false;
+
     if (newName != null) {
       item.name = newName;
+
+      exportListNeedsUpdate = true;
     }
     if (newStrategy != null) {
       item.strategy = newStrategy;
@@ -172,6 +181,8 @@ class AreaModel with ChangeNotifier {
     }
     if (newCountName != null) {
       item.countName = newCountName.isEmpty ? null : newCountName;
+
+      exportListNeedsUpdate = true;
     }
     if (newDefaultCount != null) {
       item.defaultCount = newDefaultCount;
@@ -184,6 +195,114 @@ class AreaModel with ChangeNotifier {
     }
 
     _areasBox.put('areas', currentAreas);
+    if (exportListNeedsUpdate) {
+      maintainExportList();
+    }
+    notifyListeners();
+  }
+
+  List<ExportEntry> get exportList {
+    try {
+      return Hive.box(
+        'settings',
+      ).get('exportList', defaultValue: <ExportEntry>[]);
+    } on TypeError {
+      return <ExportEntry>[];
+    }
+  }
+
+  void addToExportList(ExportEntry value) {
+    var currentExportList = exportList;
+    currentExportList.add(value);
+    Hive.box('settings').put('exportList', currentExportList);
+    notifyListeners();
+  }
+
+  void reorderExportList(int oldIndex, int newIndex) {
+    var currentExportList = exportList;
+    final item = currentExportList.removeAt(oldIndex);
+    currentExportList.insert(newIndex, item);
+    Hive.box('settings').put('exportList', currentExportList);
+    notifyListeners();
+  }
+
+  void editExportListEntry(int index, {String? name}) {
+    var currentExportList = exportList;
+    var entry = currentExportList[index];
+
+    if (name != null) {
+      if (entry is ExportItem) {
+        throw UnsupportedError('Cannot rename ExportItem entries');
+      }
+
+      entry.name = name;
+    }
+
+    Hive.box('settings').put('exportList', currentExportList);
+    notifyListeners();
+  }
+
+  void removeFromExportList(int index) {
+    var currentExportList = exportList;
+    currentExportList.removeAt(index);
+    Hive.box('settings').put('exportList', currentExportList);
+    notifyListeners();
+  }
+
+  void maintainExportList() {
+    var currentExportList = exportList;
+
+    // Gather all current count names
+    Set<String> currentCountNames = <String>{};
+    Map<String, List<String>> paths = {};
+    for (int areaIndex = 0; areaIndex < numAreas; areaIndex++) {
+      var area = getArea(areaIndex);
+      for (var shelfOrItem in area.shelvesAndItems) {
+        if (shelfOrItem is Item) {
+          var realCountName = shelfOrItem.countName ?? shelfOrItem.name;
+          currentCountNames.add(realCountName);
+          if (!paths.containsKey(realCountName)) {
+            paths[realCountName] = [];
+          }
+          paths[realCountName]!.add('${area.name} > ${shelfOrItem.name}');
+        } else if (shelfOrItem is Shelf) {
+          for (var item in shelfOrItem.items) {
+            var realCountName = item.countName ?? item.name;
+
+            currentCountNames.add(realCountName);
+            if (!paths.containsKey(realCountName)) {
+              paths[realCountName] = [];
+            }
+            paths[realCountName]!.add(
+              '${area.name} > ${shelfOrItem.name} > ${item.name}',
+            );
+          }
+        }
+      }
+    }
+
+    // Remove any count names that no longer exist
+    currentExportList.removeWhere(
+      (entry) => entry is ExportItem && !currentCountNames.contains(entry.name),
+    );
+
+    // Add any new count names that are not in the export list
+    for (var countName in currentCountNames) {
+      if (!currentExportList.any(
+        (entry) => entry is ExportItem && entry.name == countName,
+      )) {
+        currentExportList.add(ExportItem(countName));
+      }
+    }
+
+    for (var entry in currentExportList) {
+      if (entry is ExportItem) {
+        entry.paths = paths[entry.name] ?? [];
+      }
+    }
+
+    // Update the export list
+    Hive.box('settings').put('exportList', currentExportList);
     notifyListeners();
   }
 }

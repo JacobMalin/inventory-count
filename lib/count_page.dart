@@ -66,7 +66,7 @@ class _CountPageState extends State<CountPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_ios),
+                        icon: const Icon(Icons.chevron_left),
                         onPressed: countModel.decrementDate,
                       ),
                       Expanded(
@@ -103,7 +103,7 @@ class _CountPageState extends State<CountPage> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.arrow_forward_ios),
+                        icon: const Icon(Icons.chevron_right),
                         onPressed: countModel.incrementDate,
                       ),
                     ],
@@ -126,8 +126,6 @@ class CountList extends StatefulWidget {
 }
 
 class _CountListState extends State<CountList> {
-  TreeViewController? _controller;
-
   TreeNode _buildTree(AreaModel areaModel, CountPhase currentPhase) {
     final root = TreeNode.root();
 
@@ -189,6 +187,7 @@ class _CountListState extends State<CountList> {
             final tree = _buildTree(areaModel, countModel.countPhase);
 
             return TreeView.simple(
+              key: ValueKey('tree_${countModel.countPhase.index}'),
               tree: tree,
               showRootNode: false,
               expansionIndicatorBuilder: (context, node) =>
@@ -199,7 +198,6 @@ class _CountListState extends State<CountList> {
                   ),
               indentation: const Indentation(style: IndentStyle.roundJoint),
               onTreeReady: (controller) {
-                _controller = controller;
                 controller.expandAllChildren(tree);
               },
               builder: (context, node) {
@@ -209,8 +207,18 @@ class _CountListState extends State<CountList> {
                   return Consumer<CountModel>(
                     builder: (context, countModel, child) {
                       final count = countModel.getCount(data.item);
+                      final secondaryCount = countModel.getSecondaryCount(
+                        data.item,
+                      );
+
+                      bool isUnfinished =
+                          (data.item.strategy ==
+                                  CountStrategy.singularAndStacks &&
+                              secondaryCount == null) ||
+                          count == null;
+
                       return Card(
-                        color: count == null
+                        color: isUnfinished
                             ? Colors.red.withValues(alpha: 0.1)
                             : null,
                         child: InkWell(
@@ -230,7 +238,8 @@ class _CountListState extends State<CountList> {
                           child: ListTile(
                             title: Text(data.item.name),
                             trailing: Text(
-                              count?.toString() ?? '-',
+                              countModel.getCountTrue(data.item)?.toString() ??
+                                  '-',
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -270,11 +279,30 @@ class _CountListState extends State<CountList> {
   }
 }
 
-class CountDialog extends StatelessWidget {
+class CountDialog extends StatefulWidget {
   const CountDialog({super.key, required this.data, required this.controller});
 
   final ItemTreeData data;
   final TextEditingController controller;
+
+  @override
+  State<CountDialog> createState() => _CountDialogState();
+}
+
+class _CountDialogState extends State<CountDialog> {
+  late TextEditingController _singularController;
+
+  @override
+  void initState() {
+    super.initState();
+    _singularController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _singularController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -297,7 +325,7 @@ class CountDialog extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (data.area != null || data.shelf != null)
+                    if (widget.data.area != null || widget.data.shelf != null)
                       RichText(
                         text: TextSpan(
                           style: DefaultTextStyle.of(context).style.copyWith(
@@ -305,37 +333,85 @@ class CountDialog extends StatelessWidget {
                             fontWeight: FontWeight.normal,
                           ),
                           children: [
-                            if (data.area != null)
+                            if (widget.data.area != null)
                               TextSpan(
-                                text: data.area!.name,
-                                style: TextStyle(color: data.area!.color),
+                                text: widget.data.area!.name,
+                                style: TextStyle(
+                                  color: widget.data.area!.color,
+                                ),
                               ),
-                            if (data.area != null && data.shelf != null)
+                            if (widget.data.area != null &&
+                                widget.data.shelf != null)
                               const TextSpan(text: ' > '),
-                            if (data.shelf != null)
-                              TextSpan(text: data.shelf!.name),
+                            if (widget.data.shelf != null)
+                              TextSpan(text: widget.data.shelf!.name),
                           ],
                         ),
                       ),
-                    Text(data.item.name),
+                    Text(widget.data.item.name),
                   ],
                 ),
               ),
             ],
           ),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Count',
-              border: OutlineInputBorder(),
-            ),
-            onChanged: (value) {
-              final intValue = int.tryParse(value);
-              countModel.setCount(data.item, intValue ?? 0);
-            },
-            onSubmitted: (value) => Navigator.pop(context),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: widget.controller,
+                autofocus: true,
+                keyboardType:
+                    widget.data.item.strategy == CountStrategy.negative
+                    ? TextInputType.numberWithOptions(signed: true)
+                    : TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: switch (widget.data.item.strategy) {
+                    CountStrategy.stacks =>
+                      'Stacks${widget.data.item.strategyInt != null ? ' (${widget.data.item.strategyInt} each)' : ''}',
+                    CountStrategy.singularAndStacks =>
+                      'Stacks${widget.data.item.strategyInt != null ? ' (${widget.data.item.strategyInt} each)' : ''}',
+                    CountStrategy.negative =>
+                      'Count (negative from ${widget.data.item.strategyInt})',
+                    _ => 'Count',
+                  },
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  if (value.isEmpty) {
+                    countModel.setCount(widget.data.item, null);
+                    return;
+                  }
+                  final intValue = int.tryParse(value);
+                  countModel.setCount(widget.data.item, intValue ?? 0);
+                },
+                onSubmitted: (value) => Navigator.pop(context),
+              ),
+              if (widget.data.item.strategy == CountStrategy.singularAndStacks)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: TextField(
+                    controller: _singularController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Singles',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      if (value.isEmpty) {
+                        countModel.setSecondaryCount(widget.data.item, null);
+                        return;
+                      }
+
+                      final intValue = int.tryParse(value);
+                      countModel.setSecondaryCount(
+                        widget.data.item,
+                        intValue ?? 0,
+                      );
+                    },
+                    onSubmitted: (value) => Navigator.pop(context),
+                  ),
+                ),
+            ],
           ),
           actions: [
             TextButton(
@@ -344,8 +420,8 @@ class CountDialog extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                final intValue = int.tryParse(controller.text);
-                countModel.setCount(data.item, intValue ?? 0);
+                final intValue = int.tryParse(widget.controller.text);
+                countModel.setCount(widget.data.item, intValue ?? 0);
                 Navigator.pop(context);
               },
               child: const Text('Save'),
