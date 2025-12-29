@@ -1,22 +1,15 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:inventory_count/area.dart';
-import 'package:inventory_count/area_model.dart';
+import 'package:inventory_count/models/count_model.dart';
+import 'package:inventory_count/models/hive.dart';
+import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/count_page.dart';
-import 'package:inventory_count/setup_page.dart';
+import 'package:inventory_count/setup/setup_page.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
-  await Hive.initFlutter('inventory_count');
-
-  Hive.registerAdapter<Area>(AreaAdapter());
-  Hive.registerAdapter<Shelf>(ShelfAdapter());
-  Hive.registerAdapter<Item>(ItemAdapter());
-  Hive.registerAdapter<CountStrategy>(CountStrategyAdapter());
-
-  await Hive.openBox('areas');
+  await hiveSetup();
 
   runApp(
     kDebugMode
@@ -30,22 +23,23 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color.fromARGB(255, 18, 75, 99),
-          brightness: Brightness.dark,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AreaModel()),
+        ChangeNotifierProvider(create: (context) => CountModel()),
+      ],
+      builder: (context, child) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        locale: DevicePreview.locale(context),
+        builder: DevicePreview.appBuilder,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color.fromARGB(255, 18, 75, 99),
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
         ),
-        useMaterial3: true,
-      ),
-      home: ChangeNotifierProvider(
-        create: (context) => AreaModel(),
-        builder: (context, child) {
-          return const HomePage();
-        },
+        home: const HomePage(),
       ),
     );
   }
@@ -72,17 +66,17 @@ class _HomePageState extends State<HomePage> {
         },
         selectedIndex: currentPageIndex,
         destinations: const <Widget>[
-          NavigationDestination(icon: Icon(Icons.home), label: 'Setup'),
           NavigationDestination(icon: Icon(Icons.list), label: 'Count'),
           NavigationDestination(icon: Icon(Icons.bug_report), label: 'Fix'),
           NavigationDestination(icon: Icon(Icons.print), label: 'Print'),
+          NavigationDestination(icon: Icon(Icons.settings), label: 'Setup'),
         ],
       ),
       body: [
-        const SetupPage(),
         const CountPage(),
         const Center(child: Text('Fix Page')),
         const Center(child: Text('Print Page')),
+        const SetupPage(),
       ][currentPageIndex],
     );
   }

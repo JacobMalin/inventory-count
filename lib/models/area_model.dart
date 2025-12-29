@@ -1,93 +1,93 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:inventory_count/area.dart';
+import 'package:inventory_count/models/hive.dart';
 
 class AreaModel with ChangeNotifier {
-  var areasBox = Hive.box('areas');
+  final _areasBox = Hive.box('areas');
 
   int get numAreas {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     return currentAreas?.length ?? 0;
   }
 
   void addArea(Area area) {
-    var currentAreas = areasBox.get('areas', defaultValue: []);
+    var currentAreas = _areasBox.get('areas', defaultValue: []);
     currentAreas.add(area);
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
   void removeArea(int index) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     currentAreas.removeAt(index);
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
   Area getArea(int index) {
-    return areasBox.get('areas')[index];
+    return _areasBox.get('areas')[index];
   }
 
   void moveArea(int oldIndex, int newIndex) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     currentAreas.insert(newIndex, currentAreas.removeAt(oldIndex));
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
   void renameArea(int index, String newName) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     currentAreas[index].name = newName;
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
   void addShelfToArea(int areaIndex, Shelf shelf) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     currentAreas[areaIndex].shelvesAndItems.add(shelf);
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
   void addItemToArea(int areaIndex, Item item) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     currentAreas[areaIndex].shelvesAndItems.add(item);
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
   void removeShelfOrItemFromArea(int areaIndex, int index) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     currentAreas[areaIndex].shelvesAndItems.removeAt(index);
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
   void moveShelfOrItemInArea(int areaIndex, int oldIndex, int newIndex) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     var shelvesAndItems = currentAreas[areaIndex].shelvesAndItems;
     shelvesAndItems.insert(newIndex, shelvesAndItems.removeAt(oldIndex));
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
   void renameShelfInArea(int areaIndex, int index, String newName) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     currentAreas[areaIndex].shelvesAndItems[index].name = newName;
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
   void addItemToShelf(int areaIndex, int shelfIndex, Item item) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
     shelf.items.add(item);
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
   void removeItem(List<int> selectedOrder) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
 
     if (selectedOrder.length == 2) {
       // Item is directly in area
@@ -103,7 +103,7 @@ class AreaModel with ChangeNotifier {
       shelf.items.removeAt(itemIndex);
     }
 
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
@@ -113,10 +113,10 @@ class AreaModel with ChangeNotifier {
     int oldIndex,
     int newIndex,
   ) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
     shelf.items.insert(newIndex, shelf.items.removeAt(oldIndex));
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 
@@ -125,7 +125,7 @@ class AreaModel with ChangeNotifier {
     int index = selectedOrder[1];
     int? index2 = selectedOrder.elementAtOrNull(2);
 
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
 
     if (index2 != null) {
       var shelf = currentAreas[areaIndex].shelvesAndItems[index] as Shelf;
@@ -137,12 +137,14 @@ class AreaModel with ChangeNotifier {
   void editItem(
     List<int> selectedOrder, {
     String? newName,
-    int? newCount,
     CountStrategy? newStrategy,
     int? newStrategyInt,
     String? newCountName,
+    int? newDefaultCount,
+    CountPhase? newCountPhase,
+    CountPhase? newPersonalCountPhase,
   }) {
-    var currentAreas = areasBox.get('areas');
+    var currentAreas = _areasBox.get('areas');
     Item item;
 
     if (selectedOrder.length == 2) {
@@ -162,9 +164,6 @@ class AreaModel with ChangeNotifier {
     if (newName != null) {
       item.name = newName;
     }
-    if (newCount != null) {
-      item.count = newCount;
-    }
     if (newStrategy != null) {
       item.strategy = newStrategy;
     }
@@ -174,8 +173,17 @@ class AreaModel with ChangeNotifier {
     if (newCountName != null) {
       item.countName = newCountName.isEmpty ? null : newCountName;
     }
+    if (newDefaultCount != null) {
+      item.defaultCount = newDefaultCount;
+    }
+    if (newCountPhase != null) {
+      item.countPhase = newCountPhase;
+    }
+    if (newPersonalCountPhase != null) {
+      item.personalCountPhase = newPersonalCountPhase;
+    }
 
-    areasBox.put('areas', currentAreas);
+    _areasBox.put('areas', currentAreas);
     notifyListeners();
   }
 }
