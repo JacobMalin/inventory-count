@@ -59,7 +59,7 @@ class CountModel with ChangeNotifier {
     return thisCount.getCount(data);
   }
 
-  void setCount(Item data, int count) {
+  void setCount(Item data, int? count) {
     final countBox = Hive.box('counts');
     final currentCount = countBox.get(date) ?? Count();
     currentCount.setCount(data, count);
@@ -67,7 +67,29 @@ class CountModel with ChangeNotifier {
     notifyListeners();
   }
 
+  int? getSecondaryCount(Item data) {
+    return thisCount.getSecondaryCount(data);
+  }
+
+  void setSecondaryCount(Item data, int? count) {
+    final countBox = Hive.box('counts');
+    final currentCount = countBox.get(date) ?? Count();
+    currentCount.setSecondaryCount(data, count ?? 0);
+    countBox.put(date, currentCount);
+    notifyListeners();
+  }
+
+  int? getCountTrue(Item data) {
+    final countBox = Hive.box('counts');
+    final currentCount = countBox.get(date) ?? Count();
+    return currentCount.getCountTrue(data);
+  }
+
   void setNoCount(Item data) {
     setCount(data, _noCount);
+
+    if (data.strategy == CountStrategy.singularAndStacks) {
+      setSecondaryCount(data, _noCount);
+    }
   }
 }

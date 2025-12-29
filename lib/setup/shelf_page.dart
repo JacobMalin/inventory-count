@@ -113,7 +113,7 @@ class ShelfPage extends StatelessWidget {
   }
 }
 
-class ItemList extends StatelessWidget {
+class ItemList extends StatefulWidget {
   const ItemList({
     super.key,
     required this.select,
@@ -124,6 +124,31 @@ class ItemList extends StatelessWidget {
   final List<int> selectedOrder;
 
   @override
+  State<ItemList> createState() => _ItemListState();
+}
+
+class _ItemListState extends State<ItemList> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
@@ -132,6 +157,7 @@ class ItemList extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.add),
               title: const Text('Add Item'),
+              tileColor: Theme.of(context).colorScheme.surface,
               onTap: () {
                 showDialog(
                   context: context,
@@ -142,12 +168,13 @@ class ItemList extends StatelessWidget {
                       onSubmitted: (value) {
                         if (value.isNotEmpty) {
                           areaModel.addItemToShelf(
-                            selectedOrder[0],
-                            selectedOrder[1],
+                            widget.selectedOrder[0],
+                            widget.selectedOrder[1],
                             Item(value),
                           );
 
                           Navigator.pop(context);
+                          _scrollToBottom();
                         }
                       },
                     ),
@@ -165,35 +192,39 @@ class ItemList extends StatelessWidget {
               child: Overlay(
                 initialEntries: [
                   OverlayEntry(
-                    builder: (context) => ReorderableListView(
-                      children: <Widget>[
-                        for (
-                          int index = 0;
-                          index <
-                              (areaModel.getShelfOrItem(selectedOrder) as Shelf)
-                                  .items
-                                  .length;
-                          index += 1
-                        )
-                          ItemTile(
-                            key: Key('$index'),
-                            index: index,
-                            selectedOrder: selectedOrder,
-                            select: select,
-                          ),
-                      ],
-                      onReorder: (int oldIndex, int newIndex) {
-                        if (newIndex > oldIndex) {
-                          newIndex -= 1;
-                        }
+                    builder: (context) => Material(
+                      child: ReorderableListView(
+                        scrollController: _scrollController,
+                        children: <Widget>[
+                          for (
+                            int index = 0;
+                            index <
+                                (areaModel.getShelfOrItem(widget.selectedOrder)
+                                        as Shelf)
+                                    .items
+                                    .length;
+                            index += 1
+                          )
+                            ItemTile(
+                              key: Key('$index'),
+                              index: index,
+                              selectedOrder: widget.selectedOrder,
+                              select: widget.select,
+                            ),
+                        ],
+                        onReorder: (int oldIndex, int newIndex) {
+                          if (newIndex > oldIndex) {
+                            newIndex -= 1;
+                          }
 
-                        areaModel.moveItemInShelf(
-                          selectedOrder[0],
-                          selectedOrder[1],
-                          oldIndex,
-                          newIndex,
-                        );
-                      },
+                          areaModel.moveItemInShelf(
+                            widget.selectedOrder[0],
+                            widget.selectedOrder[1],
+                            oldIndex,
+                            newIndex,
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],

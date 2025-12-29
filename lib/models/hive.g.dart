@@ -145,6 +145,8 @@ class CountAdapter extends TypeAdapter<Count> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Count(
+      itemCounts: (fields[0] as Map?)?.cast<CountKey, int>(),
+      secondaryItemCounts: (fields[2] as Map?)?.cast<CountKey, int>(),
       countPhase: fields[1] as CountPhase?,
     );
   }
@@ -152,9 +154,11 @@ class CountAdapter extends TypeAdapter<Count> {
   @override
   void write(BinaryWriter writer, Count obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
-      ..write(obj._itemCounts)
+      ..write(obj.itemCounts)
+      ..writeByte(2)
+      ..write(obj.secondaryItemCounts)
       ..writeByte(1)
       ..write(obj.countPhase);
   }
@@ -203,6 +207,142 @@ class CountKeyAdapter extends TypeAdapter<CountKey> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CountKeyAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ExportEntryAdapter extends TypeAdapter<ExportEntry> {
+  @override
+  final int typeId = 10;
+
+  @override
+  ExportEntry read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return ExportEntry(
+      fields[0] as String,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, ExportEntry obj) {
+    writer
+      ..writeByte(1)
+      ..writeByte(0)
+      ..write(obj.name);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExportEntryAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ExportItemAdapter extends TypeAdapter<ExportItem> {
+  @override
+  final int typeId = 7;
+
+  @override
+  ExportItem read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return ExportItem(
+      fields[0] as String,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, ExportItem obj) {
+    writer
+      ..writeByte(1)
+      ..writeByte(0)
+      ..write(obj.name);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExportItemAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ExportPlaceholderAdapter extends TypeAdapter<ExportPlaceholder> {
+  @override
+  final int typeId = 8;
+
+  @override
+  ExportPlaceholder read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return ExportPlaceholder(
+      fields[0] as String,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, ExportPlaceholder obj) {
+    writer
+      ..writeByte(1)
+      ..writeByte(0)
+      ..write(obj.name);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExportPlaceholderAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ExportTitleAdapter extends TypeAdapter<ExportTitle> {
+  @override
+  final int typeId = 9;
+
+  @override
+  ExportTitle read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return ExportTitle(
+      fields[0] as String,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, ExportTitle obj) {
+    writer
+      ..writeByte(1)
+      ..writeByte(0)
+      ..write(obj.name);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExportTitleAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
