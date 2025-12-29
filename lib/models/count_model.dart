@@ -45,6 +45,8 @@ class CountModel with ChangeNotifier {
 
   CountPhase get countPhase => thisCount.countPhase;
 
+  final int _noCount = -1;
+
   void setCountPhase(CountPhase phase) {
     final countBox = Hive.box('counts');
     final currentCount = countBox.get(date) ?? Count();
@@ -63,5 +65,9 @@ class CountModel with ChangeNotifier {
     currentCount.setCount(data, count);
     countBox.put(date, currentCount);
     notifyListeners();
+  }
+
+  void setNoCount(Item data) {
+    setCount(data, _noCount);
   }
 }
