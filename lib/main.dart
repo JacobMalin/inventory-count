@@ -5,6 +5,7 @@ import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/count_page.dart';
+import 'package:inventory_count/export_page.dart';
 import 'package:inventory_count/setup/setup_page.dart';
 import 'package:provider/provider.dart';
 
@@ -68,14 +69,14 @@ class _HomePageState extends State<HomePage> {
         destinations: const <Widget>[
           NavigationDestination(icon: Icon(Icons.list), label: 'Count'),
           NavigationDestination(icon: Icon(Icons.bug_report), label: 'Fix'),
-          NavigationDestination(icon: Icon(Icons.print), label: 'Print'),
+          NavigationDestination(icon: Icon(Icons.print), label: 'Export'),
           NavigationDestination(icon: Icon(Icons.settings), label: 'Setup'),
         ],
       ),
       body: [
         const CountPage(),
         const Center(child: Text('Fix Page')),
-        const Center(child: Text('Print Page')),
+        const ExportPage(),
         const SetupPage(),
       ][currentPageIndex],
     );

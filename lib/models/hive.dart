@@ -13,7 +13,6 @@ Future<void> hiveSetup() async {
   Hive.registerAdapter<CountPhase>(CountPhaseAdapter());
   Hive.registerAdapter<Count>(CountAdapter());
   Hive.registerAdapter<CountKey>(CountKeyAdapter());
-  Hive.registerAdapter<ExportEntry>(ExportEntryAdapter());
   Hive.registerAdapter<ExportItem>(ExportItemAdapter());
   Hive.registerAdapter<ExportPlaceholder>(ExportPlaceholderAdapter());
   Hive.registerAdapter<ExportTitle>(ExportTitleAdapter());
@@ -75,6 +74,9 @@ class Item extends HiveObject {
   @HiveField(6)
   CountPhase? personalCountPhase;
 
+  @HiveField(7)
+  int id;
+
   Item(
     this.name, {
     CountStrategy? strategy,
@@ -83,8 +85,16 @@ class Item extends HiveObject {
     this.defaultCount,
     CountPhase? countPhase,
     this.personalCountPhase,
+    int? id,
   }) : strategy = strategy ?? CountStrategy.singular,
-       countPhase = countPhase ?? CountPhase.back;
+       countPhase = countPhase ?? CountPhase.back,
+       id = id ?? _generateId();
+
+  static int _generateId() {
+    var newId = Hive.box('areas').get('itemIdCounter', defaultValue: 0);
+    Hive.box('areas').put('itemIdCounter', newId + 1);
+    return newId;
+  }
 }
 
 @HiveType(typeId: 3)
@@ -125,6 +135,7 @@ class Count extends HiveObject {
   @HiveField(1)
   CountPhase countPhase = CountPhase.back;
 
+  // TODO: merge secondary count in
   Count({
     Map<CountKey, int>? itemCounts,
     Map<CountKey, int>? secondaryItemCounts,
@@ -134,31 +145,24 @@ class Count extends HiveObject {
        countPhase = countPhase ?? CountPhase.back;
 
   int? getCount(Item data) {
-    return itemCounts[CountKey(data.countName ?? data.name, data.countPhase)];
+    return itemCounts[CountKey.fromItem(data)];
   }
 
   void setCount(Item data, int? count) {
     if (count == null) {
-      itemCounts.remove(CountKey(data.countName ?? data.name, data.countPhase));
+      itemCounts.remove(CountKey.fromItem(data));
       return;
     }
 
-    itemCounts[CountKey(data.countName ?? data.name, data.countPhase)] = count;
+    itemCounts[CountKey.fromItem(data)] = count;
   }
 
   int? getSecondaryCount(Item data) {
-    return secondaryItemCounts[CountKey(
-      data.countName ?? data.name,
-      data.countPhase,
-    )];
+    return secondaryItemCounts[CountKey.fromItem(data)];
   }
 
   void setSecondaryCount(Item data, int count) {
-    secondaryItemCounts[CountKey(
-          data.countName ?? data.name,
-          data.countPhase,
-        )] =
-        count;
+    secondaryItemCounts[CountKey.fromItem(data)] = count;
   }
 
   int? getCountTrue(Item data) {
@@ -180,6 +184,16 @@ class Count extends HiveObject {
         return (data.strategyInt ?? 0) - base;
     }
   }
+
+  int getCountTrueByName(String name, CountPhase phase) {
+    int total = 0;
+    for (final entry in itemCounts.entries) {
+      if (entry.key.name == name && entry.key.phase == phase) {
+        total += entry.value;
+      }
+    }
+    return total;
+  }
 }
 
 @HiveType(typeId: 6)
@@ -190,7 +204,15 @@ class CountKey extends HiveObject {
   @HiveField(1)
   CountPhase phase;
 
-  CountKey(this.name, this.phase);
+  @HiveField(2)
+  int id;
+
+  CountKey(this.name, this.phase, this.id);
+
+  CountKey.fromItem(Item data)
+    : name = data.countName ?? data.name,
+      phase = data.countPhase,
+      id = data.id;
 
   @override
   bool operator ==(Object other) {
@@ -203,27 +225,38 @@ class CountKey extends HiveObject {
   int get hashCode => name.hashCode ^ phase.hashCode;
 }
 
-@HiveType(typeId: 10)
-class ExportEntry extends HiveObject {
+@HiveType(typeId: 7)
+class ExportItem extends HiveObject implements ExportEntry {
+  @override
   @HiveField(0)
   String name;
 
-  ExportEntry(this.name);
-}
-
-@HiveType(typeId: 7)
-class ExportItem extends ExportEntry {
+  @HiveField(1)
   List<String> paths;
 
-  ExportItem(super.name, {List<String>? paths}) : paths = paths ?? [];
+  ExportItem(this.name, {List<String>? paths}) : paths = paths ?? [];
 }
 
 @HiveType(typeId: 8)
-class ExportPlaceholder extends ExportEntry {
-  ExportPlaceholder(super.name);
+class ExportPlaceholder extends HiveObject implements ExportEntry {
+  @override
+  @HiveField(0)
+  String name;
+
+  ExportPlaceholder(this.name);
 }
 
 @HiveType(typeId: 9)
-class ExportTitle extends ExportEntry {
-  ExportTitle(super.name);
+class ExportTitle extends HiveObject implements ExportEntry {
+  @override
+  @HiveField(0)
+  String name;
+
+  ExportTitle(this.name);
+}
+
+// Base class for type checking (not stored in Hive)
+abstract class ExportEntry {
+  String get name;
+  set name(String value);
 }
