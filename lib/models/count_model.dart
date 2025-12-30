@@ -41,9 +41,9 @@ class CountModel with ChangeNotifier {
     notifyListeners();
   }
 
-  Count get thisCount => Hive.box('counts').get(date) ?? Count();
+  Count get _thisCount => Hive.box('counts').get(date) ?? Count();
 
-  CountPhase get countPhase => thisCount.countPhase;
+  CountPhase get countPhase => _thisCount.countPhase;
 
   final int _noCount = -1;
 
@@ -56,7 +56,7 @@ class CountModel with ChangeNotifier {
   }
 
   int? getCount(Item data) {
-    return thisCount.getCount(data);
+    return _thisCount.getCount(data);
   }
 
   void setCount(Item data, int? count) {
@@ -68,7 +68,7 @@ class CountModel with ChangeNotifier {
   }
 
   int? getSecondaryCount(Item data) {
-    return thisCount.getSecondaryCount(data);
+    return _thisCount.getSecondaryCount(data);
   }
 
   void setSecondaryCount(Item data, int? count) {
@@ -91,5 +91,22 @@ class CountModel with ChangeNotifier {
     if (data.strategy == CountStrategy.singularAndStacks) {
       setSecondaryCount(data, _noCount);
     }
+  }
+
+  int? getCountTrueByName(String name, CountPhase phase) {
+    final countBox = Hive.box('counts');
+    final currentCount = countBox.get(date) ?? Count();
+
+    return currentCount.getCountTrueByName(name, phase);
+  }
+
+  // TODO: Maintain counts when items are edited/deleted
+  void removeFromCountList(int id) {
+    final countBox = Hive.box('counts');
+    final currentCount = countBox.get(date) ?? Count();
+
+    currentCount.itemCounts.removeWhere((key, value) => key.id == id);
+
+    notifyListeners();
   }
 }

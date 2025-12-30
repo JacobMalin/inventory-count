@@ -100,13 +100,14 @@ class ItemAdapter extends TypeAdapter<Item> {
       defaultCount: fields[4] as int?,
       countPhase: fields[5] as CountPhase?,
       personalCountPhase: fields[6] as CountPhase?,
+      id: fields[7] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Item obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -120,7 +121,9 @@ class ItemAdapter extends TypeAdapter<Item> {
       ..writeByte(5)
       ..write(obj.countPhase)
       ..writeByte(6)
-      ..write(obj.personalCountPhase);
+      ..write(obj.personalCountPhase)
+      ..writeByte(7)
+      ..write(obj.id);
   }
 
   @override
@@ -187,17 +190,20 @@ class CountKeyAdapter extends TypeAdapter<CountKey> {
     return CountKey(
       fields[0] as String,
       fields[1] as CountPhase,
+      fields[2] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, CountKey obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.phase);
+      ..write(obj.phase)
+      ..writeByte(2)
+      ..write(obj.id);
   }
 
   @override
@@ -207,40 +213,6 @@ class CountKeyAdapter extends TypeAdapter<CountKey> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CountKeyAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
-}
-
-class ExportEntryAdapter extends TypeAdapter<ExportEntry> {
-  @override
-  final int typeId = 10;
-
-  @override
-  ExportEntry read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
-    final fields = <int, dynamic>{
-      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
-    };
-    return ExportEntry(
-      fields[0] as String,
-    );
-  }
-
-  @override
-  void write(BinaryWriter writer, ExportEntry obj) {
-    writer
-      ..writeByte(1)
-      ..writeByte(0)
-      ..write(obj.name);
-  }
-
-  @override
-  int get hashCode => typeId.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ExportEntryAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
@@ -257,15 +229,18 @@ class ExportItemAdapter extends TypeAdapter<ExportItem> {
     };
     return ExportItem(
       fields[0] as String,
+      paths: (fields[1] as List?)?.cast<String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, ExportItem obj) {
     writer
-      ..writeByte(1)
+      ..writeByte(2)
       ..writeByte(0)
-      ..write(obj.name);
+      ..write(obj.name)
+      ..writeByte(1)
+      ..write(obj.paths);
   }
 
   @override

@@ -203,9 +203,11 @@ class AreaModel with ChangeNotifier {
 
   List<ExportEntry> get exportList {
     try {
-      return Hive.box(
-        'settings',
-      ).get('exportList', defaultValue: <ExportEntry>[]);
+      final dynamic rawList = Hive.box('settings').get('exportList');
+      if (rawList == null) {
+        return <ExportEntry>[];
+      }
+      return List<ExportEntry>.from(rawList);
     } on TypeError {
       return <ExportEntry>[];
     }

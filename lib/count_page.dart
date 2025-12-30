@@ -186,6 +186,23 @@ class _CountListState extends State<CountList> {
           builder: (context, countModel, child) {
             final tree = _buildTree(areaModel, countModel.countPhase);
 
+            // Check if tree is empty (no items to count)
+            if (tree.childrenAsList.isEmpty ||
+                tree.childrenAsList.every(
+                  (areaNode) => areaNode.childrenAsList.isEmpty,
+                )) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'Add items in Setup to begin counting!',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+              );
+            }
+
             return TreeView.simple(
               key: ValueKey('tree_${countModel.countPhase.index}'),
               tree: tree,
