@@ -306,6 +306,17 @@ class ExportItem extends HiveObject implements ExportEntry {
   List<String> paths;
 
   ExportItem(this.name, {List<String>? paths}) : paths = paths ?? [];
+
+  Map<String, dynamic> toJson() {
+    return {'type': 'ExportItem', 'name': name, 'paths': paths};
+  }
+
+  static ExportItem fromJson(Map<String, dynamic> json) {
+    return ExportItem(
+      json['name'],
+      paths: List<String>.from(json['paths'] ?? []),
+    );
+  }
 }
 
 @HiveType(typeId: 8)
@@ -315,6 +326,14 @@ class ExportPlaceholder extends HiveObject implements ExportEntry {
   String name;
 
   ExportPlaceholder(this.name);
+
+  Map<String, dynamic> toJson() {
+    return {'type': 'ExportPlaceholder', 'name': name};
+  }
+
+  static ExportPlaceholder fromJson(Map<String, dynamic> json) {
+    return ExportPlaceholder(json['name']);
+  }
 }
 
 @HiveType(typeId: 9)
@@ -324,12 +343,22 @@ class ExportTitle extends HiveObject implements ExportEntry {
   String name;
 
   ExportTitle(this.name);
+
+  Map<String, dynamic> toJson() {
+    return {'type': 'ExportTitle', 'name': name};
+  }
+
+  static ExportTitle fromJson(Map<String, dynamic> json) {
+    return ExportTitle(json['name']);
+  }
 }
 
 // Base class for type checking (not stored in Hive)
 abstract class ExportEntry {
   String get name;
   set name(String value);
+
+  Map<String, dynamic> toJson();
 }
 
 @HiveType(typeId: 10)

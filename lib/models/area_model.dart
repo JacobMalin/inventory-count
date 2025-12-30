@@ -392,10 +392,7 @@ class AreaModel with ChangeNotifier {
     return jsonEncode(
       data.map((key, value) {
         if (value is List) {
-          return MapEntry(
-            key,
-            value.map((item) => item.toJson()).toList(),
-          );
+          return MapEntry(key, value.map((item) => item.toJson()).toList());
         }
         return MapEntry(key, value);
       }),
@@ -408,9 +405,7 @@ class AreaModel with ChangeNotifier {
     // Import areas
     if (data['areas'] != null) {
       final areasList = (data['areas'] as List)
-          .map(
-            (json) => Area.fromJson(json as Map<String, dynamic>),
-          )
+          .map((json) => Area.fromJson(json as Map<String, dynamic>))
           .toList();
       _areasBox.put('areas', areasList);
     }
@@ -418,6 +413,42 @@ class AreaModel with ChangeNotifier {
     // Import itemIdCounter
     if (data['itemIdCounter'] != null) {
       _areasBox.put('itemIdCounter', data['itemIdCounter']);
+    }
+
+    notifyListeners();
+  }
+
+  String exportExportListToJson() {
+    final currentExportList = exportList;
+
+    final data = {
+      'exportList': currentExportList.map((entry) => entry.toJson()).toList(),
+    };
+
+    return jsonEncode(data);
+  }
+
+  void importExportListFromJson(String jsonString) {
+    final data = jsonDecode(jsonString) as Map<String, dynamic>;
+
+    // Import export list
+    if (data['exportList'] != null) {
+      final exportListData = (data['exportList'] as List).map((json) {
+        final type = json['type'] as String;
+        switch (type) {
+          case 'ExportItem':
+            return ExportItem.fromJson(json as Map<String, dynamic>);
+          case 'ExportTitle':
+            return ExportTitle.fromJson(json as Map<String, dynamic>);
+          case 'ExportPlaceholder':
+            return ExportPlaceholder.fromJson(json as Map<String, dynamic>);
+          default:
+            throw Exception('Unknown export entry type: $type');
+        }
+      }).toList();
+
+      Hive.box('settings').put('exportList', exportListData);
+      maintainExportList();
     }
 
     notifyListeners();

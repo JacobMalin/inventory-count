@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/hive.dart';
@@ -50,6 +53,147 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                     centerTitle: true,
                     scrolledUnderElevation: 0,
                     backgroundColor: Theme.of(context).colorScheme.surface,
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.download),
+                        onPressed: () async {
+                          // Export functionality
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Export Order'),
+                              content: const Text(
+                                'This will create a backup file of your export order.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    Navigator.pop(context);
+
+                                    try {
+                                      final jsonString = areaModel
+                                          .exportExportListToJson();
+
+                                      final String? outputPath =
+                                          await FilePicker.platform.saveFile(
+                                            dialogTitle:
+                                                'Save export order backup',
+                                            fileName:
+                                                'export_order_backup.json',
+                                            type: FileType.custom,
+                                            allowedExtensions: ['json'],
+                                          );
+
+                                      if (outputPath != null) {
+                                        final file = File(outputPath);
+                                        await file.writeAsString(jsonString);
+
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Export successful!',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Export failed: $e'),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  child: const Text('Export'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.upload_file),
+                        onPressed: () async {
+                          // Import functionality
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Import Export Order'),
+                              content: const Text(
+                                'This will replace your current export order. Are you sure?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    Navigator.pop(context);
+
+                                    try {
+                                      final result = await FilePicker.platform
+                                          .pickFiles(
+                                            type: FileType.custom,
+                                            allowedExtensions: ['json'],
+                                          );
+
+                                      if (result != null &&
+                                          result.files.single.path != null) {
+                                        final file = File(
+                                          result.files.single.path!,
+                                        );
+                                        final jsonString = await file
+                                            .readAsString();
+
+                                        areaModel.importExportListFromJson(
+                                          jsonString,
+                                        );
+
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Import successful!',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Import failed: $e'),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  child: const Text('Import'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                   body: exportList.isEmpty
                       ? const Center(child: Text('No items to export'))
