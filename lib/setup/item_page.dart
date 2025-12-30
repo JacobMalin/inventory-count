@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
+import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
@@ -45,14 +46,22 @@ class ItemPage extends StatelessWidget {
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Rename Item'),
-                      content: TextField(
-                        controller: controller,
-                        autofocus: true,
-                        onSubmitted: (value) {
-                          if (value.isNotEmpty) {
-                            areaModel.editItem(selectedOrder, newName: value);
-                            Navigator.pop(context);
-                          }
+                      content: Consumer<CountModel>(
+                        builder: (context, countModel, child) {
+                          return TextField(
+                            controller: controller,
+                            autofocus: true,
+                            onSubmitted: (value) {
+                              if (value.isNotEmpty) {
+                                areaModel.editItem(
+                                  selectedOrder,
+                                  newName: value,
+                                  countModel: countModel,
+                                );
+                                Navigator.pop(context);
+                              }
+                            },
+                          );
                         },
                       ),
                       actions: [
@@ -80,13 +89,17 @@ class ItemPage extends StatelessWidget {
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Cancel'),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            areaModel.removeItem(selectedOrder);
-                            Navigator.pop(context);
-                            deselect();
+                        Consumer<CountModel>(
+                          builder: (context, countModel, child) {
+                            return TextButton(
+                              onPressed: () {
+                                areaModel.removeItem(selectedOrder, countModel);
+                                Navigator.pop(context);
+                                deselect();
+                              },
+                              child: const Text('Delete'),
+                            );
                           },
-                          child: const Text('Delete'),
                         ),
                       ],
                     ),
@@ -123,6 +136,7 @@ class _ItemSettingsState extends State<ItemSettings> {
   late CountPhase countPhase;
   late CountPhase? personalCountPhase;
   final TextEditingController strategyIntController = TextEditingController();
+  final TextEditingController strategyInt2Controller = TextEditingController();
   final TextEditingController countNameController = TextEditingController();
   final TextEditingController defaultCountController = TextEditingController();
 
@@ -136,6 +150,9 @@ class _ItemSettingsState extends State<ItemSettings> {
     if (widget.item.strategyInt != null) {
       strategyIntController.text = widget.item.strategyInt.toString();
     }
+    if (widget.item.strategyInt2 != null) {
+      strategyInt2Controller.text = widget.item.strategyInt2.toString();
+    }
     if (widget.item.defaultCount != null) {
       defaultCountController.text = widget.item.defaultCount.toString();
     }
@@ -144,6 +161,7 @@ class _ItemSettingsState extends State<ItemSettings> {
   @override
   void dispose() {
     strategyIntController.dispose();
+    strategyInt2Controller.dispose();
     countNameController.dispose();
     defaultCountController.dispose();
     super.dispose();
@@ -153,8 +171,8 @@ class _ItemSettingsState extends State<ItemSettings> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
-      child: Consumer<AreaModel>(
-        builder: (context, areaModel, child) {
+      child: Consumer2<AreaModel, CountModel>(
+        builder: (context, areaModel, countModel, child) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -167,7 +185,11 @@ class _ItemSettingsState extends State<ItemSettings> {
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (value) {
-                  areaModel.editItem(widget.selectedOrder, newCountName: value);
+                  areaModel.editItem(
+                    widget.selectedOrder,
+                    newCountName: value,
+                    countModel: countModel,
+                  );
                 },
               ),
               const SizedBox(height: 24),
@@ -189,7 +211,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                       label: Text('Stacks'),
                     ),
                     ButtonSegment<CountStrategy>(
-                      value: CountStrategy.singularAndStacks,
+                      value: CountStrategy.boxesAndStacks,
                       label: Text('Both'),
                     ),
                     ButtonSegment<CountStrategy>(
@@ -205,13 +227,13 @@ class _ItemSettingsState extends State<ItemSettings> {
                     areaModel.editItem(
                       widget.selectedOrder,
                       newStrategy: countStrategy,
+                      countModel: countModel,
                     );
                   },
                 ),
               ),
               const SizedBox(height: 24),
-              if (countStrategy == CountStrategy.stacks ||
-                  countStrategy == CountStrategy.singularAndStacks)
+              if (countStrategy == CountStrategy.stacks)
                 TextField(
                   controller: strategyIntController,
                   keyboardType: TextInputType.number,
@@ -220,12 +242,79 @@ class _ItemSettingsState extends State<ItemSettings> {
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (value) {
-                    final intValue = int.tryParse(value);
-                    areaModel.editItem(
-                      widget.selectedOrder,
-                      newStrategyInt: intValue,
-                    );
+                    if (value.isEmpty) {
+                      areaModel.editItem(
+                        widget.selectedOrder,
+                        clearStrategyInt: true,
+                        countModel: countModel,
+                      );
+                    } else {
+                      final intValue = int.tryParse(value);
+                      areaModel.editItem(
+                        widget.selectedOrder,
+                        newStrategyInt: intValue,
+                        countModel: countModel,
+                      );
+                    }
                   },
+                ),
+              if (countStrategy == CountStrategy.boxesAndStacks)
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: strategyIntController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Stacks per box',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) {
+                          if (value.isEmpty) {
+                            areaModel.editItem(
+                              widget.selectedOrder,
+                              clearStrategyInt: true,
+                              countModel: countModel,
+                            );
+                          } else {
+                            final intValue = int.tryParse(value);
+                            areaModel.editItem(
+                              widget.selectedOrder,
+                              newStrategyInt: intValue,
+                              countModel: countModel,
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextField(
+                        controller: strategyInt2Controller,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Items per stack',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) {
+                          if (value.isEmpty) {
+                            areaModel.editItem(
+                              widget.selectedOrder,
+                              clearStrategyInt2: true,
+                              countModel: countModel,
+                            );
+                          } else {
+                            final intValue = int.tryParse(value);
+                            areaModel.editItem(
+                              widget.selectedOrder,
+                              newStrategyInt2: intValue,
+                              countModel: countModel,
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               if (countStrategy == CountStrategy.negative)
                 TextField(
@@ -236,11 +325,20 @@ class _ItemSettingsState extends State<ItemSettings> {
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (value) {
-                    final intValue = int.tryParse(value);
-                    areaModel.editItem(
-                      widget.selectedOrder,
-                      newStrategyInt: intValue,
-                    );
+                    if (value.isEmpty) {
+                      areaModel.editItem(
+                        widget.selectedOrder,
+                        clearStrategyInt: true,
+                        countModel: countModel,
+                      );
+                    } else {
+                      final intValue = int.tryParse(value);
+                      areaModel.editItem(
+                        widget.selectedOrder,
+                        newStrategyInt: intValue,
+                        countModel: countModel,
+                      );
+                    }
                   },
                 ),
               const SizedBox(height: 24),
@@ -257,7 +355,15 @@ class _ItemSettingsState extends State<ItemSettings> {
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (value) {
-                  final intValue = int.tryParse(value) ?? 0;
+                  if (value.isEmpty) {
+                    areaModel.editItem(
+                      widget.selectedOrder,
+                      clearDefaultCount: true,
+                    );
+                    return;
+                  }
+
+                  final intValue = int.tryParse(value);
                   areaModel.editItem(
                     widget.selectedOrder,
                     newDefaultCount: intValue,
@@ -300,6 +406,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                     areaModel.editItem(
                       widget.selectedOrder,
                       newCountPhase: countPhase,
+                      countModel: countModel,
                     );
                   },
                 ),
@@ -338,6 +445,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                     areaModel.editItem(
                       widget.selectedOrder,
                       newPersonalCountPhase: personalCountPhase,
+                      countModel: countModel,
                     );
                   },
                 ),

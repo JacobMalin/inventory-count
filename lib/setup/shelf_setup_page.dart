@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/hive.dart';
@@ -31,35 +34,37 @@ class _ShelfSetupPageState extends State<ShelfSetupPage> {
 
   @override
   Widget build(BuildContext context) {
-    switch (selectedOrder.length) {
-      case 0:
-        return AreasPage(select: select);
-      case 1:
-        return AreaPage(
-          select: select,
-          deselect: deselect,
-          selectedOrder: selectedOrder,
-        );
-      default:
-        dynamic shelfOrItem = Provider.of<AreaModel>(
-          context,
-        ).getShelfOrItem(selectedOrder);
+    return Consumer<AreaModel>(
+      builder: (context, areaModel, child) {
+        switch (selectedOrder.length) {
+          case 0:
+            return AreasPage(select: select);
+          case 1:
+            return AreaPage(
+              select: select,
+              deselect: deselect,
+              selectedOrder: selectedOrder,
+            );
+          default:
+            dynamic shelfOrItem = areaModel.getShelfOrItem(selectedOrder);
 
-        if (shelfOrItem is Shelf) {
-          return ShelfPage(
-            select: select,
-            deselect: deselect,
-            shelf: shelfOrItem,
-            selectedOrder: selectedOrder,
-          );
-        } else {
-          return ItemPage(
-            deselect: deselect,
-            item: shelfOrItem,
-            selectedOrder: selectedOrder,
-          );
+            if (shelfOrItem is Shelf) {
+              return ShelfPage(
+                select: select,
+                deselect: deselect,
+                shelf: shelfOrItem,
+                selectedOrder: selectedOrder,
+              );
+            } else {
+              return ItemPage(
+                deselect: deselect,
+                item: shelfOrItem,
+                selectedOrder: selectedOrder,
+              );
+            }
         }
-    }
+      },
+    );
   }
 }
 
@@ -70,14 +75,139 @@ class AreasPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Areas', style: Theme.of(context).textTheme.headlineLarge),
-        centerTitle: true,
-        scrolledUnderElevation: 0,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-      ),
-      body: AreaList(select: select),
+    return Consumer<AreaModel>(
+      builder: (context, areaModel, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              'Areas',
+              style: Theme.of(context).textTheme.headlineLarge,
+            ),
+            centerTitle: true,
+            scrolledUnderElevation: 0,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.download),
+                onPressed: () async {
+                  // Export functionality
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Export Areas'),
+                      content: const Text(
+                        'This will create a backup file of all your areas.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            Navigator.pop(context);
+
+                            try {
+                              final jsonString = areaModel.exportAreasToJson();
+
+                              final String? outputPath = await FilePicker
+                                  .platform
+                                  .saveFile(
+                                    dialogTitle: 'Save areas backup',
+                                    fileName: 'areas_backup.json',
+                                    type: FileType.custom,
+                                    allowedExtensions: ['json'],
+                                  );
+
+                              if (outputPath != null) {
+                                final file = File(outputPath);
+                                await file.writeAsString(jsonString);
+
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Export successful!'),
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Export failed: $e')),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Export'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.upload_file),
+                onPressed: () async {
+                  // Import functionality
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Import Areas'),
+                      content: const Text(
+                        'This will replace all current areas. Are you sure?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            Navigator.pop(context);
+
+                            try {
+                              final result = await FilePicker.platform
+                                  .pickFiles(
+                                    type: FileType.custom,
+                                    allowedExtensions: ['json'],
+                                  );
+
+                              if (result != null &&
+                                  result.files.single.path != null) {
+                                final file = File(result.files.single.path!);
+                                final jsonString = await file.readAsString();
+
+                                areaModel.importAreasFromJson(jsonString);
+
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Import successful!'),
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Import failed: $e')),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Import'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          body: AreaList(select: select),
+        );
+      },
     );
   }
 }
