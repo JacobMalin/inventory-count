@@ -112,7 +112,14 @@ class ShelfPage extends StatelessWidget {
             scrolledUnderElevation: 0,
             backgroundColor: Theme.of(context).colorScheme.surface,
           ),
-          body: ItemList(select: select, selectedOrder: selectedOrder),
+          body: GestureDetector(
+            onHorizontalDragEnd: (details) {
+              if (details.primaryVelocity! > 300) {
+                deselect();
+              }
+            },
+            child: ItemList(select: select, selectedOrder: selectedOrder),
+          ),
         );
       },
     );

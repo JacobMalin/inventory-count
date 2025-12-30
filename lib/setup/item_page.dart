@@ -110,7 +110,14 @@ class ItemPage extends StatelessWidget {
             scrolledUnderElevation: 0,
             backgroundColor: Theme.of(context).colorScheme.surface,
           ),
-          body: ItemSettings(item: item, selectedOrder: selectedOrder),
+          body: GestureDetector(
+            onHorizontalDragEnd: (details) {
+              if (details.primaryVelocity! > 300) {
+                deselect();
+              }
+            },
+            child: ItemSettings(item: item, selectedOrder: selectedOrder),
+          ),
         );
       },
     );
