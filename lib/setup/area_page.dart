@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
+import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:inventory_count/setup/setup_tiles.dart';
 import 'package:provider/provider.dart';
@@ -33,7 +34,6 @@ class AreaPage extends StatelessWidget {
               icon: const Icon(Icons.arrow_back_ios_new),
               onPressed: deselect,
             ),
-            actionsPadding: EdgeInsets.all(10),
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit),
@@ -85,13 +85,20 @@ class AreaPage extends StatelessWidget {
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Cancel'),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            areaModel.removeArea(selectedOrder.last);
-                            Navigator.pop(context);
-                            deselect();
+                        Consumer<CountModel>(
+                          builder: (context, countModel, child) {
+                            return TextButton(
+                              onPressed: () {
+                                areaModel.removeArea(
+                                  selectedOrder.last,
+                                  countModel,
+                                );
+                                Navigator.pop(context);
+                                deselect();
+                              },
+                              child: const Text('Delete'),
+                            );
                           },
-                          child: const Text('Delete'),
                         ),
                       ],
                     ),

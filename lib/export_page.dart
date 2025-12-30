@@ -86,28 +86,84 @@ class ExportPage extends StatelessWidget {
     CountModel countModel,
   ) {
     // Get counts for each phase
-    final backCount = countModel.getCountTrueByName(item.name, CountPhase.back);
-    final cabinetCount = countModel.getCountTrueByName(
+    int? backCount = countModel.getCountValueByName(item.name, CountPhase.back);
+    int? cabinetCount = countModel.getCountValueByName(
       item.name,
       CountPhase.cabinet,
     );
-    final outCount = countModel.getCountTrueByName(item.name, CountPhase.out);
+    int? outCount = countModel.getCountValueByName(item.name, CountPhase.out);
+
+    bool backIsNotCounted = backCount == -1;
+    bool cabinetIsNotCounted = cabinetCount == -1;
+    bool outIsNotCounted = outCount == -1;
+
+    if (backIsNotCounted) {
+      backCount = null;
+    }
+    if (cabinetIsNotCounted) {
+      cabinetCount = null;
+    }
+    if (outIsNotCounted) {
+      outCount = null;
+    }
 
     // Calculate total
-    final total = (backCount ?? 0) + (cabinetCount ?? 0) + (outCount ?? 0);
-    final totalStr = total > 0 ? total.toString() : '';
+    final bool anyNotCounted =
+        backIsNotCounted || cabinetIsNotCounted || outIsNotCounted;
+    final bool hasAnyValue =
+        (!backIsNotCounted && backCount != null) ||
+        (!cabinetIsNotCounted && cabinetCount != null) ||
+        (!outIsNotCounted && outCount != null);
+
+    final String totalStr;
+    if (hasAnyValue) {
+      final total = (backCount ?? 0) + (cabinetCount ?? 0) + (outCount ?? 0);
+      totalStr = total.toString();
+    } else if (anyNotCounted) {
+      totalStr = '-';
+    } else {
+      totalStr = '';
+    }
 
     return TableRow(
       children: [
         _buildDataCell(context, item.name, TextAlign.left),
-        _buildDataCell(context, backCount?.toString() ?? '', TextAlign.center),
         _buildDataCell(
           context,
-          cabinetCount?.toString() ?? '',
+          backIsNotCounted ? '-' : backCount?.toString() ?? '',
           TextAlign.center,
+          backgroundColor: backIsNotCounted
+              ? Colors.yellow.withValues(alpha: 0.3)
+              : (backCount == null ? Colors.red.withValues(alpha: 0.1) : null),
         ),
-        _buildDataCell(context, outCount?.toString() ?? '', TextAlign.center),
-        _buildDataCell(context, totalStr, TextAlign.center),
+        _buildDataCell(
+          context,
+          cabinetIsNotCounted ? '-' : cabinetCount?.toString() ?? '',
+          TextAlign.center,
+          backgroundColor: cabinetIsNotCounted
+              ? Colors.yellow.withValues(alpha: 0.3)
+              : (cabinetCount == null
+                    ? Colors.red.withValues(alpha: 0.1)
+                    : null),
+        ),
+        _buildDataCell(
+          context,
+          outIsNotCounted ? '-' : outCount?.toString() ?? '',
+          TextAlign.center,
+          backgroundColor: outIsNotCounted
+              ? Colors.yellow.withValues(alpha: 0.3)
+              : (outCount == null ? Colors.red.withValues(alpha: 0.1) : null),
+        ),
+        _buildDataCell(
+          context,
+          totalStr,
+          TextAlign.center,
+          backgroundColor: anyNotCounted
+              ? Colors.yellow.withValues(alpha: 0.3)
+              : ((backCount == null || cabinetCount == null || outCount == null)
+                    ? Colors.red.withValues(alpha: 0.1)
+                    : null),
+        ),
       ],
     );
   }
@@ -154,9 +210,11 @@ class ExportPage extends StatelessWidget {
   Widget _buildDataCell(
     BuildContext context,
     String text,
-    TextAlign textAlign,
-  ) {
-    return Padding(
+    TextAlign textAlign, {
+    Color? backgroundColor,
+  }) {
+    return Container(
+      color: backgroundColor,
       padding: const EdgeInsets.all(12.0),
       child: Text(
         text,

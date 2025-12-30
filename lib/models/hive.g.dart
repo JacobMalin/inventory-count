@@ -96,6 +96,7 @@ class ItemAdapter extends TypeAdapter<Item> {
       fields[0] as String,
       strategy: fields[1] as CountStrategy?,
       strategyInt: fields[2] as int?,
+      strategyInt2: fields[8] as int?,
       countName: fields[3] as String?,
       defaultCount: fields[4] as int?,
       countPhase: fields[5] as CountPhase?,
@@ -107,13 +108,15 @@ class ItemAdapter extends TypeAdapter<Item> {
   @override
   void write(BinaryWriter writer, Item obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
       ..write(obj.strategy)
       ..writeByte(2)
       ..write(obj.strategyInt)
+      ..writeByte(8)
+      ..write(obj.strategyInt2)
       ..writeByte(3)
       ..write(obj.countName)
       ..writeByte(4)
@@ -137,6 +140,46 @@ class ItemAdapter extends TypeAdapter<Item> {
           typeId == other.typeId;
 }
 
+class CountEntryAdapter extends TypeAdapter<CountEntry> {
+  @override
+  final int typeId = 6;
+
+  @override
+  CountEntry read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return CountEntry(
+      fields[0] as String,
+      fields[1] as CountPhase,
+      fields[2] as ItemCountType,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, CountEntry obj) {
+    writer
+      ..writeByte(3)
+      ..writeByte(0)
+      ..write(obj.name)
+      ..writeByte(1)
+      ..write(obj.phase)
+      ..writeByte(2)
+      ..write(obj.countType);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CountEntryAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
 class CountAdapter extends TypeAdapter<Count> {
   @override
   final int typeId = 5;
@@ -148,8 +191,7 @@ class CountAdapter extends TypeAdapter<Count> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Count(
-      itemCounts: (fields[0] as Map?)?.cast<CountKey, int>(),
-      secondaryItemCounts: (fields[2] as Map?)?.cast<CountKey, int>(),
+      itemCounts: (fields[0] as Map?)?.cast<int, CountEntry>(),
       countPhase: fields[1] as CountPhase?,
     );
   }
@@ -157,11 +199,9 @@ class CountAdapter extends TypeAdapter<Count> {
   @override
   void write(BinaryWriter writer, Count obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(2)
       ..writeByte(0)
       ..write(obj.itemCounts)
-      ..writeByte(2)
-      ..write(obj.secondaryItemCounts)
       ..writeByte(1)
       ..write(obj.countPhase);
   }
@@ -173,46 +213,6 @@ class CountAdapter extends TypeAdapter<Count> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CountAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
-}
-
-class CountKeyAdapter extends TypeAdapter<CountKey> {
-  @override
-  final int typeId = 6;
-
-  @override
-  CountKey read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
-    final fields = <int, dynamic>{
-      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
-    };
-    return CountKey(
-      fields[0] as String,
-      fields[1] as CountPhase,
-      fields[2] as int,
-    );
-  }
-
-  @override
-  void write(BinaryWriter writer, CountKey obj) {
-    writer
-      ..writeByte(3)
-      ..writeByte(0)
-      ..write(obj.name)
-      ..writeByte(1)
-      ..write(obj.phase)
-      ..writeByte(2)
-      ..write(obj.id);
-  }
-
-  @override
-  int get hashCode => typeId.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is CountKeyAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
@@ -322,6 +322,77 @@ class ExportTitleAdapter extends TypeAdapter<ExportTitle> {
           typeId == other.typeId;
 }
 
+class ItemCountAdapter extends TypeAdapter<ItemCount> {
+  @override
+  final int typeId = 10;
+
+  @override
+  ItemCount read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return ItemCount(
+      fields[5] as CountStrategy,
+      fields[3] as int?,
+      fields[4] as int?,
+      field1: fields[0] as int?,
+      field2: fields[1] as int?,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, ItemCount obj) {
+    writer
+      ..writeByte(5)
+      ..writeByte(0)
+      ..write(obj.field1)
+      ..writeByte(1)
+      ..write(obj.field2)
+      ..writeByte(3)
+      ..write(obj.modifier1)
+      ..writeByte(4)
+      ..write(obj.modifier2)
+      ..writeByte(5)
+      ..write(obj.strategy);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ItemCountAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ItemNotCountedAdapter extends TypeAdapter<ItemNotCounted> {
+  @override
+  final int typeId = 11;
+
+  @override
+  ItemNotCounted read(BinaryReader reader) {
+    return ItemNotCounted();
+  }
+
+  @override
+  void write(BinaryWriter writer, ItemNotCounted obj) {
+    writer.writeByte(0);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ItemNotCountedAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
 class CountStrategyAdapter extends TypeAdapter<CountStrategy> {
   @override
   final int typeId = 3;
@@ -334,7 +405,7 @@ class CountStrategyAdapter extends TypeAdapter<CountStrategy> {
       case 1:
         return CountStrategy.stacks;
       case 2:
-        return CountStrategy.singularAndStacks;
+        return CountStrategy.boxesAndStacks;
       case 3:
         return CountStrategy.negative;
       default:
@@ -351,7 +422,7 @@ class CountStrategyAdapter extends TypeAdapter<CountStrategy> {
       case CountStrategy.stacks:
         writer.writeByte(1);
         break;
-      case CountStrategy.singularAndStacks:
+      case CountStrategy.boxesAndStacks:
         writer.writeByte(2);
         break;
       case CountStrategy.negative:

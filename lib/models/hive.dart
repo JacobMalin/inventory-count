@@ -12,10 +12,12 @@ Future<void> hiveSetup() async {
   Hive.registerAdapter<CountStrategy>(CountStrategyAdapter());
   Hive.registerAdapter<CountPhase>(CountPhaseAdapter());
   Hive.registerAdapter<Count>(CountAdapter());
-  Hive.registerAdapter<CountKey>(CountKeyAdapter());
   Hive.registerAdapter<ExportItem>(ExportItemAdapter());
   Hive.registerAdapter<ExportPlaceholder>(ExportPlaceholderAdapter());
   Hive.registerAdapter<ExportTitle>(ExportTitleAdapter());
+  Hive.registerAdapter<ItemCount>(ItemCountAdapter());
+  Hive.registerAdapter<ItemNotCounted>(ItemNotCountedAdapter());
+  Hive.registerAdapter<CountEntry>(CountEntryAdapter());
 
   await Hive.openBox('areas');
   await Hive.openBox('counts');
@@ -38,6 +40,35 @@ class Area extends HiveObject {
 
   Area(this.name, {List? shelvesAndItems})
     : shelvesAndItems = shelvesAndItems ?? [];
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'shelvesAndItems': shelvesAndItems.map((item) {
+        if (item is Shelf) {
+          return {'type': 'shelf', 'data': item.toJson()};
+        } else if (item is Item) {
+          return {'type': 'item', 'data': item.toJson()};
+        }
+        return null;
+      }).toList(),
+    };
+  }
+
+  static Area fromJson(Map<String, dynamic> json) {
+    final shelvesAndItems = (json['shelvesAndItems'] as List? ?? [])
+        .map((item) {
+          if (item['type'] == 'shelf') {
+            return Shelf.fromJson(item['data']);
+          } else if (item['type'] == 'item') {
+            return Item.fromJson(item['data']);
+          }
+          return null;
+        })
+        .where((item) => item != null)
+        .toList();
+    return Area(json['name'], shelvesAndItems: shelvesAndItems);
+  }
 }
 
 @HiveType(typeId: 1)
@@ -49,6 +80,20 @@ class Shelf extends HiveObject {
   List items;
 
   Shelf(this.name, {List? items}) : items = items ?? [];
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'items': items.map((item) => (item as Item).toJson()).toList(),
+    };
+  }
+
+  static Shelf fromJson(Map<String, dynamic> json) {
+    final items = (json['items'] as List? ?? [])
+        .map((item) => Item.fromJson(item))
+        .toList();
+    return Shelf(json['name'], items: items);
+  }
 }
 
 @HiveType(typeId: 2)
@@ -61,6 +106,9 @@ class Item extends HiveObject {
 
   @HiveField(2)
   int? strategyInt;
+
+  @HiveField(8)
+  int? strategyInt2;
 
   @HiveField(3)
   String? countName;
@@ -81,6 +129,7 @@ class Item extends HiveObject {
     this.name, {
     CountStrategy? strategy,
     this.strategyInt,
+    this.strategyInt2,
     this.countName,
     this.defaultCount,
     CountPhase? countPhase,
@@ -95,6 +144,36 @@ class Item extends HiveObject {
     Hive.box('areas').put('itemIdCounter', newId + 1);
     return newId;
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'strategy': strategy.index,
+      'strategyInt': strategyInt,
+      'strategyInt2': strategyInt2,
+      'countName': countName,
+      'defaultCount': defaultCount,
+      'countPhase': countPhase.index,
+      'personalCountPhase': personalCountPhase?.index,
+      'id': id,
+    };
+  }
+
+  static Item fromJson(Map<String, dynamic> json) {
+    return Item(
+      json['name'],
+      strategy: CountStrategy.values[json['strategy'] ?? 0],
+      strategyInt: json['strategyInt'],
+      strategyInt2: json['strategyInt2'],
+      countName: json['countName'],
+      defaultCount: json['defaultCount'],
+      countPhase: CountPhase.values[json['countPhase'] ?? 0],
+      personalCountPhase: json['personalCountPhase'] != null
+          ? CountPhase.values[json['personalCountPhase']]
+          : null,
+      id: json['id'],
+    );
+  }
 }
 
 @HiveType(typeId: 3)
@@ -106,7 +185,7 @@ enum CountStrategy {
   stacks,
 
   @HiveField(2)
-  singularAndStacks,
+  boxesAndStacks,
 
   @HiveField(3)
   negative,
@@ -124,80 +203,8 @@ enum CountPhase {
   out,
 }
 
-@HiveType(typeId: 5)
-class Count extends HiveObject {
-  @HiveField(0)
-  final Map<CountKey, int> itemCounts;
-
-  @HiveField(2)
-  final Map<CountKey, int> secondaryItemCounts;
-
-  @HiveField(1)
-  CountPhase countPhase = CountPhase.back;
-
-  // TODO: merge secondary count in
-  Count({
-    Map<CountKey, int>? itemCounts,
-    Map<CountKey, int>? secondaryItemCounts,
-    CountPhase? countPhase,
-  }) : itemCounts = itemCounts ?? {},
-       secondaryItemCounts = secondaryItemCounts ?? {},
-       countPhase = countPhase ?? CountPhase.back;
-
-  int? getCount(Item data) {
-    return itemCounts[CountKey.fromItem(data)];
-  }
-
-  void setCount(Item data, int? count) {
-    if (count == null) {
-      itemCounts.remove(CountKey.fromItem(data));
-      return;
-    }
-
-    itemCounts[CountKey.fromItem(data)] = count;
-  }
-
-  int? getSecondaryCount(Item data) {
-    return secondaryItemCounts[CountKey.fromItem(data)];
-  }
-
-  void setSecondaryCount(Item data, int count) {
-    secondaryItemCounts[CountKey.fromItem(data)] = count;
-  }
-
-  int? getCountTrue(Item data) {
-    int? base = getCount(data);
-    int? secondary = getSecondaryCount(data);
-
-    if (base == null) {
-      return null;
-    }
-
-    switch (data.strategy) {
-      case CountStrategy.singular:
-        return base;
-      case CountStrategy.stacks:
-        return base * (data.strategyInt ?? 1);
-      case CountStrategy.singularAndStacks:
-        return (secondary ?? 0) + ((data.strategyInt ?? 1) * base);
-      case CountStrategy.negative:
-        return (data.strategyInt ?? 0) - base;
-    }
-  }
-
-  int getCountTrueByName(String name, CountPhase phase) {
-    int total = 0;
-    for (final entry in itemCounts.entries) {
-      if (entry.key.name == name && entry.key.phase == phase) {
-        total += entry.value;
-      }
-    }
-    return total;
-  }
-}
-
 @HiveType(typeId: 6)
-class CountKey extends HiveObject {
+class CountEntry extends HiveObject {
   @HiveField(0)
   String name;
 
@@ -205,24 +212,88 @@ class CountKey extends HiveObject {
   CountPhase phase;
 
   @HiveField(2)
-  int id;
+  ItemCountType countType;
 
-  CountKey(this.name, this.phase, this.id);
+  CountEntry(this.name, this.phase, this.countType);
+}
 
-  CountKey.fromItem(Item data)
-    : name = data.countName ?? data.name,
-      phase = data.countPhase,
-      id = data.id;
+@HiveType(typeId: 5)
+class Count extends HiveObject {
+  @HiveField(0)
+  final Map<int, CountEntry> itemCounts;
 
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+  @HiveField(1)
+  CountPhase countPhase = CountPhase.back;
 
-    return other is CountKey && other.name == name && other.phase == phase;
+  Count({Map<int, CountEntry>? itemCounts, CountPhase? countPhase})
+    : itemCounts = itemCounts ?? {},
+      countPhase = countPhase ?? CountPhase.back;
+
+  ItemCountType? getCount(Item data) {
+    return itemCounts[data.id]?.countType;
   }
 
-  @override
-  int get hashCode => name.hashCode ^ phase.hashCode;
+  void setCount(Item data, ItemCountType? count) {
+    if (count == null || (count is ItemCount && count.isEmpty())) {
+      itemCounts.remove(data.id);
+      return;
+    }
+
+    itemCounts[data.id] = CountEntry(
+      data.countName ?? data.name,
+      data.countPhase,
+      count,
+    );
+  }
+
+  void setNotCounted(Item data) {
+    itemCounts[data.id] = CountEntry(
+      data.countName ?? data.name,
+      data.countPhase,
+      ItemNotCounted(),
+    );
+  }
+
+  int? getCountValueByName(String name, CountPhase phase) {
+    int total = 0;
+    bool isValue = false;
+
+    for (final MapEntry<int, CountEntry> entry in itemCounts.entries) {
+      if (entry.value.countType is ItemNotCounted) return -1;
+
+      final ItemCount itemCount = entry.value.countType as ItemCount;
+      if (entry.value.name == name && entry.value.phase == phase) {
+        isValue = true;
+        total += itemCount.count ?? 0;
+      }
+    }
+    return isValue ? total : null;
+  }
+
+  void updateCountForItem(Item data) {
+    if (!itemCounts.containsKey(data.id)) {
+      return;
+    }
+
+    final existingEntry = itemCounts[data.id]!;
+    ItemCountType existingCountType = existingEntry.countType;
+
+    if (existingCountType is ItemCount) {
+      existingCountType = ItemCount(
+        data.strategy,
+        data.strategyInt,
+        data.strategyInt2,
+        field1: existingCountType.field1,
+        field2: existingCountType.field2,
+      );
+    }
+
+    itemCounts[data.id] = CountEntry(
+      data.countName ?? data.name,
+      data.countPhase,
+      existingCountType,
+    );
+  }
 }
 
 @HiveType(typeId: 7)
@@ -260,3 +331,70 @@ abstract class ExportEntry {
   String get name;
   set name(String value);
 }
+
+@HiveType(typeId: 10)
+class ItemCount extends HiveObject implements ItemCountType {
+  @HiveField(0)
+  int? field1;
+
+  @HiveField(1)
+  int? field2;
+
+  @HiveField(3)
+  int? modifier1;
+
+  @HiveField(4)
+  int? modifier2;
+
+  @HiveField(5)
+  CountStrategy strategy;
+
+  int? get count {
+    if (field1 == null) {
+      return null;
+    }
+
+    switch (strategy) {
+      case CountStrategy.singular:
+        return field1!;
+      case CountStrategy.negative:
+        return (modifier1 ?? 0) - field1!;
+      case CountStrategy.stacks:
+        return field1! * (modifier1 ?? 1);
+      case CountStrategy.boxesAndStacks:
+        if (field2 == null) {
+          return null;
+        }
+
+        return (field1! * (modifier1 ?? 1) + field2!) * (modifier2 ?? 1);
+    }
+  }
+
+  bool isCounted() {
+    return count != null;
+  }
+
+  bool isEmpty() {
+    switch (strategy) {
+      case CountStrategy.singular:
+      case CountStrategy.negative:
+      case CountStrategy.stacks:
+        return field1 == null;
+      case CountStrategy.boxesAndStacks:
+        return field1 == null && field2 == null;
+    }
+  }
+
+  ItemCount(
+    this.strategy,
+    this.modifier1,
+    this.modifier2, {
+    this.field1,
+    this.field2,
+  });
+}
+
+@HiveType(typeId: 11)
+class ItemNotCounted extends HiveObject implements ItemCountType {}
+
+abstract class ItemCountType extends HiveObject {}

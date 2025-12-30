@@ -45,68 +45,80 @@ class CountModel with ChangeNotifier {
 
   CountPhase get countPhase => _thisCount.countPhase;
 
-  final int _noCount = -1;
-
   void setCountPhase(CountPhase phase) {
-    final countBox = Hive.box('counts');
-    final currentCount = countBox.get(date) ?? Count();
+    final Box countBox = Hive.box('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
     currentCount.countPhase = phase;
     countBox.put(date, currentCount);
     notifyListeners();
   }
 
-  int? getCount(Item data) {
+  ItemCountType? getCount(Item data) {
     return _thisCount.getCount(data);
   }
 
-  void setCount(Item data, int? count) {
-    final countBox = Hive.box('counts');
-    final currentCount = countBox.get(date) ?? Count();
-    currentCount.setCount(data, count);
-    countBox.put(date, currentCount);
-    notifyListeners();
-  }
-
-  int? getSecondaryCount(Item data) {
-    return _thisCount.getSecondaryCount(data);
-  }
-
-  void setSecondaryCount(Item data, int? count) {
-    final countBox = Hive.box('counts');
-    final currentCount = countBox.get(date) ?? Count();
-    currentCount.setSecondaryCount(data, count ?? 0);
-    countBox.put(date, currentCount);
-    notifyListeners();
-  }
-
-  int? getCountTrue(Item data) {
-    final countBox = Hive.box('counts');
-    final currentCount = countBox.get(date) ?? Count();
-    return currentCount.getCountTrue(data);
-  }
-
-  void setNoCount(Item data) {
-    setCount(data, _noCount);
-
-    if (data.strategy == CountStrategy.singularAndStacks) {
-      setSecondaryCount(data, _noCount);
+  void setField1(Item data, int? count) {
+    final Box countBox = Hive.box('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+    ItemCountType? existingCount = currentCount.getCount(data);
+    if (count == null && existingCount is ItemNotCounted) {
+      return;
     }
+
+    ItemCount itemCount = (existingCount is ItemCount)
+        ? existingCount
+        : ItemCount(data.strategy, data.strategyInt, data.strategyInt2);
+    itemCount.field1 = count;
+    currentCount.setCount(data, itemCount);
+    countBox.put(date, currentCount);
+    notifyListeners();
   }
 
-  int? getCountTrueByName(String name, CountPhase phase) {
-    final countBox = Hive.box('counts');
-    final currentCount = countBox.get(date) ?? Count();
+  void setField2(Item data, int? count) {
+    final Box countBox = Hive.box('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+    ItemCountType? existingCount = currentCount.getCount(data);
+    if (count == null && existingCount is ItemNotCounted) {
+      return;
+    }
 
-    return currentCount.getCountTrueByName(name, phase);
+    ItemCount itemCount = (existingCount is ItemCount)
+        ? existingCount
+        : ItemCount(data.strategy, data.strategyInt, data.strategyInt2);
+    itemCount.field2 = count;
+    currentCount.setCount(data, itemCount);
+    countBox.put(date, currentCount);
+    notifyListeners();
   }
 
-  // TODO: Maintain counts when items are edited/deleted
-  void removeFromCountList(int id) {
-    final countBox = Hive.box('counts');
-    final currentCount = countBox.get(date) ?? Count();
+  void setNotCounted(Item data) {
+    final Box countBox = Hive.box('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+    currentCount.setNotCounted(data);
+    countBox.put(date, currentCount);
+    notifyListeners();
+  }
 
-    currentCount.itemCounts.removeWhere((key, value) => key.id == id);
+  int? getCountValueByName(String name, CountPhase phase) {
+    final Box countBox = Hive.box('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
 
+    return currentCount.getCountValueByName(name, phase);
+  }
+
+  void removeFromCountList(Item data) {
+    final Box countBox = Hive.box('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+
+    currentCount.itemCounts.remove(data.id);
+    notifyListeners();
+  }
+
+  void maintainCountList(Item data) {
+    final Box countBox = Hive.box('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+    currentCount.updateCountForItem(data);
+    countBox.put(date, currentCount);
     notifyListeners();
   }
 }

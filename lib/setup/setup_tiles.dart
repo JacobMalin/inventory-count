@@ -85,7 +85,11 @@ class ItemTile extends StatelessWidget {
   final List<int> selectedOrder;
   final void Function(int) select;
 
-  String _getStrategyText(CountStrategy strategy, int? strategyInt) {
+  String _getStrategyText(
+    CountStrategy strategy,
+    int? strategyInt,
+    int? strategyInt2,
+  ) {
     switch (strategy) {
       case CountStrategy.singular:
         return 'Singular';
@@ -93,8 +97,14 @@ class ItemTile extends StatelessWidget {
         return strategyInt != null
             ? 'Stacks ($strategyInt per stack)'
             : 'Stacks';
-      case CountStrategy.singularAndStacks:
-        return strategyInt != null ? 'Both ($strategyInt per stack)' : 'Both';
+      case CountStrategy.boxesAndStacks:
+        if (strategyInt != null && strategyInt2 != null) {
+          return 'Both ($strategyInt per box, $strategyInt2 per stack)';
+        } else if (strategyInt != null) {
+          return 'Both ($strategyInt per box)';
+        } else {
+          return 'Both';
+        }
       case CountStrategy.negative:
         return strategyInt != null
             ? 'Negative (from $strategyInt)'
@@ -113,7 +123,13 @@ class ItemTile extends StatelessWidget {
           leading: Icon(Icons.inventory, color: Colors.blue),
           tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           title: Text(item.name),
-          subtitle: Text(_getStrategyText(item.strategy, item.strategyInt)),
+          subtitle: Text(
+            _getStrategyText(
+              item.strategy,
+              item.strategyInt,
+              item.strategyInt2,
+            ),
+          ),
           trailing: const Icon(Icons.drag_handle),
           onTap: () => select(index),
         );

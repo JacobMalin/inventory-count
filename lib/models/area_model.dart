@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/hive.dart';
 
 class AreaModel with ChangeNotifier {
@@ -17,8 +20,24 @@ class AreaModel with ChangeNotifier {
     notifyListeners();
   }
 
-  void removeArea(int index) {
+  void removeArea(int index, CountModel countModel) {
     var currentAreas = _areasBox.get('areas');
+    var area = currentAreas[index];
+
+    // Remove all items in the area from count list
+    for (var shelfOrItem in area.shelvesAndItems) {
+      if (shelfOrItem is Item) {
+        countModel.removeFromCountList(shelfOrItem);
+      } else if (shelfOrItem is Shelf) {
+        // Remove all items in the shelf from count list
+        for (var item in shelfOrItem.items) {
+          if (item is Item) {
+            countModel.removeFromCountList(item);
+          }
+        }
+      }
+    }
+
     currentAreas.removeAt(index);
     _areasBox.put('areas', currentAreas);
     maintainExportList();
@@ -58,8 +77,26 @@ class AreaModel with ChangeNotifier {
     notifyListeners();
   }
 
-  void removeShelfOrItemFromArea(int areaIndex, int index) {
+  void removeShelfOrItemFromArea(
+    int areaIndex,
+    int index,
+    CountModel countModel,
+  ) {
     var currentAreas = _areasBox.get('areas');
+    var shelfOrItem = currentAreas[areaIndex].shelvesAndItems[index];
+
+    // Remove from count list if it's an Item
+    if (shelfOrItem is Item) {
+      countModel.removeFromCountList(shelfOrItem);
+    } else if (shelfOrItem is Shelf) {
+      // Remove all items in the shelf from count list
+      for (var item in shelfOrItem.items) {
+        if (item is Item) {
+          countModel.removeFromCountList(item);
+        }
+      }
+    }
+
     currentAreas[areaIndex].shelvesAndItems.removeAt(index);
     _areasBox.put('areas', currentAreas);
     maintainExportList();
@@ -90,13 +127,16 @@ class AreaModel with ChangeNotifier {
     notifyListeners();
   }
 
-  void removeItem(List<int> selectedOrder) {
+  void removeItem(List<int> selectedOrder, CountModel countModel) {
     var currentAreas = _areasBox.get('areas');
+
+    Item? itemToRemove;
 
     if (selectedOrder.length == 2) {
       // Item is directly in area
       int areaIndex = selectedOrder[0];
       int itemIndex = selectedOrder[1];
+      itemToRemove = currentAreas[areaIndex].shelvesAndItems[itemIndex] as Item;
       currentAreas[areaIndex].shelvesAndItems.removeAt(itemIndex);
     } else {
       // Item is in shelf
@@ -104,8 +144,12 @@ class AreaModel with ChangeNotifier {
       int shelfIndex = selectedOrder[1];
       int itemIndex = selectedOrder[2];
       var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
+      itemToRemove = shelf.items[itemIndex] as Item;
       shelf.items.removeAt(itemIndex);
     }
+
+    // Remove from count list
+    countModel.removeFromCountList(itemToRemove);
 
     _areasBox.put('areas', currentAreas);
     maintainExportList();
@@ -144,10 +188,15 @@ class AreaModel with ChangeNotifier {
     String? newName,
     CountStrategy? newStrategy,
     int? newStrategyInt,
+    int? newStrategyInt2,
     String? newCountName,
     int? newDefaultCount,
     CountPhase? newCountPhase,
     CountPhase? newPersonalCountPhase,
+    CountModel? countModel,
+    bool clearDefaultCount = false,
+    bool clearStrategyInt = false,
+    bool clearStrategyInt2 = false,
   }) {
     var currentAreas = _areasBox.get('areas');
     Item item;
@@ -167,37 +216,63 @@ class AreaModel with ChangeNotifier {
     }
 
     var exportListNeedsUpdate = false;
+    var countListNeedsUpdate = false;
 
     if (newName != null) {
       item.name = newName;
 
       exportListNeedsUpdate = true;
+      countListNeedsUpdate = true;
     }
     if (newStrategy != null) {
       item.strategy = newStrategy;
+      countListNeedsUpdate = true;
     }
     if (newStrategyInt != null) {
       item.strategyInt = newStrategyInt;
+      countListNeedsUpdate = true;
+    }
+    if (newStrategyInt2 != null) {
+      item.strategyInt2 = newStrategyInt2;
+      countListNeedsUpdate = true;
     }
     if (newCountName != null) {
       item.countName = newCountName.isEmpty ? null : newCountName;
 
       exportListNeedsUpdate = true;
+      countListNeedsUpdate = true;
     }
     if (newDefaultCount != null) {
       item.defaultCount = newDefaultCount;
     }
     if (newCountPhase != null) {
       item.countPhase = newCountPhase;
+      countListNeedsUpdate = true;
     }
     if (newPersonalCountPhase != null) {
       item.personalCountPhase = newPersonalCountPhase;
+    }
+
+    if (clearDefaultCount) {
+      item.defaultCount = null;
+    }
+    if (clearStrategyInt) {
+      item.strategyInt = null;
+      countListNeedsUpdate = true;
+    }
+    if (clearStrategyInt2) {
+      item.strategyInt2 = null;
+      countListNeedsUpdate = true;
     }
 
     _areasBox.put('areas', currentAreas);
     if (exportListNeedsUpdate) {
       maintainExportList();
     }
+    if (countListNeedsUpdate) {
+      countModel!.maintainCountList(item);
+    }
+
     notifyListeners();
   }
 
@@ -305,6 +380,46 @@ class AreaModel with ChangeNotifier {
 
     // Update the export list
     Hive.box('settings').put('exportList', currentExportList);
+    notifyListeners();
+  }
+
+  String exportAreasToJson() {
+    final data = {
+      'areas': _areasBox.get('areas'),
+      'itemIdCounter': _areasBox.get('itemIdCounter', defaultValue: 0),
+    };
+
+    return jsonEncode(
+      data.map((key, value) {
+        if (value is List) {
+          return MapEntry(
+            key,
+            value.map((item) => item.toJson()).toList(),
+          );
+        }
+        return MapEntry(key, value);
+      }),
+    );
+  }
+
+  void importAreasFromJson(String jsonString) {
+    final data = jsonDecode(jsonString) as Map<String, dynamic>;
+
+    // Import areas
+    if (data['areas'] != null) {
+      final areasList = (data['areas'] as List)
+          .map(
+            (json) => Area.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+      _areasBox.put('areas', areasList);
+    }
+
+    // Import itemIdCounter
+    if (data['itemIdCounter'] != null) {
+      _areasBox.put('itemIdCounter', data['itemIdCounter']);
+    }
+
     notifyListeners();
   }
 }

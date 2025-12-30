@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
+import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:inventory_count/setup/setup_tiles.dart';
 import 'package:provider/provider.dart';
@@ -86,16 +87,21 @@ class ShelfPage extends StatelessWidget {
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Cancel'),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            areaModel.removeShelfOrItemFromArea(
-                              selectedOrder[0],
-                              selectedOrder[1],
+                        Consumer<CountModel>(
+                          builder: (context, countModel, child) {
+                            return TextButton(
+                              onPressed: () {
+                                areaModel.removeShelfOrItemFromArea(
+                                  selectedOrder[0],
+                                  selectedOrder[1],
+                                  countModel,
+                                );
+                                Navigator.pop(context);
+                                deselect();
+                              },
+                              child: const Text('Delete'),
                             );
-                            Navigator.pop(context);
-                            deselect();
                           },
-                          child: const Text('Delete'),
                         ),
                       ],
                     ),
