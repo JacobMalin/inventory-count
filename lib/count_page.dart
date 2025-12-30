@@ -240,7 +240,7 @@ class _CountListState extends State<CountList> {
                           onTap: () {
                             final controller = TextEditingController(
                               text: switch (count) {
-                                ItemCount() => count.field1.toString(),
+                                ItemCount() => count.field1?.toString() ?? '',
                                 ItemNotCounted() => '-',
                                 _ => '',
                               },
@@ -248,7 +248,7 @@ class _CountListState extends State<CountList> {
 
                             final secondaryController = TextEditingController(
                               text: switch (count) {
-                                ItemCount() => count.field2.toString(),
+                                ItemCount() => count.field2?.toString() ?? '',
                                 ItemNotCounted() => '-',
                                 _ => '',
                               },

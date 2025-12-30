@@ -379,7 +379,7 @@ class ItemCount extends HiveObject implements ItemCountType {
   CountStrategy strategy;
 
   int? get count {
-    if (field1 == null) {
+    if (isEmpty()) {
       return null;
     }
 
@@ -391,11 +391,8 @@ class ItemCount extends HiveObject implements ItemCountType {
       case CountStrategy.stacks:
         return field1! * (modifier1 ?? 1);
       case CountStrategy.boxesAndStacks:
-        if (field2 == null) {
-          return null;
-        }
-
-        return (field1! * (modifier1 ?? 1) + field2!) * (modifier2 ?? 1);
+        return ((field1 ?? 0) * (modifier1 ?? 1) + (field2 ?? 0)) *
+            (modifier2 ?? 1);
     }
   }
 

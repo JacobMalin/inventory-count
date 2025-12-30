@@ -68,14 +68,14 @@ class _HomePageState extends State<HomePage> {
         selectedIndex: currentPageIndex,
         destinations: const <Widget>[
           NavigationDestination(icon: Icon(Icons.list), label: 'Count'),
-          NavigationDestination(icon: Icon(Icons.bug_report), label: 'Fix'),
+          // NavigationDestination(icon: Icon(Icons.bug_report), label: 'Fix'),
           NavigationDestination(icon: Icon(Icons.print), label: 'Export'),
           NavigationDestination(icon: Icon(Icons.settings), label: 'Setup'),
         ],
       ),
       body: [
         const CountPage(),
-        const Center(child: Text('Fix Page')),
+        // const Center(child: Text('Fix Page')),
         const ExportPage(),
         const SetupPage(),
       ][currentPageIndex],
