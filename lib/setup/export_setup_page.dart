@@ -290,12 +290,10 @@ class ExportPlaceholderTile extends StatelessWidget {
                       content: TextField(
                         controller: controller,
                         autofocus: true,
-                        onSubmitted: (value) {
-                          if (value.isNotEmpty) {
-                            areaModel.editExportListEntry(index, name: value);
-                            Navigator.pop(context);
-                          }
+                        onChanged: (value) {
+                          areaModel.editExportListEntry(index, name: value);
                         },
+                        onSubmitted: (_) => Navigator.pop(context),
                       ),
                       actions: [
                         TextButton(
@@ -395,12 +393,10 @@ class ExportTitleTile extends StatelessWidget {
                       content: TextField(
                         controller: controller,
                         autofocus: true,
-                        onSubmitted: (value) {
-                          if (value.isNotEmpty) {
-                            areaModel.editExportListEntry(index, name: value);
-                            Navigator.pop(context);
-                          }
+                        onChanged: (value) {
+                          areaModel.editExportListEntry(index, name: value);
                         },
+                        onSubmitted: (_) => Navigator.pop(context),
                       ),
                       actions: [
                         TextButton(

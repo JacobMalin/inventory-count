@@ -51,16 +51,14 @@ class ShelfPage extends StatelessWidget {
                       content: TextField(
                         controller: controller,
                         autofocus: true,
-                        onSubmitted: (value) {
-                          if (value.isNotEmpty) {
-                            areaModel.renameShelfInArea(
-                              selectedOrder[0],
-                              selectedOrder[1],
-                              value,
-                            );
-                            Navigator.pop(context);
-                          }
+                        onChanged: (value) {
+                          areaModel.renameShelfInArea(
+                            selectedOrder[0],
+                            selectedOrder[1],
+                            value,
+                          );
                         },
+                        onSubmitted: (_) => Navigator.pop(context),
                       ),
                       actions: [
                         TextButton(

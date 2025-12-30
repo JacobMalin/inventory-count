@@ -51,16 +51,16 @@ class ItemPage extends StatelessWidget {
                           return TextField(
                             controller: controller,
                             autofocus: true,
-                            onSubmitted: (value) {
+                            onChanged: (value) {
                               if (value.isNotEmpty) {
                                 areaModel.editItem(
                                   selectedOrder,
                                   newName: value,
                                   countModel: countModel,
                                 );
-                                Navigator.pop(context);
                               }
                             },
+                            onSubmitted: (_) => Navigator.pop(context),
                           );
                         },
                       ),

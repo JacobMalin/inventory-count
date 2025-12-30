@@ -53,21 +53,20 @@ class AreaPage extends StatelessWidget {
                       content: TextField(
                         controller: controller,
                         autofocus: true,
-                        onSubmitted: (value) {
-                          if (value.isNotEmpty) {
-                            areaModel.renameArea(selectedOrder.last, value);
-                            Navigator.pop(context);
-                          }
-                        },
+                        onSubmitted: (_) => Navigator.pop(context),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
+                          child: const Text('Close'),
                         ),
                       ],
                     ),
-                  );
+                  ).then((_) {
+                    if (controller.text.isNotEmpty) {
+                      areaModel.renameArea(selectedOrder.last, controller.text);
+                    }
+                  });
                 },
               ),
               IconButton(
@@ -195,7 +194,7 @@ class _ShelfListState extends State<ShelfList> {
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
+                              child: const Text('Close'),
                             ),
                           ],
                         ),
@@ -230,7 +229,7 @@ class _ShelfListState extends State<ShelfList> {
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
+                              child: const Text('Close'),
                             ),
                           ],
                         ),
