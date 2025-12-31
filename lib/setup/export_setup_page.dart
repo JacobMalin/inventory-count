@@ -16,23 +16,57 @@ class ExportSetupPage extends StatefulWidget {
 
 class _ExportSetupPageState extends State<ExportSetupPage> {
   final ScrollController _scrollController = ScrollController();
+  bool _isAtBottom = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final isAtBottom =
+          _scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 50;
+      if (isAtBottom != _isAtBottom) {
+        setState(() {
+          _isAtBottom = isAtBottom;
+        });
       }
-    });
+    }
+  }
+
+  void _scrollToBottom() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      // Scroll again in case the extent changed during animation
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    }
+  }
+
+  void _scrollToTop() async {
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
@@ -73,12 +107,17 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                 ),
                                 TextButton(
                                   onPressed: () async {
+                                    final messenger = ScaffoldMessenger.of(
+                                      context,
+                                    );
                                     Navigator.pop(context);
 
                                     try {
                                       final jsonString = areaModel
                                           .exportExportListToJson();
-                                      final bytes = Uint8List.fromList(jsonString.codeUnits);
+                                      final bytes = Uint8List.fromList(
+                                        jsonString.codeUnits,
+                                      );
 
                                       final String? outputPath =
                                           await FilePicker.platform.saveFile(
@@ -92,28 +131,30 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                           );
 
                                       if (outputPath != null) {
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Export successful!',
+                                        messenger.showSnackBar(
+                                          SnackBar(
+                                            content: GestureDetector(
+                                              onTap: () => messenger
+                                                  .hideCurrentSnackBar(),
+                                              child: const Text(
+                                                'Export order saved successfully!',
                                               ),
                                             ),
-                                          );
-                                        }
-                                      }
-                                    } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Export failed: $e'),
+                                            behavior: SnackBarBehavior.floating,
                                           ),
                                         );
                                       }
+                                    } catch (e) {
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                          content: GestureDetector(
+                                            onTap: () =>
+                                                messenger.hideCurrentSnackBar(),
+                                            child: Text('Export failed: $e'),
+                                          ),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
                                     }
                                   },
                                   child: const Text('Export'),
@@ -141,6 +182,9 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                 ),
                                 TextButton(
                                   onPressed: () async {
+                                    final messenger = ScaffoldMessenger.of(
+                                      context,
+                                    );
                                     Navigator.pop(context);
 
                                     try {
@@ -162,28 +206,30 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                           jsonString,
                                         );
 
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Import successful!',
+                                        messenger.showSnackBar(
+                                          SnackBar(
+                                            content: GestureDetector(
+                                              onTap: () => messenger
+                                                  .hideCurrentSnackBar(),
+                                              child: const Text(
+                                                'Export order loaded successfully!',
                                               ),
                                             ),
-                                          );
-                                        }
-                                      }
-                                    } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Import failed: $e'),
+                                            behavior: SnackBarBehavior.floating,
                                           ),
                                         );
                                       }
+                                    } catch (e) {
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                          content: GestureDetector(
+                                            onTap: () =>
+                                                messenger.hideCurrentSnackBar(),
+                                            child: Text('Import failed: $e'),
+                                          ),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
                                     }
                                   },
                                   child: const Text('Import'),
@@ -199,129 +245,127 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                       ? const Center(child: Text('No items to export'))
                       : Column(
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ListTile(
-                                    leading: const Icon(Icons.add),
-                                    title: const Text('Add Title'),
-                                    tileColor: Theme.of(
-                                      context,
-                                    ).colorScheme.surface,
-                                    onTap: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) {
-                                          final controller =
-                                              TextEditingController();
-                                          return AlertDialog(
-                                            title: const Text('Enter Title'),
-                                            content: TextField(
-                                              controller: controller,
-                                              autofocus: true,
-                                              onSubmitted: (value) {
-                                                if (value.isNotEmpty) {
-                                                  areaModel.addToExportList(
-                                                    ExportTitle(value),
-                                                  );
-                                                  Navigator.pop(context);
-                                                  _scrollToBottom();
-                                                }
-                                              },
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: const Text('Cancel'),
-                                              ),
-                                              TextButton(
-                                                onPressed: () {
-                                                  if (controller
-                                                      .text
-                                                      .isNotEmpty) {
+                            Container(
+                              color: Theme.of(context).colorScheme.surface,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: ListTile(
+                                      leading: const Icon(Icons.add),
+                                      title: const Text('Add Title'),
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) {
+                                            final controller =
+                                                TextEditingController();
+                                            return AlertDialog(
+                                              title: const Text('Enter Title'),
+                                              content: TextField(
+                                                controller: controller,
+                                                autofocus: true,
+                                                onSubmitted: (value) {
+                                                  if (value.isNotEmpty) {
                                                     areaModel.addToExportList(
-                                                      ExportTitle(
-                                                        controller.text,
-                                                      ),
+                                                      ExportTitle(value),
                                                     );
                                                     Navigator.pop(context);
                                                     _scrollToBottom();
                                                   }
                                                 },
-                                                child: const Text('Add'),
                                               ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    },
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    if (controller
+                                                        .text
+                                                        .isNotEmpty) {
+                                                      areaModel.addToExportList(
+                                                        ExportTitle(
+                                                          controller.text,
+                                                        ),
+                                                      );
+                                                      Navigator.pop(context);
+                                                      _scrollToBottom();
+                                                    }
+                                                  },
+                                                  child: const Text('Add'),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
                                   ),
-                                ),
-                                Expanded(
-                                  child: ListTile(
-                                    leading: const Icon(Icons.add),
-                                    title: const Text('Add Fake Item'),
-                                    tileColor: Theme.of(
-                                      context,
-                                    ).colorScheme.surface,
-                                    onTap: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) {
-                                          final controller =
-                                              TextEditingController();
-                                          return AlertDialog(
-                                            title: const Text(
-                                              'Enter Placeholder',
-                                            ),
-                                            content: TextField(
-                                              controller: controller,
-                                              autofocus: true,
-                                              onSubmitted: (value) {
-                                                if (value.isNotEmpty) {
-                                                  areaModel.addToExportList(
-                                                    ExportPlaceholder(value),
-                                                  );
-                                                  Navigator.pop(context);
-                                                  _scrollToBottom();
-                                                }
-                                              },
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: const Text('Cancel'),
+                                  Expanded(
+                                    child: ListTile(
+                                      leading: const Icon(Icons.add),
+                                      title: const Text('Add Fake Item'),
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) {
+                                            final controller =
+                                                TextEditingController();
+                                            return AlertDialog(
+                                              title: const Text(
+                                                'Enter Placeholder',
                                               ),
-                                              TextButton(
-                                                onPressed: () {
-                                                  if (controller
-                                                      .text
-                                                      .isNotEmpty) {
+                                              content: TextField(
+                                                controller: controller,
+                                                autofocus: true,
+                                                onSubmitted: (value) {
+                                                  if (value.isNotEmpty) {
                                                     areaModel.addToExportList(
-                                                      ExportPlaceholder(
-                                                        controller.text,
-                                                      ),
+                                                      ExportPlaceholder(value),
                                                     );
                                                     Navigator.pop(context);
                                                     _scrollToBottom();
                                                   }
                                                 },
-                                                child: const Text('Add'),
                                               ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    },
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    if (controller
+                                                        .text
+                                                        .isNotEmpty) {
+                                                      areaModel.addToExportList(
+                                                        ExportPlaceholder(
+                                                          controller.text,
+                                                        ),
+                                                      );
+                                                      Navigator.pop(context);
+                                                      _scrollToBottom();
+                                                    }
+                                                  },
+                                                  child: const Text('Add'),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                             Expanded(
                               child: ReorderableListView(
                                 scrollController: _scrollController,
+                                key: const PageStorageKey('exportListView'),
                                 onReorder: (int oldIndex, int newIndex) {
                                   if (newIndex > oldIndex) {
                                     newIndex -= 1;
@@ -364,6 +408,25 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                               ),
                             ),
                           ],
+                        ),
+                  floatingActionButton: exportList.isEmpty
+                      ? null
+                      : FloatingActionButton.small(
+                          onPressed: _isAtBottom
+                              ? _scrollToTop
+                              : _scrollToBottom,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainer,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant,
+                          elevation: 2,
+                          child: AnimatedRotation(
+                            duration: const Duration(milliseconds: 200),
+                            turns: _isAtBottom ? -0.5 : 0,
+                            child: const Icon(Icons.arrow_downward),
+                          ),
                         ),
                 );
               },

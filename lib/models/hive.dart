@@ -307,6 +307,7 @@ class ExportItem extends HiveObject implements ExportEntry {
 
   ExportItem(this.name, {List<String>? paths}) : paths = paths ?? [];
 
+  @override
   Map<String, dynamic> toJson() {
     return {'type': 'ExportItem', 'name': name, 'paths': paths};
   }
@@ -327,6 +328,7 @@ class ExportPlaceholder extends HiveObject implements ExportEntry {
 
   ExportPlaceholder(this.name);
 
+  @override
   Map<String, dynamic> toJson() {
     return {'type': 'ExportPlaceholder', 'name': name};
   }
@@ -344,6 +346,7 @@ class ExportTitle extends HiveObject implements ExportEntry {
 
   ExportTitle(this.name);
 
+  @override
   Map<String, dynamic> toJson() {
     return {'type': 'ExportTitle', 'name': name};
   }

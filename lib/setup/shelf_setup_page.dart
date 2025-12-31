@@ -106,6 +106,7 @@ class AreasPage extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
                             Navigator.pop(context);
 
                             try {
@@ -125,20 +126,30 @@ class AreasPage extends StatelessWidget {
                                   );
 
                               if (outputPath != null) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Export successful!'),
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: GestureDetector(
+                                      onTap: () =>
+                                          messenger.hideCurrentSnackBar(),
+                                      child: const Text(
+                                        'Areas saved successfully!',
+                                      ),
                                     ),
-                                  );
-                                }
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Export failed: $e')),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
                                 );
                               }
+                            } catch (e) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: GestureDetector(
+                                    onTap: () =>
+                                        messenger.hideCurrentSnackBar(),
+                                    child: Text('Export failed: $e'),
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
                             }
                           },
                           child: const Text('Export'),
@@ -166,6 +177,7 @@ class AreasPage extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
                             Navigator.pop(context);
 
                             try {
@@ -182,20 +194,30 @@ class AreasPage extends StatelessWidget {
 
                                 areaModel.importAreasFromJson(jsonString);
 
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Import successful!'),
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: GestureDetector(
+                                      onTap: () =>
+                                          messenger.hideCurrentSnackBar(),
+                                      child: const Text(
+                                        'Areas loaded successfully!',
+                                      ),
                                     ),
-                                  );
-                                }
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Import failed: $e')),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
                                 );
                               }
+                            } catch (e) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: GestureDetector(
+                                    onTap: () =>
+                                        messenger.hideCurrentSnackBar(),
+                                    child: Text('Import failed: $e'),
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
                             }
                           },
                           child: const Text('Import'),
@@ -232,16 +254,19 @@ class _AreaListState extends State<AreaList> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+  void _scrollToBottom() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      // Scroll again in case the extent changed during animation
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
-    });
+    }
   }
 
   @override
@@ -286,6 +311,7 @@ class _AreaListState extends State<AreaList> {
                     builder: (context) => Material(
                       child: ReorderableListView(
                         scrollController: _scrollController,
+                        key: const PageStorageKey('areaListView'),
                         children: <AreaTile>[
                           for (
                             int index = 0;

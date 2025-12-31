@@ -452,6 +452,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                     areaModel.editItem(
                       widget.selectedOrder,
                       newPersonalCountPhase: personalCountPhase,
+                      clearPersonalCountPhase: personalCountPhase == null,
                       countModel: countModel,
                     );
                   },

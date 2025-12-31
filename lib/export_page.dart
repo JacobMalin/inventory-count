@@ -31,7 +31,13 @@ class ExportPage extends StatelessWidget {
                   color: Theme.of(context).colorScheme.outline,
                   width: 1,
                 ),
-                defaultColumnWidth: const IntrinsicColumnWidth(),
+                columnWidths: const {
+                  0: FlexColumnWidth(6),
+                  1: FlexColumnWidth(3),
+                  2: FlexColumnWidth(4),
+                  3: FlexColumnWidth(3),
+                  4: FlexColumnWidth(3),
+                },
                 children: [
                   // Header row
                   TableRow(
@@ -220,6 +226,9 @@ class ExportPage extends StatelessWidget {
         text,
         textAlign: textAlign,
         style: Theme.of(context).textTheme.bodyMedium,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+        softWrap: false,
       ),
     );
   }

@@ -197,6 +197,7 @@ class AreaModel with ChangeNotifier {
     bool clearDefaultCount = false,
     bool clearStrategyInt = false,
     bool clearStrategyInt2 = false,
+    bool clearPersonalCountPhase = false,
   }) {
     var currentAreas = _areasBox.get('areas');
     Item item;
@@ -251,6 +252,9 @@ class AreaModel with ChangeNotifier {
     }
     if (newPersonalCountPhase != null) {
       item.personalCountPhase = newPersonalCountPhase;
+    }
+    if (clearPersonalCountPhase) {
+      item.personalCountPhase = null;
     }
 
     if (clearDefaultCount) {
@@ -415,6 +419,7 @@ class AreaModel with ChangeNotifier {
       _areasBox.put('itemIdCounter', data['itemIdCounter']);
     }
 
+    maintainExportList();
     notifyListeners();
   }
 

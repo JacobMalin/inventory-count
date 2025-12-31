@@ -145,16 +145,19 @@ class _ShelfListState extends State<ShelfList> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+  void _scrollToBottom() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      // Scroll again in case the extent changed during animation
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
-    });
+    }
   }
 
   @override
@@ -246,6 +249,7 @@ class _ShelfListState extends State<ShelfList> {
                     builder: (context) => Material(
                       child: ReorderableListView(
                         scrollController: _scrollController,
+                        key: const PageStorageKey('areaContentListView'),
                         children: <Widget>[
                           for (
                             int index = 0;

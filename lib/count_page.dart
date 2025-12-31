@@ -18,8 +18,16 @@ class AreaTreeData {
   final Area area;
 
   final bool isAreaUsed;
+  final int uncountedItems;
 
-  AreaTreeData(this.area, {this.isAreaUsed = false});
+  AreaTreeData(this.area, {this.isAreaUsed = false, this.uncountedItems = 0});
+}
+
+class ShelfTreeData {
+  final Shelf shelf;
+  final int uncountedItems;
+
+  ShelfTreeData(this.shelf, {this.uncountedItems = 0});
 }
 
 class CountPage extends StatefulWidget {
@@ -126,21 +134,31 @@ class CountList extends StatefulWidget {
 }
 
 class _CountListState extends State<CountList> {
+  static final Set<String> _expandedKeys = {};
+
   TreeNode _buildTree(AreaModel areaModel, CountPhase currentPhase) {
     final root = TreeNode.root();
+    final countModel = Provider.of<CountModel>(context, listen: false);
 
     for (int i = 0; i < areaModel.numAreas; i++) {
       final area = areaModel.getArea(i);
       final areaNode = TreeNode(key: 'area_$i', data: AreaTreeData(area));
 
       var isAreaUsed = false;
+      var areaUncountedCount = 0;
+
       for (int j = 0; j < area.shelvesAndItems.length; j++) {
         final shelfOrItem = area.shelvesAndItems[j];
 
         if (shelfOrItem is Shelf) {
-          final shelfNode = TreeNode(key: 'shelf_${i}_$j', data: shelfOrItem);
+          final shelfNode = TreeNode(
+            key: 'shelf_${i}_$j',
+            data: ShelfTreeData(shelfOrItem),
+          );
 
           var isShelfUsed = false;
+          var shelfUncountedCount = 0;
+
           for (int k = 0; k < shelfOrItem.items.length; k++) {
             final item = shelfOrItem.items[k] as Item;
             if ((item.personalCountPhase?.index ?? item.countPhase.index) <=
@@ -149,11 +167,22 @@ class _CountListState extends State<CountList> {
               final itemNode = TreeNode(key: 'item_${i}_${j}_$k', data: data);
               shelfNode.add(itemNode);
               isShelfUsed = true;
+
+              // Check if item is uncounted
+              final count = countModel.getCount(item);
+              if (count == null) {
+                shelfUncountedCount++;
+              }
             }
           }
           if (isShelfUsed) {
+            shelfNode.data = ShelfTreeData(
+              shelfOrItem,
+              uncountedItems: shelfUncountedCount,
+            );
             areaNode.add(shelfNode);
             isAreaUsed = true;
+            areaUncountedCount += shelfUncountedCount;
           }
         } else if (shelfOrItem is Item &&
             (shelfOrItem.personalCountPhase?.index ??
@@ -163,10 +192,20 @@ class _CountListState extends State<CountList> {
           final itemNode = TreeNode(key: 'item_${i}_$j', data: data);
           areaNode.add(itemNode);
           isAreaUsed = true;
+
+          // Check if item is uncounted
+          final count = countModel.getCount(shelfOrItem);
+          if (count == null) {
+            areaUncountedCount++;
+          }
         }
       }
 
-      areaNode.data = AreaTreeData(area, isAreaUsed: isAreaUsed);
+      areaNode.data = AreaTreeData(
+        area,
+        isAreaUsed: isAreaUsed,
+        uncountedItems: areaUncountedCount,
+      );
       root.add(areaNode);
     }
 
@@ -215,7 +254,41 @@ class _CountListState extends State<CountList> {
                   ),
               indentation: const Indentation(style: IndentStyle.roundJoint),
               onTreeReady: (controller) {
-                controller.expandAllChildren(tree);
+                // Restore expansion state by traversing tree
+                void restoreExpansion(dynamic node) {
+                  if (_expandedKeys.contains(node.key) && node is TreeNode) {
+                    controller.expandNode(node);
+                    for (var child in node.childrenAsList) {
+                      restoreExpansion(child);
+                    }
+                  } else {
+                    // Remove all children keys, recursively
+                    void removeDescendants(dynamic node) {
+                      for (var child in node.childrenAsList) {
+                        _expandedKeys.remove(child.key);
+                        removeDescendants(child);
+                      }
+                    }
+
+                    removeDescendants(node);
+                  }
+                }
+
+                for (var child in tree.childrenAsList) {
+                  restoreExpansion(child);
+                }
+              },
+              onItemTap: (item) {
+                // Track expansion state changes (state is BEFORE the tap)
+                // If currently expanded before tap, it will be collapsed
+                // If currently collapsed before tap, it will be expanded
+                setState(() {
+                  if (_expandedKeys.contains(item.key)) {
+                    _expandedKeys.remove(item.key);
+                  } else {
+                    _expandedKeys.add(item.key);
+                  }
+                });
               },
               builder: (context, node) {
                 final data = node.data;
@@ -282,6 +355,28 @@ class _CountListState extends State<CountList> {
                     },
                   );
                 } else {
+                  final String name;
+                  final Color? color;
+                  final int? uncountedCount;
+
+                  if (data is AreaTreeData) {
+                    name = data.area.name;
+                    color = data.isAreaUsed ? data.area.color : Colors.grey;
+                    uncountedCount = data.uncountedItems > 0
+                        ? data.uncountedItems
+                        : null;
+                  } else if (data is ShelfTreeData) {
+                    name = data.shelf.name;
+                    color = null;
+                    uncountedCount = data.uncountedItems > 0
+                        ? data.uncountedItems
+                        : null;
+                  } else {
+                    name = '';
+                    color = null;
+                    uncountedCount = null;
+                  }
+
                   return Container(
                     width: double.infinity,
                     padding: const EdgeInsets.only(
@@ -289,15 +384,38 @@ class _CountListState extends State<CountList> {
                       top: 4.0,
                       bottom: 4.0,
                     ),
-                    child: Text(
-                      data is AreaTreeData ? data.area.name : data.name,
-                      style: TextStyle(
-                        color: data is AreaTreeData
-                            ? (data.isAreaUsed ? data.area.color : Colors.grey)
-                            : null,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                    child: Row(
+                      children: [
+                        Text(
+                          name,
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (uncountedCount != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$uncountedCount',
+                              style: TextStyle(
+                                color: Colors.red.withValues(alpha: 0.8),
+                                fontSize: 11,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   );
                 }
