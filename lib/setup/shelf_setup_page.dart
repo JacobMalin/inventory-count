@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -109,6 +110,9 @@ class AreasPage extends StatelessWidget {
 
                             try {
                               final jsonString = areaModel.exportAreasToJson();
+                              final bytes = Uint8List.fromList(
+                                jsonString.codeUnits,
+                              );
 
                               final String? outputPath = await FilePicker
                                   .platform
@@ -116,13 +120,11 @@ class AreasPage extends StatelessWidget {
                                     dialogTitle: 'Save areas backup',
                                     fileName: 'areas_backup.json',
                                     type: FileType.custom,
+                                    bytes: bytes,
                                     allowedExtensions: ['json'],
                                   );
 
                               if (outputPath != null) {
-                                final file = File(outputPath);
-                                await file.writeAsString(jsonString);
-
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(

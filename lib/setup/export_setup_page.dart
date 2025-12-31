@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -77,6 +78,7 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                     try {
                                       final jsonString = areaModel
                                           .exportExportListToJson();
+                                      final bytes = Uint8List.fromList(jsonString.codeUnits);
 
                                       final String? outputPath =
                                           await FilePicker.platform.saveFile(
@@ -85,13 +87,11 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                             fileName:
                                                 'export_order_backup.json',
                                             type: FileType.custom,
+                                            bytes: bytes,
                                             allowedExtensions: ['json'],
                                           );
 
                                       if (outputPath != null) {
-                                        final file = File(outputPath);
-                                        await file.writeAsString(jsonString);
-
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(
                                             context,
