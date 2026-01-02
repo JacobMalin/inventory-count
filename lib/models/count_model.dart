@@ -41,12 +41,12 @@ class CountModel with ChangeNotifier {
     notifyListeners();
   }
 
-  Count get _thisCount => Hive.box('counts').get(date) ?? Count();
+  Count get _thisCount => Hive.box<Count>('counts').get(date) ?? Count();
 
   CountPhase get countPhase => _thisCount.countPhase;
 
   void setCountPhase(CountPhase phase) {
-    final Box countBox = Hive.box('counts');
+    final Box<Count> countBox = Hive.box<Count>('counts');
     final Count currentCount = countBox.get(date) ?? Count();
     currentCount.countPhase = phase;
     countBox.put(date, currentCount);
@@ -58,12 +58,9 @@ class CountModel with ChangeNotifier {
   }
 
   void setField1(Item data, int? count) {
-    final Box countBox = Hive.box('counts');
+    final Box<Count> countBox = Hive.box<Count>('counts');
     final Count currentCount = countBox.get(date) ?? Count();
     ItemCountType? existingCount = currentCount.getCount(data);
-    if (count == null && existingCount is ItemNotCounted) {
-      return;
-    }
 
     ItemCount itemCount = (existingCount is ItemCount)
         ? existingCount
@@ -75,12 +72,9 @@ class CountModel with ChangeNotifier {
   }
 
   void setField2(Item data, int? count) {
-    final Box countBox = Hive.box('counts');
+    final Box<Count> countBox = Hive.box<Count>('counts');
     final Count currentCount = countBox.get(date) ?? Count();
     ItemCountType? existingCount = currentCount.getCount(data);
-    if (count == null && existingCount is ItemNotCounted) {
-      return;
-    }
 
     ItemCount itemCount = (existingCount is ItemCount)
         ? existingCount
@@ -92,7 +86,7 @@ class CountModel with ChangeNotifier {
   }
 
   void setNotCounted(Item data) {
-    final Box countBox = Hive.box('counts');
+    final Box<Count> countBox = Hive.box<Count>('counts');
     final Count currentCount = countBox.get(date) ?? Count();
     currentCount.setNotCounted(data);
     countBox.put(date, currentCount);
@@ -104,14 +98,14 @@ class CountModel with ChangeNotifier {
   }
 
   int? getCountValueByName(String name, CountPhase phase) {
-    final Box countBox = Hive.box('counts');
+    final Box<Count> countBox = Hive.box<Count>('counts');
     final Count currentCount = countBox.get(date) ?? Count();
 
     return currentCount.getCountValueByName(name, phase);
   }
 
   void removeFromCountList(Item data) {
-    final Box countBox = Hive.box('counts');
+    final Box<Count> countBox = Hive.box<Count>('counts');
     final Count currentCount = countBox.get(date) ?? Count();
 
     currentCount.itemCounts.remove(data.id);
@@ -119,7 +113,7 @@ class CountModel with ChangeNotifier {
   }
 
   void maintainCountList(Item data) {
-    final Box countBox = Hive.box('counts');
+    final Box<Count> countBox = Hive.box<Count>('counts');
     final Count currentCount = countBox.get(date) ?? Count();
     currentCount.updateCountForItem(data);
     countBox.put(date, currentCount);

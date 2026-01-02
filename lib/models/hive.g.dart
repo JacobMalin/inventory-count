@@ -379,7 +379,10 @@ class ItemNotCountedAdapter extends TypeAdapter<ItemNotCounted> {
 
   @override
   void write(BinaryWriter writer, ItemNotCounted obj) {
-    writer.writeByte(0);
+    writer
+      ..writeByte(1)
+      ..writeByte(0)
+      ..write(obj.notCounted);
   }
 
   @override

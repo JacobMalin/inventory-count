@@ -20,7 +20,7 @@ Future<void> hiveSetup() async {
   Hive.registerAdapter<CountEntry>(CountEntryAdapter());
 
   await Hive.openBox('areas');
-  await Hive.openBox('counts');
+  await Hive.openBox<Count>('counts');
   await Hive.openBox('settings');
 }
 
@@ -259,12 +259,12 @@ class Count extends HiveObject {
     bool isValue = false;
 
     for (final MapEntry<int, CountEntry> entry in itemCounts.entries) {
-      if (entry.value.countType is ItemNotCounted) return -1;
-
-      final ItemCount itemCount = entry.value.countType as ItemCount;
+      final ItemCountType itemCountType = entry.value.countType;
       if (entry.value.name == name && entry.value.phase == phase) {
+        if (itemCountType is ItemNotCounted) return -1;
+
         isValue = true;
-        total += itemCount.count ?? 0;
+        total += (itemCountType as ItemCount).count ?? 0;
       }
     }
     return isValue ? total : null;
@@ -424,6 +424,11 @@ class ItemCount extends HiveObject implements ItemCountType {
 }
 
 @HiveType(typeId: 11)
-class ItemNotCounted extends HiveObject implements ItemCountType {}
+class ItemNotCounted extends HiveObject implements ItemCountType {
+  @HiveField(0)
+  final bool notCounted = true;
+
+  ItemNotCounted();
+}
 
 abstract class ItemCountType extends HiveObject {}
