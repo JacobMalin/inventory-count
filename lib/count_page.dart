@@ -729,86 +729,149 @@ class _CountDialogState extends State<CountDialog> {
           _ => 'Not Set',
         };
 
-        return AlertDialog(
-          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 40,
-            vertical: 24,
-          ),
-          title: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (currentData.area != null || currentData.shelf != null)
-                  RichText(
-                    text: TextSpan(
-                      style: DefaultTextStyle.of(context).style.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal,
-                      ),
-                      children: [
-                        if (currentData.area != null)
-                          TextSpan(
-                            text: currentData.area!.name,
-                            style: TextStyle(color: currentData.area!.color),
-                          ),
-                        if (currentData.area != null &&
-                            currentData.shelf != null)
-                          const TextSpan(text: ' > '),
-                        if (currentData.shelf != null)
-                          TextSpan(text: currentData.shelf!.name),
-                      ],
-                    ),
-                  ),
-                Text(currentData.item.name, overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-          content: SizedBox(
-            width: 300,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AlertDialog(
+                contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                insetPadding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 24,
+                ),
+                title: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Count:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      if (currentData.area != null || currentData.shelf != null)
+                        RichText(
+                          text: TextSpan(
+                            style: DefaultTextStyle.of(context).style.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.normal,
+                            ),
+                            children: [
+                              if (currentData.area != null)
+                                TextSpan(
+                                  text: currentData.area!.name,
+                                  style: TextStyle(
+                                    color: currentData.area!.color,
+                                  ),
+                                ),
+                              if (currentData.area != null &&
+                                  currentData.shelf != null)
+                                const TextSpan(text: ' > '),
+                              if (currentData.shelf != null)
+                                TextSpan(text: currentData.shelf!.name),
+                            ],
+                          ),
                         ),
-                      ),
                       Text(
-                        displayCount,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        currentData.item.name,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                if (currentData.item.strategy == CountStrategy.boxesAndStacks)
-                  Row(
+                content: SizedBox(
+                  width: 300,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: TextField(
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Count:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              displayCount,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (currentData.item.strategy ==
+                          CountStrategy.boxesAndStacks)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: controller,
+                                focusNode: focusNode,
+                                autofocus: true,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText:
+                                      'Boxes${currentData.item.strategyInt != null ? ' (${currentData.item.strategyInt} stacks)' : ''}',
+                                  labelStyle: const TextStyle(fontSize: 12),
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (value) {
+                                  final intValue = int.tryParse(value);
+                                  countModel.setField1(
+                                    currentData.item,
+                                    intValue,
+                                  );
+                                },
+                                onSubmitted: (value) => Navigator.pop(context),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: secondaryController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText:
+                                      'Stacks${currentData.item.strategyInt2 != null ? ' (${currentData.item.strategyInt2} per)' : ''}',
+                                  labelStyle: const TextStyle(fontSize: 12),
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (value) {
+                                  final intValue = int.tryParse(value);
+                                  countModel.setField2(
+                                    currentData.item,
+                                    intValue,
+                                  );
+                                },
+                                onSubmitted: (value) => Navigator.pop(context),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        TextField(
                           controller: controller,
                           focusNode: focusNode,
                           autofocus: true,
-                          keyboardType: TextInputType.number,
+                          keyboardType:
+                              currentData.item.strategy ==
+                                  CountStrategy.negative
+                              ? TextInputType.numberWithOptions(signed: true)
+                              : TextInputType.number,
                           decoration: InputDecoration(
-                            labelText:
-                                'Boxes${currentData.item.strategyInt != null ? ' (${currentData.item.strategyInt} stacks)' : ''}',
-                            labelStyle: const TextStyle(fontSize: 12),
+                            labelText: switch (currentData.item.strategy) {
+                              CountStrategy.stacks =>
+                                'Stacks${currentData.item.strategyInt != null ? ' (${currentData.item.strategyInt} per stack)' : ''}',
+                              CountStrategy.negative =>
+                                'Count (negative from ${currentData.item.strategyInt})',
+                              _ => 'Count',
+                            },
                             border: OutlineInputBorder(),
                           ),
                           onChanged: (value) {
@@ -817,140 +880,114 @@ class _CountDialogState extends State<CountDialog> {
                           },
                           onSubmitted: (value) => Navigator.pop(context),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: secondaryController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText:
-                                'Stacks${currentData.item.strategyInt2 != null ? ' (${currentData.item.strategyInt2} per)' : ''}',
-                            labelStyle: const TextStyle(fontSize: 12),
-                            border: OutlineInputBorder(),
+                    ],
+                  ),
+                ),
+              ),
+              Card(
+                elevation: 4,
+                margin: const EdgeInsets.symmetric(horizontal: 40),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton(
+                            onPressed:
+                                currentData.item.defaultCount != null &&
+                                    currentData.item.defaultCount! > 0
+                                ? () {
+                                    countModel.setField1(
+                                      currentData.item,
+                                      currentData.item.defaultCount!,
+                                    );
+                                    if (hasNext) {
+                                      _navigate(1);
+                                    } else {
+                                      Navigator.pop(context);
+                                    }
+                                  }
+                                : null,
+                            style: TextButton.styleFrom(
+                              minimumSize: Size.zero,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text(
+                              'Default: ${currentData.item.defaultCount ?? '-'}',
+                            ),
                           ),
-                          onChanged: (value) {
-                            final intValue = int.tryParse(value);
-                            countModel.setField2(currentData.item, intValue);
-                          },
-                          onSubmitted: (value) => Navigator.pop(context),
-                        ),
+                          const SizedBox(width: 12),
+                          TextButton(
+                            onPressed: () {
+                              countModel.setField1(currentData.item, 0);
+                              if (hasNext) {
+                                _navigate(1);
+                              } else {
+                                Navigator.pop(context);
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              minimumSize: Size.zero,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text('0'),
+                          ),
+                          const SizedBox(width: 12),
+                          TextButton(
+                            onPressed: () {
+                              countModel.setNotCounted(currentData.item);
+                              if (hasNext) {
+                                _navigate(1);
+                              } else {
+                                Navigator.pop(context);
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              minimumSize: Size.zero,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text('-'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: hasPrevious ? () => _navigate(-1) : null,
+                            icon: const Icon(Icons.chevron_left),
+                          ),
+                          const SizedBox(width: 16),
+                          IconButton(
+                            onPressed: hasNext ? () => _navigate(1) : null,
+                            icon: const Icon(Icons.chevron_right),
+                          ),
+                        ],
                       ),
                     ],
-                  )
-                else
-                  TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    autofocus: true,
-                    keyboardType:
-                        currentData.item.strategy == CountStrategy.negative
-                        ? TextInputType.numberWithOptions(signed: true)
-                        : TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: switch (currentData.item.strategy) {
-                        CountStrategy.stacks =>
-                          'Stacks${currentData.item.strategyInt != null ? ' (${currentData.item.strategyInt} per stack)' : ''}',
-                        CountStrategy.negative =>
-                          'Count (negative from ${currentData.item.strategyInt})',
-                        _ => 'Count',
-                      },
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (value) {
-                      final intValue = int.tryParse(value);
-                      countModel.setField1(currentData.item, intValue);
-                    },
-                    onSubmitted: (value) => Navigator.pop(context),
                   ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
-          actions: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  onPressed: hasPrevious ? () => _navigate(-1) : null,
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                Spacer(),
-                TextButton(
-                  onPressed:
-                      currentData.item.defaultCount != null &&
-                          currentData.item.defaultCount! > 0
-                      ? () {
-                          countModel.setField1(
-                            currentData.item,
-                            currentData.item.defaultCount!,
-                          );
-                          if (hasNext) {
-                            _navigate(1);
-                          } else {
-                            Navigator.pop(context);
-                          }
-                        }
-                      : null,
-                  style: TextButton.styleFrom(
-                    minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    'Default: ${currentData.item.defaultCount ?? '-'}',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () {
-                    countModel.setField1(currentData.item, 0);
-                    if (hasNext) {
-                      _navigate(1);
-                    } else {
-                      Navigator.pop(context);
-                    }
-                  },
-                  style: TextButton.styleFrom(
-                    minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: const Text('0'),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () {
-                    countModel.setNotCounted(currentData.item);
-                    if (hasNext) {
-                      _navigate(1);
-                    } else {
-                      Navigator.pop(context);
-                    }
-                  },
-                  style: TextButton.styleFrom(
-                    minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: const Text('-'),
-                ),
-                Spacer(),
-                IconButton(
-                  onPressed: hasNext ? () => _navigate(1) : null,
-                  icon: const Icon(Icons.chevron_right),
-                ),
-              ],
-            ),
-          ],
         );
       },
     );
