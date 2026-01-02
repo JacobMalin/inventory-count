@@ -99,6 +99,10 @@ class CountModel with ChangeNotifier {
     notifyListeners();
   }
 
+  void setDefaultCount(Item data) {
+    setField1(data, data.defaultCount);
+  }
+
   int? getCountValueByName(String name, CountPhase phase) {
     final Box countBox = Hive.box('counts');
     final Count currentCount = countBox.get(date) ?? Count();

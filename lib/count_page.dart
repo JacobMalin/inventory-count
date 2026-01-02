@@ -38,86 +38,112 @@ class CountPage extends StatefulWidget {
 }
 
 class _CountPageState extends State<CountPage> {
+  void Function()? _expandUncountedCallback;
+  bool _hideCountedItems = false;
+
   @override
   Widget build(BuildContext context) {
     return Consumer<CountModel>(
       builder: (context, countModel, child) {
         return Scaffold(
-          body: CountList(),
+          body: CountList(
+            hideCountedItems: _hideCountedItems,
+            onExpandCallbackChanged: (callback) {
+              setState(() {
+                _expandUncountedCallback = callback;
+              });
+            },
+          ),
           bottomNavigationBar: BottomAppBar(
             height: 124,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      const Text('Back'),
-                      Expanded(
-                        child: Slider(
-                          value: countModel.countPhase.index.toDouble(),
-                          min: 0,
-                          max: 2,
-                          divisions: 2,
-                          onChanged: (value) {
-                            countModel.setCountPhase(
-                              CountPhase.values[value.toInt()],
-                            );
-                          },
-                        ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        _hideCountedItems
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                       ),
-                      const Text('Out'),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left),
-                        onPressed: countModel.decrementDate,
+                      onPressed: () {
+                        setState(() {
+                          _hideCountedItems = !_hideCountedItems;
+                        });
+                      },
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 16),
+                    const Text('Back'),
+                    Expanded(
+                      child: Slider(
+                        value: countModel.countPhase.index.toDouble(),
+                        min: 0,
+                        max: 2,
+                        divisions: 2,
+                        onChanged: (value) {
+                          countModel.setCountPhase(
+                            CountPhase.values[value.toInt()],
+                          );
+                        },
                       ),
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              countModel.date,
-                              style: Theme.of(context).textTheme.titleMedium,
-                              textAlign: TextAlign.center,
-                            ),
-                            if (!countModel.isToday)
-                              TextButton.icon(
-                                onPressed: countModel.goToToday,
-                                icon: const Icon(Icons.today, size: 16),
-                                label: const Text('Today'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: const Color.fromARGB(
-                                    255,
-                                    221,
-                                    206,
-                                    39,
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    const Text('Out'),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      icon: const Icon(Icons.unfold_more),
+                      onPressed: _expandUncountedCallback,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left),
+                      onPressed: countModel.decrementDate,
+                    ),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            countModel.date,
+                            style: Theme.of(context).textTheme.titleMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          if (!countModel.isToday)
+                            TextButton.icon(
+                              onPressed: countModel.goToToday,
+                              icon: const Icon(Icons.today, size: 16),
+                              label: const Text('Today'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color.fromARGB(
+                                  255,
+                                  221,
+                                  206,
+                                  39,
                                 ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right),
-                        onPressed: countModel.incrementDate,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right),
+                      onPressed: countModel.incrementDate,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         );
@@ -127,7 +153,14 @@ class _CountPageState extends State<CountPage> {
 }
 
 class CountList extends StatefulWidget {
-  const CountList({super.key});
+  const CountList({
+    super.key,
+    required this.onExpandCallbackChanged,
+    required this.hideCountedItems,
+  });
+
+  final void Function(void Function()?) onExpandCallbackChanged;
+  final bool hideCountedItems;
 
   @override
   State<CountList> createState() => _CountListState();
@@ -135,6 +168,7 @@ class CountList extends StatefulWidget {
 
 class _CountListState extends State<CountList> {
   static final Set<String> _expandedKeys = {};
+  TreeViewController? _treeController;
 
   TreeNode _buildTree(AreaModel areaModel, CountPhase currentPhase) {
     final root = TreeNode.root();
@@ -142,7 +176,10 @@ class _CountListState extends State<CountList> {
 
     for (int i = 0; i < areaModel.numAreas; i++) {
       final area = areaModel.getArea(i);
-      final areaNode = TreeNode(key: 'area_$i', data: AreaTreeData(area));
+      final areaNode = TreeNode(
+        key: 'area_${area.name}',
+        data: AreaTreeData(area),
+      );
 
       var isAreaUsed = false;
       var areaUncountedCount = 0;
@@ -152,7 +189,7 @@ class _CountListState extends State<CountList> {
 
         if (shelfOrItem is Shelf) {
           final shelfNode = TreeNode(
-            key: 'shelf_${i}_$j',
+            key: 'shelf_${area.name}_${shelfOrItem.name}',
             data: ShelfTreeData(shelfOrItem),
           );
 
@@ -163,13 +200,19 @@ class _CountListState extends State<CountList> {
             final item = shelfOrItem.items[k] as Item;
             if ((item.personalCountPhase?.index ?? item.countPhase.index) <=
                 currentPhase.index) {
+              final count = countModel.getCount(item);
+
+              // Skip counted items if hideCountedItems is true
+              if (widget.hideCountedItems && count != null) {
+                continue;
+              }
+
               final data = ItemTreeData(item, shelf: shelfOrItem, area: area);
-              final itemNode = TreeNode(key: 'item_${i}_${j}_$k', data: data);
+              final itemNode = TreeNode(key: 'item_${item.id}', data: data);
               shelfNode.add(itemNode);
               isShelfUsed = true;
 
               // Check if item is uncounted
-              final count = countModel.getCount(item);
               if (count == null) {
                 shelfUncountedCount++;
               }
@@ -188,15 +231,22 @@ class _CountListState extends State<CountList> {
             (shelfOrItem.personalCountPhase?.index ??
                     shelfOrItem.countPhase.index) <=
                 currentPhase.index) {
-          final data = ItemTreeData(shelfOrItem, area: area);
-          final itemNode = TreeNode(key: 'item_${i}_$j', data: data);
-          areaNode.add(itemNode);
-          isAreaUsed = true;
-
-          // Check if item is uncounted
           final count = countModel.getCount(shelfOrItem);
-          if (count == null) {
-            areaUncountedCount++;
+
+          // Skip counted items if hideCountedItems is true
+          if (!widget.hideCountedItems || count == null) {
+            final data = ItemTreeData(shelfOrItem, area: area);
+            final itemNode = TreeNode(
+              key: 'item_${shelfOrItem.id}',
+              data: data,
+            );
+            areaNode.add(itemNode);
+            isAreaUsed = true;
+
+            // Check if item is uncounted
+            if (count == null) {
+              areaUncountedCount++;
+            }
           }
         }
       }
@@ -215,6 +265,39 @@ class _CountListState extends State<CountList> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onExpandCallbackChanged(_expandUncountedItems);
+    });
+  }
+
+  void _expandUncountedItems() {
+    if (_treeController == null) return;
+
+    void expandIfHasUncounted(dynamic node) {
+      final data = node.data;
+      bool hasUncounted = false;
+
+      if (data is AreaTreeData && data.uncountedItems > 0) {
+        hasUncounted = true;
+      } else if (data is ShelfTreeData && data.uncountedItems > 0) {
+        hasUncounted = true;
+      }
+
+      if (hasUncounted && node is TreeNode) {
+        _treeController!.expandNode(node);
+        setState(() {
+          _expandedKeys.add(node.key);
+        });
+        for (var child in node.childrenAsList) {
+          expandIfHasUncounted(child);
+        }
+      }
+    }
+
+    final tree = _treeController!.tree;
+    for (var child in tree.childrenAsList) {
+      expandIfHasUncounted(child);
+    }
   }
 
   @override
@@ -226,15 +309,48 @@ class _CountListState extends State<CountList> {
             final tree = _buildTree(areaModel, countModel.countPhase);
 
             // Check if tree is empty (no items to count)
-            if (tree.childrenAsList.isEmpty ||
+            final bool treeIsEmpty =
+                tree.childrenAsList.isEmpty ||
                 tree.childrenAsList.every(
                   (areaNode) => areaNode.childrenAsList.isEmpty,
-                )) {
+                );
+
+            if (treeIsEmpty) {
+              // Check if there are any items at all for the current phase
+              bool hasAnyItems = false;
+              for (int i = 0; i < areaModel.numAreas; i++) {
+                final area = areaModel.getArea(i);
+                for (var shelfOrItem in area.shelvesAndItems) {
+                  if (shelfOrItem is Shelf) {
+                    for (var item in shelfOrItem.items) {
+                      if ((item.personalCountPhase?.index ??
+                              item.countPhase.index) <=
+                          countModel.countPhase.index) {
+                        hasAnyItems = true;
+                        break;
+                      }
+                    }
+                  } else if (shelfOrItem is Item &&
+                      (shelfOrItem.personalCountPhase?.index ??
+                              shelfOrItem.countPhase.index) <=
+                          countModel.countPhase.index) {
+                    hasAnyItems = true;
+                    break;
+                  }
+                  if (hasAnyItems) break;
+                }
+                if (hasAnyItems) break;
+              }
+
+              final message = hasAnyItems
+                  ? 'All items counted!'
+                  : 'Add items in Setup to begin counting!';
+
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    'Add items in Setup to begin counting!',
+                    message,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
@@ -242,8 +358,30 @@ class _CountListState extends State<CountList> {
               );
             }
 
+            // Update callback whenever tree rebuilds
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              widget.onExpandCallbackChanged(_expandUncountedItems);
+            });
+
+            // Build flat list of all items for navigation
+            List<ItemTreeData> allItems = [];
+            void collectItems(dynamic node) {
+              if (node.data is ItemTreeData) {
+                allItems.add(node.data);
+              }
+              for (var child in node.childrenAsList) {
+                collectItems(child);
+              }
+            }
+
+            for (var child in tree.childrenAsList) {
+              collectItems(child);
+            }
+
             return TreeView.simple(
-              key: ValueKey('tree_${countModel.countPhase.index}'),
+              key: ValueKey(
+                '${countModel.countPhase.index}_${widget.hideCountedItems}',
+              ),
               tree: tree,
               showRootNode: false,
               expansionIndicatorBuilder: (context, node) =>
@@ -254,6 +392,7 @@ class _CountListState extends State<CountList> {
                   ),
               indentation: const Indentation(style: IndentStyle.roundJoint),
               onTreeReady: (controller) {
+                _treeController = controller;
                 // Restore expansion state by traversing tree
                 void restoreExpansion(dynamic node) {
                   if (_expandedKeys.contains(node.key) && node is TreeNode) {
@@ -307,32 +446,15 @@ class _CountListState extends State<CountList> {
                           ItemNotCounted() => Colors.yellow.withValues(
                             alpha: 0.1,
                           ),
-                          _ => Colors.red.withValues(alpha: 0.1),
+                          _ => Colors.red.withValues(alpha: 0.2),
                         },
                         child: InkWell(
                           onTap: () {
-                            final controller = TextEditingController(
-                              text: switch (count) {
-                                ItemCount() => count.field1?.toString() ?? '',
-                                ItemNotCounted() => '-',
-                                _ => '',
-                              },
-                            );
-
-                            final secondaryController = TextEditingController(
-                              text: switch (count) {
-                                ItemCount() => count.field2?.toString() ?? '',
-                                ItemNotCounted() => '-',
-                                _ => '',
-                              },
-                            );
-
                             showDialog(
                               context: context,
                               builder: (context) => CountDialog(
-                                data: data,
-                                controller: controller,
-                                secondaryController: secondaryController,
+                                initialData: data,
+                                allItems: allItems,
                               ),
                             );
                           },
@@ -408,7 +530,7 @@ class _CountListState extends State<CountList> {
                             child: Text(
                               '$uncountedCount',
                               style: TextStyle(
-                                color: Colors.red.withValues(alpha: 0.8),
+                                color: Colors.red.withValues(alpha: 1.0),
                                 fontSize: 11,
                                 fontWeight: FontWeight.normal,
                               ),
@@ -428,128 +550,320 @@ class _CountListState extends State<CountList> {
   }
 }
 
-class CountDialog extends StatelessWidget {
+class CountDialog extends StatefulWidget {
   const CountDialog({
     super.key,
-    required this.data,
-    required this.controller,
-    required this.secondaryController,
+    required this.initialData,
+    required this.allItems,
   });
 
-  final ItemTreeData data;
-  final TextEditingController controller;
-  final TextEditingController secondaryController;
+  final ItemTreeData initialData;
+  final List<ItemTreeData> allItems;
+
+  @override
+  State<CountDialog> createState() => _CountDialogState();
+}
+
+class _CountDialogState extends State<CountDialog> {
+  late ItemTreeData currentData;
+  late TextEditingController controller;
+  late TextEditingController secondaryController;
+  late FocusNode focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    currentData = widget.initialData;
+    focusNode = FocusNode();
+    _initializeControllers(selectAll: false);
+  }
+
+  void _initializeControllers({bool selectAll = false}) {
+    final countModel = Provider.of<CountModel>(context, listen: false);
+    final count = countModel.getCount(currentData.item);
+
+    final primaryText = switch (count) {
+      ItemCount() => count.field1?.toString() ?? '',
+      ItemNotCounted() => '-',
+      _ => '',
+    };
+
+    controller = TextEditingController(text: primaryText);
+
+    if (selectAll && primaryText.isNotEmpty) {
+      controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: primaryText.length,
+      );
+    }
+
+    secondaryController = TextEditingController(
+      text: switch (count) {
+        ItemCount() => count.field2?.toString() ?? '',
+        ItemNotCounted() => '-',
+        _ => '',
+      },
+    );
+  }
+
+  void _navigate(int direction) {
+    final currentIndex = widget.allItems.indexWhere(
+      (item) => item.item.id == currentData.item.id,
+    );
+    final newIndex = currentIndex + direction;
+
+    if (newIndex >= 0 && newIndex < widget.allItems.length) {
+      final oldController = controller;
+      final oldSecondaryController = secondaryController;
+
+      setState(() {
+        currentData = widget.allItems[newIndex];
+        _initializeControllers(selectAll: true);
+      });
+
+      // Dispose old controllers after the frame is complete
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        oldController.dispose();
+        oldSecondaryController.dispose();
+      });
+
+      focusNode.requestFocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    secondaryController.dispose();
+    focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = widget.allItems.indexWhere(
+      (item) => item.item.id == currentData.item.id,
+    );
+    final hasNext = currentIndex < widget.allItems.length - 1;
+    final hasPrevious = currentIndex > 0;
+
     return Consumer<CountModel>(
       builder: (context, CountModel countModel, child) {
+        final ItemCountType? count = countModel.getCount(currentData.item);
+        final String displayCount = switch (count) {
+          ItemCount() => count.count.toString(),
+          ItemNotCounted() => 'Not Counted',
+          _ => 'Not Set',
+        };
+
         return AlertDialog(
-          title: Stack(
-            children: [
-              Positioned(
-                left: 0,
-                top: 0,
-                child: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.all(4),
-                  constraints: const BoxConstraints(),
-                ),
-              ),
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (data.area != null || data.shelf != null)
-                      RichText(
-                        text: TextSpan(
-                          style: DefaultTextStyle.of(context).style.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.normal,
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 40,
+            vertical: 24,
+          ),
+          title: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (currentData.area != null || currentData.shelf != null)
+                  RichText(
+                    text: TextSpan(
+                      style: DefaultTextStyle.of(context).style.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.normal,
+                      ),
+                      children: [
+                        if (currentData.area != null)
+                          TextSpan(
+                            text: currentData.area!.name,
+                            style: TextStyle(color: currentData.area!.color),
                           ),
-                          children: [
-                            if (data.area != null)
-                              TextSpan(
-                                text: data.area!.name,
-                                style: TextStyle(color: data.area!.color),
-                              ),
-                            if (data.area != null && data.shelf != null)
-                              const TextSpan(text: ' > '),
-                            if (data.shelf != null)
-                              TextSpan(text: data.shelf!.name),
-                          ],
+                        if (currentData.area != null &&
+                            currentData.shelf != null)
+                          const TextSpan(text: ' > '),
+                        if (currentData.shelf != null)
+                          TextSpan(text: currentData.shelf!.name),
+                      ],
+                    ),
+                  ),
+                Text(currentData.item.name, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          content: SizedBox(
+            width: 300,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Count:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
-                    Text(data.item.name),
-                  ],
+                      Text(
+                        displayCount,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                autofocus: true,
-                keyboardType: data.item.strategy == CountStrategy.negative
-                    ? TextInputType.numberWithOptions(signed: true)
-                    : TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: switch (data.item.strategy) {
-                    CountStrategy.stacks =>
-                      'Stacks${data.item.strategyInt != null ? ' (${data.item.strategyInt} per stack)' : ''}',
-                    CountStrategy.boxesAndStacks =>
-                      'Boxes${data.item.strategyInt != null ? ' (${data.item.strategyInt} stacks per box)' : ''}',
-                    CountStrategy.negative =>
-                      'Count (negative from ${data.item.strategyInt})',
-                    _ => 'Count',
-                  },
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) {
-                  final intValue = int.tryParse(value);
-                  countModel.setField1(data.item, intValue);
-                },
-                onSubmitted: (value) => Navigator.pop(context),
-              ),
-              if (data.item.strategy == CountStrategy.boxesAndStacks)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: TextField(
-                    controller: secondaryController,
-                    keyboardType: TextInputType.number,
+                const SizedBox(height: 16),
+                if (currentData.item.strategy == CountStrategy.boxesAndStacks)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          autofocus: true,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText:
+                                'Boxes${currentData.item.strategyInt != null ? ' (${currentData.item.strategyInt} stacks)' : ''}',
+                            labelStyle: const TextStyle(fontSize: 12),
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (value) {
+                            final intValue = int.tryParse(value);
+                            countModel.setField1(currentData.item, intValue);
+                          },
+                          onSubmitted: (value) => Navigator.pop(context),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: secondaryController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText:
+                                'Stacks${currentData.item.strategyInt2 != null ? ' (${currentData.item.strategyInt2} per)' : ''}',
+                            labelStyle: const TextStyle(fontSize: 12),
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (value) {
+                            final intValue = int.tryParse(value);
+                            countModel.setField2(currentData.item, intValue);
+                          },
+                          onSubmitted: (value) => Navigator.pop(context),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    autofocus: true,
+                    keyboardType:
+                        currentData.item.strategy == CountStrategy.negative
+                        ? TextInputType.numberWithOptions(signed: true)
+                        : TextInputType.number,
                     decoration: InputDecoration(
-                      labelText:
-                          'Stacks${data.item.strategyInt2 != null ? ' (${data.item.strategyInt2} per stack)' : ''}',
+                      labelText: switch (currentData.item.strategy) {
+                        CountStrategy.stacks =>
+                          'Stacks${currentData.item.strategyInt != null ? ' (${currentData.item.strategyInt} per stack)' : ''}',
+                        CountStrategy.negative =>
+                          'Count (negative from ${currentData.item.strategyInt})',
+                        _ => 'Count',
+                      },
                       border: OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       final intValue = int.tryParse(value);
-                      countModel.setField2(data.item, intValue);
+                      countModel.setField1(currentData.item, intValue);
                     },
                     onSubmitted: (value) => Navigator.pop(context),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                final intValue = int.tryParse(controller.text);
-                final secondaryIntValue = int.tryParse(
-                  secondaryController.text,
-                );
-                countModel.setField1(data.item, intValue);
-                countModel.setField2(data.item, secondaryIntValue);
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: hasPrevious ? () => _navigate(-1) : null,
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                Spacer(),
+                TextButton(
+                  onPressed:
+                      currentData.item.defaultCount != null &&
+                          currentData.item.defaultCount! > 0
+                      ? () {
+                          countModel.setField1(
+                            currentData.item,
+                            currentData.item.defaultCount!,
+                          );
+                          _navigate(1);
+                        }
+                      : null,
+                  style: TextButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    'Default: ${currentData.item.defaultCount ?? '-'}',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: () {
+                    countModel.setField1(currentData.item, 0);
+                    _navigate(1);
+                  },
+                  style: TextButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('0'),
+                ),
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: () {
+                    countModel.setNotCounted(currentData.item);
+                    _navigate(1);
+                  },
+                  style: TextButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('-'),
+                ),
+                Spacer(),
+                IconButton(
+                  onPressed: hasNext ? () => _navigate(1) : null,
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
             ),
           ],
         );
