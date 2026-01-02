@@ -729,16 +729,14 @@ class _CountDialogState extends State<CountDialog> {
           _ => 'Not Set',
         };
 
-        return Center(
+        return Dialog(
+          backgroundColor: Colors.transparent,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               AlertDialog(
                 contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-                insetPadding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 24,
-                ),
+                insetPadding: EdgeInsets.zero,
                 title: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -884,11 +882,11 @@ class _CountDialogState extends State<CountDialog> {
                   ),
                 ),
               ),
+              SizedBox(height: 12),
               Card(
                 elevation: 4,
-                margin: const EdgeInsets.symmetric(horizontal: 40),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -896,6 +894,43 @@ class _CountDialogState extends State<CountDialog> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          Builder(
+                            builder: (context) {
+                              final ItemCountType? lastCount = countModel
+                                  .getLastCount(currentData.item);
+
+                              return TextButton(
+                                onPressed: lastCount != null
+                                    ? () {
+                                        countModel.setLastCount(
+                                          currentData.item,
+                                        );
+                                        if (hasNext) {
+                                          _navigate(1);
+                                        } else {
+                                          Navigator.pop(context);
+                                        }
+                                      }
+                                    : null,
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(80, 56),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(switch (lastCount) {
+                                  ItemCount() => 'Last: ${lastCount.count}',
+                                  ItemNotCounted() => 'Last: -',
+                                  _ => 'Last',
+                                }),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 12),
                           TextButton(
                             onPressed:
                                 currentData.item.defaultCount != null &&
@@ -913,15 +948,36 @@ class _CountDialogState extends State<CountDialog> {
                                   }
                                 : null,
                             style: TextButton.styleFrom(
-                              minimumSize: Size.zero,
+                              minimumSize: const Size(100, 56),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 8,
                               ),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: Text(
-                              'Default: ${currentData.item.defaultCount ?? '-'}',
+                              currentData.item.defaultCount != null
+                                  ? 'Default: ${currentData.item.defaultCount}'
+                                  : 'Default',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: hasPrevious ? () => _navigate(-1) : null,
+                            icon: const Icon(Icons.chevron_left),
+                            style: IconButton.styleFrom(
+                              minimumSize: const Size(56, 56),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -935,12 +991,14 @@ class _CountDialogState extends State<CountDialog> {
                               }
                             },
                             style: TextButton.styleFrom(
-                              minimumSize: Size.zero,
+                              minimumSize: const Size(56, 56),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 8,
                               ),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: const Text('0'),
                           ),
@@ -955,30 +1013,27 @@ class _CountDialogState extends State<CountDialog> {
                               }
                             },
                             style: TextButton.styleFrom(
-                              minimumSize: Size.zero,
+                              minimumSize: const Size(56, 56),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 8,
                               ),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: const Text('-'),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: hasPrevious ? () => _navigate(-1) : null,
-                            icon: const Icon(Icons.chevron_left),
-                          ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
                           IconButton(
                             onPressed: hasNext ? () => _navigate(1) : null,
                             icon: const Icon(Icons.chevron_right),
+                            style: IconButton.styleFrom(
+                              minimumSize: const Size(56, 56),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           ),
                         ],
                       ),

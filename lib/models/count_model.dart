@@ -5,6 +5,7 @@ import 'package:inventory_count/models/hive.dart';
 
 class CountModel with ChangeNotifier {
   final DateFormat _dateFormat = DateFormat('EEEE, MMMM d, yyyy');
+  static const int _lastCountLookbackDays = 14;
 
   String get date => _dateFormat.format(_selectedDate);
 
@@ -95,6 +96,35 @@ class CountModel with ChangeNotifier {
 
   void setDefaultCount(Item data) {
     setField1(data, data.defaultCount);
+  }
+
+  ItemCountType? getLastCount(Item item) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+
+    // Look back through the last 'days' days to find a count
+    for (int i = 1; i <= _lastCountLookbackDays; i++) {
+      final pastDate = _selectedDate.subtract(Duration(days: i));
+      final dateKey = _dateFormat.format(pastDate);
+
+      final Count? pastCount = countBox.get(dateKey);
+      if (pastCount == null) continue;
+
+      final ItemCountType? itemCount = pastCount.getCount(item);
+      if (itemCount != null) return itemCount;
+    }
+
+    return null;
+  }
+
+  void setLastCount(Item item) {
+    final ItemCountType? lastCount = getLastCount(item);
+    if (lastCount == null) return;
+
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+    currentCount.setCount(item, lastCount);
+    countBox.put(date, currentCount);
+    notifyListeners();
   }
 
   int? getCountValueByName(String name, CountPhase phase) {
