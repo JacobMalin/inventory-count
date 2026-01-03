@@ -146,6 +146,7 @@ class _ItemSettingsState extends State<ItemSettings> {
   final TextEditingController strategyInt2Controller = TextEditingController();
   final TextEditingController countNameController = TextEditingController();
   final TextEditingController defaultCountController = TextEditingController();
+  final TextEditingController defaultStacksController = TextEditingController();
 
   @override
   void initState() {
@@ -161,7 +162,10 @@ class _ItemSettingsState extends State<ItemSettings> {
       strategyInt2Controller.text = widget.item.strategyInt2.toString();
     }
     if (widget.item.defaultCount != null) {
-      defaultCountController.text = widget.item.defaultCount.toString();
+      defaultCountController.text =
+          widget.item.defaultCount!.field1?.toString() ?? '';
+      defaultStacksController.text =
+          widget.item.defaultCount!.field2?.toString() ?? '';
     }
   }
 
@@ -171,6 +175,7 @@ class _ItemSettingsState extends State<ItemSettings> {
     strategyInt2Controller.dispose();
     countNameController.dispose();
     defaultCountController.dispose();
+    defaultStacksController.dispose();
     super.dispose();
   }
 
@@ -180,6 +185,34 @@ class _ItemSettingsState extends State<ItemSettings> {
       padding: const EdgeInsets.all(16.0),
       child: Consumer2<AreaModel, CountModel>(
         builder: (context, areaModel, countModel, child) {
+          void updateDefaultCount() {
+            int? defaultCountField1;
+            int? defaultCountField2;
+
+            if (defaultCountController.text.isNotEmpty) {
+              defaultCountField1 = int.tryParse(defaultCountController.text);
+            }
+
+            if (defaultStacksController.text.isNotEmpty) {
+              defaultCountField2 = int.tryParse(defaultStacksController.text);
+            }
+
+            if (defaultCountField1 != null || defaultCountField2 != null) {
+              areaModel.editItem(
+                widget.selectedOrder,
+                newDefaultCount: ItemCount(
+                  countStrategy,
+                  widget.item.strategyInt,
+                  widget.item.strategyInt2,
+                  field1: defaultCountField1,
+                  field2: defaultCountField2,
+                ),
+              );
+            } else {
+              areaModel.editItem(widget.selectedOrder, clearDefaultCount: true);
+            }
+          }
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -236,11 +269,12 @@ class _ItemSettingsState extends State<ItemSettings> {
                       newStrategy: countStrategy,
                       countModel: countModel,
                     );
+                    updateDefaultCount();
                   },
                 ),
               ),
-              const SizedBox(height: 24),
-              if (countStrategy == CountStrategy.stacks)
+              if (countStrategy == CountStrategy.stacks) ...[
+                const SizedBox(height: 24),
                 TextField(
                   controller: strategyIntController,
                   keyboardType: TextInputType.number,
@@ -265,7 +299,9 @@ class _ItemSettingsState extends State<ItemSettings> {
                     }
                   },
                 ),
-              if (countStrategy == CountStrategy.boxesAndStacks)
+              ],
+              if (countStrategy == CountStrategy.boxesAndStacks) ...[
+                const SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
@@ -323,7 +359,9 @@ class _ItemSettingsState extends State<ItemSettings> {
                     ),
                   ],
                 ),
-              if (countStrategy == CountStrategy.negative)
+              ],
+              if (countStrategy == CountStrategy.negative) ...[
+                const SizedBox(height: 24),
                 TextField(
                   controller: strategyIntController,
                   keyboardType: TextInputType.number,
@@ -348,36 +386,68 @@ class _ItemSettingsState extends State<ItemSettings> {
                     }
                   },
                 ),
+              ],
               const SizedBox(height: 24),
-              Text(
-                'Default Count',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: defaultCountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  hintText: '0',
-                  border: OutlineInputBorder(),
+              if (countStrategy != CountStrategy.negative) ...[
+                Text(
+                  widget.item.defaultCount != null
+                      ? 'Default Count: ${widget.item.defaultCount!.count}'
+                      : 'Default Count',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                onChanged: (value) {
-                  if (value.isEmpty) {
-                    areaModel.editItem(
-                      widget.selectedOrder,
-                      clearDefaultCount: true,
-                    );
-                    return;
-                  }
-
-                  final intValue = int.tryParse(value);
-                  areaModel.editItem(
-                    widget.selectedOrder,
-                    newDefaultCount: intValue,
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                if (countStrategy == CountStrategy.singular ||
+                    countStrategy == CountStrategy.stacks)
+                  TextField(
+                    controller: defaultCountController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: '0',
+                      labelText: countStrategy == CountStrategy.stacks
+                          ? 'Default stacks'
+                          : null,
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      updateDefaultCount();
+                    },
+                  )
+                else if (countStrategy == CountStrategy.boxesAndStacks)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: defaultCountController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            hintText: '0',
+                            labelText: 'Default boxes',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (value) {
+                            updateDefaultCount();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: defaultStacksController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            hintText: '0',
+                            labelText: 'Default stacks',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (value) {
+                            updateDefaultCount();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 24),
+              ],
               Text(
                 'Count Phase',
                 style: Theme.of(context).textTheme.titleLarge,

@@ -216,7 +216,7 @@ class ItemTile extends StatelessWidget {
           title: Text(item.name),
           subtitle: Text(
             item.defaultCount != null
-                ? '${_getStrategyText(item.strategy, item.strategyInt, item.strategyInt2)} • Default: ${item.defaultCount}'
+                ? '${_getStrategyText(item.strategy, item.strategyInt, item.strategyInt2)} • Default: ${item.defaultCount!.count}'
                 : _getStrategyText(
                     item.strategy,
                     item.strategyInt,

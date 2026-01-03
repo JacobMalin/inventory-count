@@ -95,7 +95,23 @@ class CountModel with ChangeNotifier {
   }
 
   void setDefaultCount(Item data) {
-    setField1(data, data.defaultCount);
+    if (data.defaultCount == null) return;
+
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+
+    // Create a new ItemCount with current modifiers
+    final defaultWithCurrentModifiers = ItemCount(
+      data.strategy,
+      data.strategyInt,
+      data.strategyInt2,
+      field1: data.defaultCount!.field1,
+      field2: data.defaultCount!.field2,
+    );
+
+    currentCount.setCount(data, defaultWithCurrentModifiers);
+    countBox.put(date, currentCount);
+    notifyListeners();
   }
 
   ItemCountType? getLastCount(Item item) {

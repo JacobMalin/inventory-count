@@ -190,7 +190,7 @@ class AreaModel with ChangeNotifier {
     int? newStrategyInt,
     int? newStrategyInt2,
     String? newCountName,
-    int? newDefaultCount,
+    ItemCount? newDefaultCount,
     CountPhase? newCountPhase,
     CountPhase? newPersonalCountPhase,
     CountModel? countModel,

@@ -98,7 +98,7 @@ class ItemAdapter extends TypeAdapter<Item> {
       strategyInt: fields[2] as int?,
       strategyInt2: fields[8] as int?,
       countName: fields[3] as String?,
-      defaultCount: fields[4] as int?,
+      defaultCount: fields[4] as ItemCount?,
       countPhase: fields[5] as CountPhase?,
       personalCountPhase: fields[6] as CountPhase?,
       id: fields[7] as int?,
@@ -264,9 +264,7 @@ class ExportPlaceholderAdapter extends TypeAdapter<ExportPlaceholder> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return ExportPlaceholder(
-      fields[0] as String,
-    );
+    return ExportPlaceholder(fields[0] as String);
   }
 
   @override
@@ -298,9 +296,7 @@ class ExportTitleAdapter extends TypeAdapter<ExportTitle> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return ExportTitle(
-      fields[0] as String,
-    );
+    return ExportTitle(fields[0] as String);
   }
 
   @override

@@ -932,13 +932,10 @@ class _CountDialogState extends State<CountDialog> {
                           ),
                           const SizedBox(width: 12),
                           TextButton(
-                            onPressed:
-                                currentData.item.defaultCount != null &&
-                                    currentData.item.defaultCount! > 0
+                            onPressed: currentData.item.defaultCount != null
                                 ? () {
-                                    countModel.setField1(
+                                    countModel.setDefaultCount(
                                       currentData.item,
-                                      currentData.item.defaultCount!,
                                     );
                                     if (hasNext) {
                                       _navigate(1);
@@ -959,7 +956,7 @@ class _CountDialogState extends State<CountDialog> {
                             ),
                             child: Text(
                               currentData.item.defaultCount != null
-                                  ? 'Default: ${currentData.item.defaultCount}'
+                                  ? 'Default: ${currentData.item.defaultCount!.count}'
                                   : 'Default',
                             ),
                           ),

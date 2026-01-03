@@ -114,7 +114,7 @@ class Item extends HiveObject {
   String? countName;
 
   @HiveField(4)
-  int? defaultCount;
+  ItemCount? defaultCount;
 
   @HiveField(5)
   CountPhase countPhase;
@@ -152,7 +152,7 @@ class Item extends HiveObject {
       'strategyInt': strategyInt,
       'strategyInt2': strategyInt2,
       'countName': countName,
-      'defaultCount': defaultCount,
+      'defaultCount': defaultCount?.toJson(),
       'countPhase': countPhase.index,
       'personalCountPhase': personalCountPhase?.index,
       'id': id,
@@ -163,10 +163,12 @@ class Item extends HiveObject {
     return Item(
       json['name'],
       strategy: CountStrategy.values[json['strategy'] ?? 0],
-      strategyInt: json['strategyInt'],
-      strategyInt2: json['strategyInt2'],
+      strategyInt: json['strategyInt'] is int ? json['strategyInt'] : null,
+      strategyInt2: json['strategyInt2'] is int ? json['strategyInt2'] : null,
       countName: json['countName'],
-      defaultCount: json['defaultCount'],
+      defaultCount: json['defaultCount'] != null && json['defaultCount'] is Map
+          ? ItemCount.fromJson(json['defaultCount'] as Map<String, dynamic>)
+          : null,
       countPhase: CountPhase.values[json['countPhase'] ?? 0],
       personalCountPhase: json['personalCountPhase'] != null
           ? CountPhase.values[json['personalCountPhase']]
@@ -421,6 +423,26 @@ class ItemCount extends HiveObject implements ItemCountType {
     this.field1,
     this.field2,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'field1': field1,
+      'field2': field2,
+      'modifier1': modifier1,
+      'modifier2': modifier2,
+      'strategy': strategy.index,
+    };
+  }
+
+  static ItemCount fromJson(Map<String, dynamic> json) {
+    return ItemCount(
+      CountStrategy.values[json['strategy'] ?? 0],
+      json['modifier1'],
+      json['modifier2'],
+      field1: json['field1'],
+      field2: json['field2'],
+    );
+  }
 }
 
 @HiveType(typeId: 11)
