@@ -932,7 +932,10 @@ class _CountDialogState extends State<CountDialog> {
                           ),
                           const SizedBox(width: 12),
                           TextButton(
-                            onPressed: currentData.item.defaultCount != null
+                            onPressed:
+                                currentData.item.defaultCount != null ||
+                                    currentData.item.strategy ==
+                                        CountStrategy.negative
                                 ? () {
                                     countModel.setDefaultCount(
                                       currentData.item,
@@ -955,7 +958,10 @@ class _CountDialogState extends State<CountDialog> {
                               ),
                             ),
                             child: Text(
-                              currentData.item.defaultCount != null
+                              currentData.item.strategy ==
+                                      CountStrategy.negative
+                                  ? 'Default: 0'
+                                  : currentData.item.defaultCount != null
                                   ? 'Default: ${currentData.item.defaultCount!.count}'
                                   : 'Default',
                             ),
@@ -980,7 +986,15 @@ class _CountDialogState extends State<CountDialog> {
                           const SizedBox(width: 12),
                           TextButton(
                             onPressed: () {
-                              countModel.setField1(currentData.item, 0);
+                              if (currentData.item.strategy ==
+                                  CountStrategy.negative) {
+                                countModel.setField1(
+                                  currentData.item,
+                                  currentData.item.strategyInt,
+                                );
+                              } else {
+                                countModel.setField1(currentData.item, 0);
+                              }
                               if (hasNext) {
                                 _navigate(1);
                               } else {
