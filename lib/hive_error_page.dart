@@ -1,3 +1,4 @@
+import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -151,6 +152,8 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      locale: DevicePreview.locale(context),
+      builder: DevicePreview.appBuilder,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 18, 75, 99),
@@ -178,7 +181,7 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
                 const SizedBox(height: 16),
                 Text(
                   'The app encountered an error while loading the database. This may be due to corrupted data.',
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
@@ -240,7 +243,7 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
                       _statusMessage!,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: _statusMessage!.contains('Successfully')
                             ? Colors.green
                             : Colors.orange,
@@ -269,8 +272,12 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
                   ),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(16),
-                    backgroundColor: Colors.red.shade700,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.errorContainer,
+                    foregroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onErrorContainer,
                   ),
                 ),
                 const SizedBox(height: 16),

@@ -857,11 +857,7 @@ class _CountDialogState extends State<CountDialog> {
                           controller: controller,
                           focusNode: focusNode,
                           autofocus: true,
-                          keyboardType:
-                              currentData.item.strategy ==
-                                  CountStrategy.negative
-                              ? TextInputType.numberWithOptions(signed: true)
-                              : TextInputType.number,
+                          keyboardType: TextInputType.number,
                           decoration: InputDecoration(
                             labelText: switch (currentData.item.strategy) {
                               CountStrategy.stacks =>

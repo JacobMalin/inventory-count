@@ -7,6 +7,15 @@ import 'package:provider/provider.dart';
 class ExportPage extends StatelessWidget {
   const ExportPage({super.key});
 
+  double _getTextWidth(BuildContext context, String text, TextStyle? style) {
+    final textPainter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    return textPainter.width;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,6 +32,18 @@ class ExportPage extends StatelessWidget {
         builder: (context, areaModel, countModel, child) {
           final exportList = areaModel.exportList;
 
+          // Calculate the width needed for headers with padding
+          final textStyle = Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold);
+
+          final columnWidths = {
+            'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
+            'Cabinet': _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
+            'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
+            'Total': _getTextWidth(context, 'Total', textStyle) + 24.0,
+          };
+
           return Align(
             alignment: Alignment.topCenter,
             child: SingleChildScrollView(
@@ -31,12 +52,12 @@ class ExportPage extends StatelessWidget {
                   color: Theme.of(context).colorScheme.outline,
                   width: 1,
                 ),
-                columnWidths: const {
-                  0: FlexColumnWidth(6),
-                  1: FlexColumnWidth(3),
-                  2: FlexColumnWidth(4),
-                  3: FlexColumnWidth(3),
-                  4: FlexColumnWidth(3),
+                columnWidths: {
+                  0: const FlexColumnWidth(),
+                  1: FixedColumnWidth(columnWidths['Back']!),
+                  2: FixedColumnWidth(columnWidths['Cabinet']!),
+                  3: FixedColumnWidth(columnWidths['Out']!),
+                  4: FixedColumnWidth(columnWidths['Total']!),
                 },
                 children: [
                   // Header row
@@ -45,11 +66,36 @@ class ExportPage extends StatelessWidget {
                       color: Theme.of(context).colorScheme.primaryContainer,
                     ),
                     children: [
-                      _buildHeaderCell(context, 'Item', TextAlign.left),
-                      _buildHeaderCell(context, 'Back', TextAlign.center),
-                      _buildHeaderCell(context, 'Cabinet', TextAlign.center),
-                      _buildHeaderCell(context, 'Out', TextAlign.center),
-                      _buildHeaderCell(context, 'Total', TextAlign.center),
+                      _buildHeaderCell(
+                        context,
+                        'Item',
+                        TextAlign.left,
+                        textStyle,
+                      ),
+                      _buildHeaderCell(
+                        context,
+                        'Back',
+                        TextAlign.center,
+                        textStyle,
+                      ),
+                      _buildHeaderCell(
+                        context,
+                        'Cabinet',
+                        TextAlign.center,
+                        textStyle,
+                      ),
+                      _buildHeaderCell(
+                        context,
+                        'Out',
+                        TextAlign.center,
+                        textStyle,
+                      ),
+                      _buildHeaderCell(
+                        context,
+                        'Total',
+                        TextAlign.center,
+                        textStyle,
+                      ),
                     ],
                   ),
                   // Data rows
@@ -73,15 +119,17 @@ class ExportPage extends StatelessWidget {
     BuildContext context,
     String text,
     TextAlign textAlign,
+    TextStyle? textStyle,
   ) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
       child: Text(
         text,
         textAlign: textAlign,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        style: textStyle,
+        overflow: TextOverflow.fade,
+        maxLines: 1,
+        softWrap: false,
       ),
     );
   }
@@ -187,6 +235,9 @@ class ExportPage extends StatelessWidget {
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            softWrap: false,
           ),
         ),
         const SizedBox(),

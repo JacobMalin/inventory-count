@@ -20,21 +20,13 @@ void main() async {
     hiveError = e.toString();
   }
 
-  if (hiveError != null) {
-    runApp(
-      kDebugMode
-          ? DevicePreview(
-              builder: (context) => HiveErrorPage(errorMessage: hiveError!),
-            )
-          : HiveErrorPage(errorMessage: hiveError),
-    );
-    return;
-  }
-
   runApp(
-    kDebugMode
-        ? DevicePreview(builder: (context) => const MainApp())
-        : const MainApp(),
+    DevicePreview(
+      enabled: !kReleaseMode,
+      builder: (context) => hiveError != null
+          ? HiveErrorPage(errorMessage: hiveError)
+          : const MainApp(),
+    ),
   );
 }
 
@@ -86,11 +78,24 @@ class _HomePageState extends State<HomePage> {
         },
         selectedIndex: currentPageIndex,
         destinations: const <Widget>[
-          NavigationDestination(icon: Icon(Icons.list), label: 'Count'),
+          NavigationDestination(
+            icon: Icon(Icons.list),
+            label: 'Count',
+            tooltip: '',
+          ),
           // NavigationDestination(icon: Icon(Icons.bug_report), label: 'Fix'),
-          NavigationDestination(icon: Icon(Icons.print), label: 'Export'),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Setup'),
+          NavigationDestination(
+            icon: Icon(Icons.print),
+            label: 'Export',
+            tooltip: '',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings),
+            label: 'Setup',
+            tooltip: '',
+          ),
         ],
+        labelBehavior: null,
       ),
       body: [
         const CountPage(),
