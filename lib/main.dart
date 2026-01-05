@@ -7,10 +7,29 @@ import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/count_page.dart';
 import 'package:inventory_count/export_page.dart';
 import 'package:inventory_count/setup/setup_page.dart';
+import 'package:inventory_count/hive_error_page.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
-  await hiveSetup();
+  WidgetsFlutterBinding.ensureInitialized();
+
+  String? hiveError;
+  try {
+    await hiveSetup();
+  } catch (e) {
+    hiveError = e.toString();
+  }
+
+  if (hiveError != null) {
+    runApp(
+      kDebugMode
+          ? DevicePreview(
+              builder: (context) => HiveErrorPage(errorMessage: hiveError!),
+            )
+          : HiveErrorPage(errorMessage: hiveError),
+    );
+    return;
+  }
 
   runApp(
     kDebugMode
