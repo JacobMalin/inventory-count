@@ -1050,8 +1050,8 @@ class _CountDialogState extends State<CountDialog> {
                           TextButton(
                             onPressed:
                                 currentData.item.defaultCount != null ||
-                                    currentData.item.strategy ==
-                                        CountStrategy.negative
+                                    currentData.item.strategy
+                                        is NegativeCountStrategy
                                 ? () {
                                     countModel.setDefaultCount(
                                       currentData.item,
@@ -1074,8 +1074,7 @@ class _CountDialogState extends State<CountDialog> {
                               ),
                             ),
                             child: Text(
-                              currentData.item.strategy ==
-                                      CountStrategy.negative
+                              currentData.item.strategy is NegativeCountStrategy
                                   ? 'Default: 0'
                                   : currentData.item.defaultCount != null
                                   ? 'Default: ${currentData.item.defaultCount!.count}'
@@ -1102,11 +1101,13 @@ class _CountDialogState extends State<CountDialog> {
                           const SizedBox(width: 12),
                           TextButton(
                             onPressed: () {
-                              if (currentData.item.strategy ==
-                                  CountStrategy.negative) {
+                              if (currentData.item.strategy
+                                  is NegativeCountStrategy) {
                                 countModel.setField1(
                                   currentData.item,
-                                  currentData.item.strategyInt,
+                                  (currentData.item.strategy
+                                          as NegativeCountStrategy)
+                                      .from,
                                 );
                               } else {
                                 countModel.setField1(currentData.item, 0);
