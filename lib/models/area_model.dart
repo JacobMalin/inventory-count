@@ -190,13 +190,14 @@ class AreaModel with ChangeNotifier {
     int? newStrategyInt,
     int? newStrategyInt2,
     String? newCountName,
-    int? newDefaultCount,
+    ItemCount? newDefaultCount,
     CountPhase? newCountPhase,
     CountPhase? newPersonalCountPhase,
     CountModel? countModel,
     bool clearDefaultCount = false,
     bool clearStrategyInt = false,
     bool clearStrategyInt2 = false,
+    bool clearPersonalCountPhase = false,
   }) {
     var currentAreas = _areasBox.get('areas');
     Item item;
@@ -251,6 +252,9 @@ class AreaModel with ChangeNotifier {
     }
     if (newPersonalCountPhase != null) {
       item.personalCountPhase = newPersonalCountPhase;
+    }
+    if (clearPersonalCountPhase) {
+      item.personalCountPhase = null;
     }
 
     if (clearDefaultCount) {
@@ -392,10 +396,7 @@ class AreaModel with ChangeNotifier {
     return jsonEncode(
       data.map((key, value) {
         if (value is List) {
-          return MapEntry(
-            key,
-            value.map((item) => item.toJson()).toList(),
-          );
+          return MapEntry(key, value.map((item) => item.toJson()).toList());
         }
         return MapEntry(key, value);
       }),
@@ -408,9 +409,7 @@ class AreaModel with ChangeNotifier {
     // Import areas
     if (data['areas'] != null) {
       final areasList = (data['areas'] as List)
-          .map(
-            (json) => Area.fromJson(json as Map<String, dynamic>),
-          )
+          .map((json) => Area.fromJson(json as Map<String, dynamic>))
           .toList();
       _areasBox.put('areas', areasList);
     }
@@ -420,6 +419,101 @@ class AreaModel with ChangeNotifier {
       _areasBox.put('itemIdCounter', data['itemIdCounter']);
     }
 
+    maintainExportList();
+    notifyListeners();
+  }
+
+  String exportExportListToJson() {
+    final currentExportList = exportList;
+
+    final data = {
+      'exportList': currentExportList.map((entry) => entry.toJson()).toList(),
+    };
+
+    return jsonEncode(data);
+  }
+
+  void importExportListFromJson(String jsonString) {
+    final data = jsonDecode(jsonString) as Map<String, dynamic>;
+
+    // Import export list
+    if (data['exportList'] != null) {
+      final exportListData = (data['exportList'] as List).map((json) {
+        final type = json['type'] as String;
+        switch (type) {
+          case 'ExportItem':
+            return ExportItem.fromJson(json as Map<String, dynamic>);
+          case 'ExportTitle':
+            return ExportTitle.fromJson(json as Map<String, dynamic>);
+          case 'ExportPlaceholder':
+            return ExportPlaceholder.fromJson(json as Map<String, dynamic>);
+          default:
+            throw Exception('Unknown export entry type: $type');
+        }
+      }).toList();
+
+      Hive.box('settings').put('exportList', exportListData);
+      maintainExportList();
+    }
+
+    notifyListeners();
+  }
+
+  String exportAllToJson() {
+    final currentExportList = exportList;
+
+    final data = {
+      'areas': _areasBox.get('areas'),
+      'itemIdCounter': _areasBox.get('itemIdCounter', defaultValue: 0),
+      'exportList': currentExportList.map((entry) => entry.toJson()).toList(),
+    };
+
+    return jsonEncode(
+      data.map((key, value) {
+        if (value is List && key == 'areas') {
+          return MapEntry(key, value.map((item) => item.toJson()).toList());
+        }
+        return MapEntry(key, value);
+      }),
+    );
+  }
+
+  void importAllFromJson(String jsonString) {
+    final data = jsonDecode(jsonString) as Map<String, dynamic>;
+
+    // Import areas
+    if (data['areas'] != null) {
+      final areasList = (data['areas'] as List)
+          .map((json) => Area.fromJson(json as Map<String, dynamic>))
+          .toList();
+      _areasBox.put('areas', areasList);
+    }
+
+    // Import itemIdCounter
+    if (data['itemIdCounter'] != null) {
+      _areasBox.put('itemIdCounter', data['itemIdCounter']);
+    }
+
+    // Import export list
+    if (data['exportList'] != null) {
+      final exportListData = (data['exportList'] as List).map((json) {
+        final type = json['type'] as String;
+        switch (type) {
+          case 'ExportItem':
+            return ExportItem.fromJson(json as Map<String, dynamic>);
+          case 'ExportTitle':
+            return ExportTitle.fromJson(json as Map<String, dynamic>);
+          case 'ExportPlaceholder':
+            return ExportPlaceholder.fromJson(json as Map<String, dynamic>);
+          default:
+            throw Exception('Unknown export entry type: $type');
+        }
+      }).toList();
+
+      Hive.box('settings').put('exportList', exportListData);
+    }
+
+    maintainExportList();
     notifyListeners();
   }
 }

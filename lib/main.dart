@@ -7,15 +7,26 @@ import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/count_page.dart';
 import 'package:inventory_count/export_page.dart';
 import 'package:inventory_count/setup/setup_page.dart';
+import 'package:inventory_count/hive_error_page.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
-  await hiveSetup();
+  WidgetsFlutterBinding.ensureInitialized();
+
+  String? hiveError;
+  try {
+    await hiveSetup();
+  } catch (e) {
+    hiveError = e.toString();
+  }
 
   runApp(
-    kDebugMode
-        ? DevicePreview(builder: (context) => const MainApp())
-        : const MainApp(),
+    DevicePreview(
+      enabled: !kReleaseMode,
+      builder: (context) => hiveError != null
+          ? HiveErrorPage(errorMessage: hiveError)
+          : const MainApp(),
+    ),
   );
 }
 
@@ -67,15 +78,28 @@ class _HomePageState extends State<HomePage> {
         },
         selectedIndex: currentPageIndex,
         destinations: const <Widget>[
-          NavigationDestination(icon: Icon(Icons.list), label: 'Count'),
-          NavigationDestination(icon: Icon(Icons.bug_report), label: 'Fix'),
-          NavigationDestination(icon: Icon(Icons.print), label: 'Export'),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Setup'),
+          NavigationDestination(
+            icon: Icon(Icons.list),
+            label: 'Count',
+            tooltip: '',
+          ),
+          // NavigationDestination(icon: Icon(Icons.bug_report), label: 'Fix'),
+          NavigationDestination(
+            icon: Icon(Icons.print),
+            label: 'Export',
+            tooltip: '',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings),
+            label: 'Setup',
+            tooltip: '',
+          ),
         ],
+        labelBehavior: null,
       ),
       body: [
         const CountPage(),
-        const Center(child: Text('Fix Page')),
+        // const Center(child: Text('Fix Page')),
         const ExportPage(),
         const SetupPage(),
       ][currentPageIndex],

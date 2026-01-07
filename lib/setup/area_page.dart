@@ -53,21 +53,20 @@ class AreaPage extends StatelessWidget {
                       content: TextField(
                         controller: controller,
                         autofocus: true,
-                        onSubmitted: (value) {
-                          if (value.isNotEmpty) {
-                            areaModel.renameArea(selectedOrder.last, value);
-                            Navigator.pop(context);
-                          }
-                        },
+                        onSubmitted: (_) => Navigator.pop(context),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
+                          child: const Text('Close'),
                         ),
                       ],
                     ),
-                  );
+                  ).then((_) {
+                    if (controller.text.isNotEmpty) {
+                      areaModel.renameArea(selectedOrder.last, controller.text);
+                    }
+                  });
                 },
               ),
               IconButton(
@@ -109,7 +108,14 @@ class AreaPage extends StatelessWidget {
             scrolledUnderElevation: 0,
             backgroundColor: Theme.of(context).colorScheme.surface,
           ),
-          body: ShelfList(select: select, selectedOrder: selectedOrder),
+          body: GestureDetector(
+            onHorizontalDragEnd: (details) {
+              if (details.primaryVelocity! > 300) {
+                deselect();
+              }
+            },
+            child: ShelfList(select: select, selectedOrder: selectedOrder),
+          ),
         );
       },
     );
@@ -139,16 +145,19 @@ class _ShelfListState extends State<ShelfList> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+  void _scrollToBottom() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      // Scroll again in case the extent changed during animation
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
-    });
+    }
   }
 
   @override
@@ -188,7 +197,7 @@ class _ShelfListState extends State<ShelfList> {
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
+                              child: const Text('Close'),
                             ),
                           ],
                         ),
@@ -223,7 +232,7 @@ class _ShelfListState extends State<ShelfList> {
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
+                              child: const Text('Close'),
                             ),
                           ],
                         ),
@@ -240,6 +249,7 @@ class _ShelfListState extends State<ShelfList> {
                     builder: (context) => Material(
                       child: ReorderableListView(
                         scrollController: _scrollController,
+                        key: const PageStorageKey('areaContentListView'),
                         children: <Widget>[
                           for (
                             int index = 0;
