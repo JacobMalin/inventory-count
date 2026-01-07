@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/hive.dart';
@@ -86,124 +83,6 @@ class AreasPage extends StatelessWidget {
             centerTitle: true,
             scrolledUnderElevation: 0,
             backgroundColor: Theme.of(context).colorScheme.surface,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.download),
-                onPressed: () async {
-                  // Export functionality
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Export Areas'),
-                      content: const Text(
-                        'This will create a backup file of all your areas.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            Navigator.pop(context);
-
-                            try {
-                              final jsonString = areaModel.exportAreasToJson();
-
-                              final String? outputPath = await FilePicker
-                                  .platform
-                                  .saveFile(
-                                    dialogTitle: 'Save areas backup',
-                                    fileName: 'areas_backup.json',
-                                    type: FileType.custom,
-                                    allowedExtensions: ['json'],
-                                  );
-
-                              if (outputPath != null) {
-                                final file = File(outputPath);
-                                await file.writeAsString(jsonString);
-
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Export successful!'),
-                                    ),
-                                  );
-                                }
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Export failed: $e')),
-                                );
-                              }
-                            }
-                          },
-                          child: const Text('Export'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.upload_file),
-                onPressed: () async {
-                  // Import functionality
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Import Areas'),
-                      content: const Text(
-                        'This will replace all current areas. Are you sure?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            Navigator.pop(context);
-
-                            try {
-                              final result = await FilePicker.platform
-                                  .pickFiles(
-                                    type: FileType.custom,
-                                    allowedExtensions: ['json'],
-                                  );
-
-                              if (result != null &&
-                                  result.files.single.path != null) {
-                                final file = File(result.files.single.path!);
-                                final jsonString = await file.readAsString();
-
-                                areaModel.importAreasFromJson(jsonString);
-
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Import successful!'),
-                                    ),
-                                  );
-                                }
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Import failed: $e')),
-                                );
-                              }
-                            }
-                          },
-                          child: const Text('Import'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
           ),
           body: AreaList(select: select),
         );
@@ -230,16 +109,19 @@ class _AreaListState extends State<AreaList> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+  void _scrollToBottom() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      // Scroll again in case the extent changed during animation
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
-    });
+    }
   }
 
   @override
@@ -284,6 +166,7 @@ class _AreaListState extends State<AreaList> {
                     builder: (context) => Material(
                       child: ReorderableListView(
                         scrollController: _scrollController,
+                        key: const PageStorageKey('areaListView'),
                         children: <AreaTile>[
                           for (
                             int index = 0;

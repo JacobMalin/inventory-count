@@ -52,16 +52,16 @@ class ItemPage extends StatelessWidget {
                           return TextField(
                             controller: controller,
                             autofocus: true,
-                            onSubmitted: (value) {
+                            onChanged: (value) {
                               if (value.isNotEmpty) {
                                 areaModel.editItem(
                                   selectedOrder,
                                   newName: value,
                                   countModel: countModel,
                                 );
-                                Navigator.pop(context);
                               }
                             },
+                            onSubmitted: (_) => Navigator.pop(context),
                           );
                         },
                       ),
@@ -111,7 +111,14 @@ class ItemPage extends StatelessWidget {
             scrolledUnderElevation: 0,
             backgroundColor: Theme.of(context).colorScheme.surface,
           ),
-          body: ItemSettings(item: item, selectedOrder: selectedOrder),
+          body: GestureDetector(
+            onHorizontalDragEnd: (details) {
+              if (details.primaryVelocity! > 300) {
+                deselect();
+              }
+            },
+            child: ItemSettings(item: item, selectedOrder: selectedOrder),
+          ),
         );
       },
     );
@@ -140,6 +147,7 @@ class _ItemSettingsState extends State<ItemSettings> {
   final TextEditingController strategyInt2Controller = TextEditingController();
   final TextEditingController countNameController = TextEditingController();
   final TextEditingController defaultCountController = TextEditingController();
+  final TextEditingController defaultStacksController = TextEditingController();
 
   @override
   void initState() {
@@ -153,7 +161,10 @@ class _ItemSettingsState extends State<ItemSettings> {
       strategyInt2Controller,
     );
     if (widget.item.defaultCount != null) {
-      defaultCountController.text = widget.item.defaultCount.toString();
+      defaultCountController.text =
+          widget.item.defaultCount!.field1?.toString() ?? '';
+      defaultStacksController.text =
+          widget.item.defaultCount!.field2?.toString() ?? '';
     }
   }
 
@@ -163,6 +174,7 @@ class _ItemSettingsState extends State<ItemSettings> {
     strategyInt2Controller.dispose();
     countNameController.dispose();
     defaultCountController.dispose();
+    defaultStacksController.dispose();
     super.dispose();
   }
 
@@ -245,6 +257,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                       newStrategy: countStrategy,
                       countModel: countModel,
                     );
+                    updateDefaultCount();
                   },
                 ),
               ),
@@ -390,6 +403,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                     areaModel.editItem(
                       widget.selectedOrder,
                       newPersonalCountPhase: personalCountPhase,
+                      clearPersonalCountPhase: personalCountPhase == null,
                       countModel: countModel,
                     );
                   },

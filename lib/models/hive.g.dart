@@ -96,7 +96,7 @@ class ItemAdapter extends TypeAdapter<Item> {
       fields[0] as String,
       strategy: fields[1] as CountStrategy?,
       countName: fields[3] as String?,
-      defaultCount: fields[4] as int?,
+      defaultCount: fields[4] as ItemCount?,
       countPhase: fields[5] as CountPhase?,
       personalCountPhase: fields[6] as CountPhase?,
       id: fields[7] as int?,

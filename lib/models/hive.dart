@@ -19,7 +19,7 @@ Future<void> hiveSetup() async {
   registerExportEntryAdapters();
 
   await Hive.openBox('areas');
-  await Hive.openBox('counts');
+  await Hive.openBox<Count>('counts');
   await Hive.openBox('settings');
 }
 
@@ -57,16 +57,24 @@ class Area extends HiveObject {
   static Area fromJson(Map<String, dynamic> json) {
     final shelvesAndItems = (json['shelvesAndItems'] as List? ?? [])
         .map((item) {
-          if (item['type'] == 'shelf') {
-            return Shelf.fromJson(item['data']);
-          } else if (item['type'] == 'item') {
-            return Item.fromJson(item['data']);
+          if (item == null || item is! Map<String, dynamic>) return null;
+          try {
+            if (item['type'] == 'shelf') {
+              return Shelf.fromJson(item['data'] as Map<String, dynamic>);
+            } else if (item['type'] == 'item') {
+              return Item.fromJson(item['data'] as Map<String, dynamic>);
+            }
+          } catch (e) {
+            return null;
           }
           return null;
         })
         .where((item) => item != null)
         .toList();
-    return Area(json['name'], shelvesAndItems: shelvesAndItems);
+    return Area(
+      json['name'] as String? ?? '',
+      shelvesAndItems: shelvesAndItems,
+    );
   }
 }
 
@@ -89,9 +97,18 @@ class Shelf extends HiveObject {
 
   static Shelf fromJson(Map<String, dynamic> json) {
     final items = (json['items'] as List? ?? [])
-        .map((item) => Item.fromJson(item))
+        .where((item) => item != null && item is Map<String, dynamic>)
+        .map((item) {
+          try {
+            return Item.fromJson(item as Map<String, dynamic>);
+          } catch (e) {
+            return null;
+          }
+        })
+        .where((item) => item != null)
+        .cast<Item>()
         .toList();
-    return Shelf(json['name'], items: items);
+    return Shelf(json['name'] as String? ?? '', items: items);
   }
 }
 
@@ -107,7 +124,7 @@ class Item extends HiveObject {
   String? countName;
 
   @HiveField(4)
-  int? defaultCount;
+  ItemCount? defaultCount;
 
   @HiveField(5)
   CountPhase countPhase;
@@ -131,9 +148,17 @@ class Item extends HiveObject {
        id = id ?? _generateId();
 
   static int _generateId() {
-    var newId = Hive.box('areas').get('itemIdCounter', defaultValue: 0);
-    Hive.box('areas').put('itemIdCounter', newId + 1);
-    return newId;
+    try {
+      if (!Hive.isBoxOpen('areas')) {
+        return 0;
+      }
+      final box = Hive.box('areas');
+      final newId = box.get('itemIdCounter', defaultValue: 0) as int;
+      box.put('itemIdCounter', newId + 1);
+      return newId;
+    } catch (e) {
+      return 0;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -141,7 +166,7 @@ class Item extends HiveObject {
       'name': name,
       'strategy': strategy.toJson(),
       'countName': countName,
-      'defaultCount': defaultCount,
+      'defaultCount': defaultCount?.toJson(),
       'countPhase': countPhase.index,
       'personalCountPhase': personalCountPhase?.index,
       'id': id,
@@ -273,12 +298,12 @@ class Count extends HiveObject {
     bool isValue = false;
 
     for (final MapEntry<int, CountEntry> entry in itemCounts.entries) {
-      if (entry.value.countType is ItemNotCounted) return -1;
-
-      final ItemCount itemCount = entry.value.countType as ItemCount;
+      final ItemCountType itemCountType = entry.value.countType;
       if (entry.value.name == name && entry.value.phase == phase) {
+        if (itemCountType is ItemNotCounted) return -1;
+
         isValue = true;
-        total += itemCount.count ?? 0;
+        total += (itemCountType as ItemCount).count ?? 0;
       }
     }
     return isValue ? total : null;

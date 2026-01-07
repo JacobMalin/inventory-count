@@ -190,7 +190,7 @@ class AreaModel with ChangeNotifier {
     String? newName,
     CountStrategy? newStrategy,
     String? newCountName,
-    int? newDefaultCount,
+    ItemCount? newDefaultCount,
     CountPhase? newCountPhase,
     CountPhase? newPersonalCountPhase,
     CountModel? countModel,
@@ -242,6 +242,9 @@ class AreaModel with ChangeNotifier {
     }
     if (newPersonalCountPhase != null) {
       item.personalCountPhase = newPersonalCountPhase;
+    }
+    if (clearPersonalCountPhase) {
+      item.personalCountPhase = null;
     }
 
     if (clearDefaultCount) {
