@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/hive.dart';
+import 'package:inventory_count/models/export_entry.dart';
 import 'package:provider/provider.dart';
 
 class ExportSetupPage extends StatefulWidget {

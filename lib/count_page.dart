@@ -2,6 +2,7 @@ import 'package:animated_tree_view/animated_tree_view.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
+import 'package:inventory_count/models/count_strategy.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
@@ -329,14 +330,85 @@ class CountDialog extends StatelessWidget {
         return AlertDialog(
           title: Stack(
             children: [
-              Positioned(
-                left: 0,
-                top: 0,
-                child: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.all(4),
-                  constraints: const BoxConstraints(),
+              AlertDialog(
+                contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                insetPadding: EdgeInsets.zero,
+                title: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (currentData.area != null || currentData.shelf != null)
+                        RichText(
+                          text: TextSpan(
+                            style: DefaultTextStyle.of(context).style.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.normal,
+                            ),
+                            children: [
+                              if (currentData.area != null)
+                                TextSpan(
+                                  text: currentData.area!.name,
+                                  style: TextStyle(
+                                    color: currentData.area!.color,
+                                  ),
+                                ),
+                              if (currentData.area != null &&
+                                  currentData.shelf != null)
+                                const TextSpan(text: ' > '),
+                              if (currentData.shelf != null)
+                                TextSpan(text: currentData.shelf!.name),
+                            ],
+                          ),
+                        ),
+                      Text(
+                        currentData.item.name,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                content: SizedBox(
+                  width: 300,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Count:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              displayCount,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      currentData.item.strategy.buildCountFields(
+                        controller1: controller,
+                        controller2: secondaryController,
+                        focusNode: focusNode,
+                        countModel: countModel,
+                        item: currentData.item,
+                        onSubmitted: (value) => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               Center(
@@ -350,21 +422,127 @@ class CountDialog extends StatelessWidget {
                             fontSize: 14,
                             fontWeight: FontWeight.normal,
                           ),
-                          children: [
-                            if (data.area != null)
-                              TextSpan(
-                                text: data.area!.name,
-                                style: TextStyle(color: data.area!.color),
+                          const SizedBox(width: 12),
+                          TextButton(
+                            onPressed:
+                                currentData.item.defaultCount != null ||
+                                    currentData.item.strategy
+                                        is NegativeCountStrategy
+                                ? () {
+                                    countModel.setDefaultCount(
+                                      currentData.item,
+                                    );
+                                    if (hasNext) {
+                                      _navigate(1);
+                                    } else {
+                                      Navigator.pop(context);
+                                    }
+                                  }
+                                : null,
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(100, 56),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
                               ),
-                            if (data.area != null && data.shelf != null)
-                              const TextSpan(text: ' > '),
-                            if (data.shelf != null)
-                              TextSpan(text: data.shelf!.name),
-                          ],
-                        ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              currentData.item.strategy is NegativeCountStrategy
+                                  ? 'Default: 0'
+                                  : currentData.item.defaultCount != null
+                                  ? 'Default: ${currentData.item.defaultCount!.count}'
+                                  : 'Default',
+                            ),
+                          ),
+                        ],
                       ),
-                    Text(data.item.name),
-                  ],
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: hasPrevious ? () => _navigate(-1) : null,
+                            icon: const Icon(Icons.chevron_left),
+                            style: IconButton.styleFrom(
+                              minimumSize: const Size(56, 56),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          TextButton(
+                            onPressed: () {
+                              if (currentData.item.strategy
+                                  is NegativeCountStrategy) {
+                                countModel.setField1(
+                                  currentData.item,
+                                  (currentData.item.strategy
+                                          as NegativeCountStrategy)
+                                      .from,
+                                );
+                              } else {
+                                countModel.setField1(currentData.item, 0);
+                              }
+                              if (hasNext) {
+                                _navigate(1);
+                              } else {
+                                Navigator.pop(context);
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(56, 56),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('0'),
+                          ),
+                          const SizedBox(width: 12),
+                          TextButton(
+                            onPressed: () {
+                              countModel.setNotCounted(currentData.item);
+                              if (hasNext) {
+                                _navigate(1);
+                              } else {
+                                Navigator.pop(context);
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(56, 56),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('-'),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            onPressed: hasNext ? () => _navigate(1) : null,
+                            icon: const Icon(Icons.chevron_right),
+                            style: IconButton.styleFrom(
+                              minimumSize: const Size(56, 56),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

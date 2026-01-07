@@ -85,33 +85,6 @@ class ItemTile extends StatelessWidget {
   final List<int> selectedOrder;
   final void Function(int) select;
 
-  String _getStrategyText(
-    CountStrategy strategy,
-    int? strategyInt,
-    int? strategyInt2,
-  ) {
-    switch (strategy) {
-      case CountStrategy.singular:
-        return 'Singular';
-      case CountStrategy.stacks:
-        return strategyInt != null
-            ? 'Stacks ($strategyInt per stack)'
-            : 'Stacks';
-      case CountStrategy.boxesAndStacks:
-        if (strategyInt != null && strategyInt2 != null) {
-          return 'Both ($strategyInt per box, $strategyInt2 per stack)';
-        } else if (strategyInt != null) {
-          return 'Both ($strategyInt per box)';
-        } else {
-          return 'Both';
-        }
-      case CountStrategy.negative:
-        return strategyInt != null
-            ? 'Negative (from $strategyInt)'
-            : 'Negative';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
@@ -124,11 +97,64 @@ class ItemTile extends StatelessWidget {
           tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           title: Text(item.name),
           subtitle: Text(
-            _getStrategyText(
-              item.strategy,
-              item.strategyInt,
-              item.strategyInt2,
-            ),
+            item.defaultCount != null
+                ? '${item.strategy.strategyText} • Default: ${item.defaultCount!.count}'
+                : item.strategy.strategyText,
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: _getPhaseColor(item.countPhase),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _getPhaseText(item.countPhase),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (item.personalCountPhase != null) ...[
+                    const SizedBox(height: 2),
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: _getPhaseColor(item.personalCountPhase!),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: const Color.fromRGBO(255, 255, 255, 0.5),
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _getPhaseText(item.personalCountPhase!),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.drag_handle),
+            ],
           ),
           trailing: const Icon(Icons.drag_handle),
           onTap: () => select(index),

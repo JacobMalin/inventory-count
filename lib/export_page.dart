@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
+import 'package:inventory_count/models/export_entry.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
@@ -93,6 +94,19 @@ class ExportPage extends StatelessWidget {
     );
     int? outCount = countModel.getCountValueByName(item.name, CountPhase.out);
 
+    String? backSumNotation = countModel.getCountSumNotationByName(
+      item.name,
+      CountPhase.back,
+    );
+    String? cabinetSumNotation = countModel.getCountSumNotationByName(
+      item.name,
+      CountPhase.cabinet,
+    );
+    String? outSumNotation = countModel.getCountSumNotationByName(
+      item.name,
+      CountPhase.out,
+    );
+
     bool backIsNotCounted = backCount == -1;
     bool cabinetIsNotCounted = cabinetCount == -1;
     bool outIsNotCounted = outCount == -1;
@@ -130,7 +144,7 @@ class ExportPage extends StatelessWidget {
         _buildDataCell(context, item.name, TextAlign.left),
         _buildDataCell(
           context,
-          backIsNotCounted ? '-' : backCount?.toString() ?? '',
+          backIsNotCounted ? '-' : backSumNotation ?? '',
           TextAlign.center,
           backgroundColor: backIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
@@ -138,7 +152,7 @@ class ExportPage extends StatelessWidget {
         ),
         _buildDataCell(
           context,
-          cabinetIsNotCounted ? '-' : cabinetCount?.toString() ?? '',
+          cabinetIsNotCounted ? '-' : cabinetSumNotation ?? '',
           TextAlign.center,
           backgroundColor: cabinetIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
@@ -148,7 +162,7 @@ class ExportPage extends StatelessWidget {
         ),
         _buildDataCell(
           context,
-          outIsNotCounted ? '-' : outCount?.toString() ?? '',
+          outIsNotCounted ? '-' : outSumNotation ?? '',
           TextAlign.center,
           backgroundColor: outIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)

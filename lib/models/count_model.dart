@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:inventory_count/models/count_strategy.dart';
 import 'package:inventory_count/models/hive.dart';
 
 class CountModel with ChangeNotifier {
@@ -67,7 +68,7 @@ class CountModel with ChangeNotifier {
 
     ItemCount itemCount = (existingCount is ItemCount)
         ? existingCount
-        : ItemCount(data.strategy, data.strategyInt, data.strategyInt2);
+        : ItemCount(data.strategy);
     itemCount.field1 = count;
     currentCount.setCount(data, itemCount);
     countBox.put(date, currentCount);
@@ -84,7 +85,7 @@ class CountModel with ChangeNotifier {
 
     ItemCount itemCount = (existingCount is ItemCount)
         ? existingCount
-        : ItemCount(data.strategy, data.strategyInt, data.strategyInt2);
+        : ItemCount(data.strategy);
     itemCount.field2 = count;
     currentCount.setCount(data, itemCount);
     countBox.put(date, currentCount);
@@ -99,11 +100,82 @@ class CountModel with ChangeNotifier {
     notifyListeners();
   }
 
+  void setDefaultCount(Item data) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+
+    ItemCount defaultWithCurrentModifiers;
+
+    if (data.strategy is NegativeCountStrategy) {
+      // For negative strategy, always use 0
+      defaultWithCurrentModifiers = ItemCount(data.strategy, field1: 0);
+    } else {
+      if (data.defaultCount == null) return;
+
+      // Create a new ItemCount with current modifiers
+      defaultWithCurrentModifiers = ItemCount(
+        data.strategy,
+        field1: data.defaultCount!.field1,
+        field2: data.defaultCount!.field2,
+      );
+    }
+
+    currentCount.setCount(data, defaultWithCurrentModifiers);
+    countBox.put(date, currentCount);
+    notifyListeners();
+  }
+
+  ItemCountType? getLastCount(Item item) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+
+    // Look back through the last 'days' days to find a count
+    for (int i = 1; i <= _lastCountLookbackDays; i++) {
+      final pastDate = _selectedDate.subtract(Duration(days: i));
+      final dateKey = _dateFormat.format(pastDate);
+
+      final Count? pastCount = countBox.get(dateKey);
+      if (pastCount == null) continue;
+
+      final ItemCountType? itemCount = pastCount.getCount(item);
+      if (itemCount != null) {
+        if (itemCount is ItemCount) {
+          return ItemCount(
+            item.strategy,
+            field1: itemCount.field1,
+            field2: itemCount.field2,
+          );
+        } else if (itemCount is ItemNotCounted) {
+          return ItemNotCounted();
+        }
+      }
+    }
+
+    return null;
+  }
+
+  void setLastCount(Item item) {
+    final ItemCountType? lastCount = getLastCount(item);
+    if (lastCount == null) return;
+
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+    currentCount.setCount(item, lastCount);
+    countBox.put(date, currentCount);
+    notifyListeners();
+  }
+
   int? getCountValueByName(String name, CountPhase phase) {
     final Box countBox = Hive.box('counts');
     final Count currentCount = countBox.get(date) ?? Count();
 
     return currentCount.getCountValueByName(name, phase);
+  }
+
+  String? getCountSumNotationByName(String name, CountPhase phase) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+
+    return currentCount.getCountSumNotationByName(name, phase);
   }
 
   void removeFromCountList(Item data) {
