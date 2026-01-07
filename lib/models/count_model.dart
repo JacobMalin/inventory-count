@@ -179,6 +179,13 @@ class CountModel with ChangeNotifier {
   }
 
   void removeFromCountList(Item data) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+
+    return currentCount.getCountSumNotationByName(name, phase);
+  }
+
+  void removeFromCountList(Item data) {
     final Box countBox = Hive.box('counts');
     final Count currentCount = countBox.get(date) ?? Count();
 
