@@ -3,9 +3,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 part 'export_entry.g.dart';
 
 void registerExportEntryAdapters() {
-  Hive.registerAdapter(ExportItemAdapter());
-  Hive.registerAdapter(ExportPlaceholderAdapter());
-  Hive.registerAdapter(ExportTitleAdapter());
+  Hive.registerAdapter<ExportItem>(ExportItemAdapter());
+  Hive.registerAdapter<ExportPlaceholder>(ExportPlaceholderAdapter());
+  Hive.registerAdapter<ExportTitle>(ExportTitleAdapter());
 }
 
 abstract class ExportEntry {

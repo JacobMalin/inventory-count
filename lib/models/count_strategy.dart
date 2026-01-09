@@ -7,12 +7,14 @@ import 'package:inventory_count/models/hive.dart';
 part 'count_strategy.g.dart';
 
 void registerCountStrategyAdapters() {
-  Hive.registerAdapter(SingularCountStrategyAdapter());
-  Hive.registerAdapter(NegativeCountStrategyAdapter());
-  Hive.registerAdapter(StacksCountStrategyAdapter());
-  Hive.registerAdapter(BoxesAndStacksCountStrategyAdapter());
-  Hive.registerAdapter(ItemCountAdapter());
-  Hive.registerAdapter(ItemNotCountedAdapter());
+  Hive.registerAdapter<SingularCountStrategy>(SingularCountStrategyAdapter());
+  Hive.registerAdapter<NegativeCountStrategy>(NegativeCountStrategyAdapter());
+  Hive.registerAdapter<StacksCountStrategy>(StacksCountStrategyAdapter());
+  Hive.registerAdapter<BoxesAndStacksCountStrategy>(
+    BoxesAndStacksCountStrategyAdapter(),
+  );
+  Hive.registerAdapter<ItemCount>(ItemCountAdapter());
+  Hive.registerAdapter<ItemNotCounted>(ItemNotCountedAdapter());
 }
 
 enum CountStrategyType {
@@ -77,7 +79,7 @@ abstract class CountStrategy {
   }) {
     switch (index) {
       case CountStrategyType.singular:
-        return const SingularCountStrategy();
+        return SingularCountStrategy();
       case CountStrategyType.negative:
         return NegativeCountStrategy(modifier1 ?? 0);
       case CountStrategyType.stacks:
@@ -109,6 +111,10 @@ abstract class CountStrategy {
 
 @HiveType(typeId: 12)
 class SingularCountStrategy extends CountStrategy {
+  // Hive requires at least one field for subtypes
+  @HiveField(0)
+  bool? placeholder = true;
+
   @override
   Map<String, dynamic> toJson() => {'type': 'SingularCountStrategy'};
 
@@ -147,9 +153,9 @@ class SingularCountStrategy extends CountStrategy {
     );
   }
 
-  const SingularCountStrategy();
+  SingularCountStrategy({this.placeholder});
 
-  const SingularCountStrategy.fromJson(Map<String, dynamic> json);
+  SingularCountStrategy.fromJson(Map<String, dynamic> json);
 }
 
 @HiveType(typeId: 13)
@@ -180,7 +186,7 @@ class NegativeCountStrategy extends CountStrategy {
     TextEditingController controller1,
     TextEditingController controller2,
   ) {
-    controller1.text = from.toString();
+    controller1.text = from == 0 ? '' : from.toString();
   }
 
   @override
@@ -273,7 +279,7 @@ class StacksCountStrategy extends CountStrategy {
     TextEditingController controller1,
     TextEditingController controller2,
   ) {
-    controller1.text = perStack.toString();
+    controller1.text = perStack == 1 ? '' : perStack.toString();
   }
 
   @override
@@ -379,8 +385,8 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
     TextEditingController controller1,
     TextEditingController controller2,
   ) {
-    controller1.text = perBox.toString();
-    controller2.text = perStack.toString();
+    controller1.text = perBox == 1 ? '' : perBox.toString();
+    controller2.text = perStack == 1 ? '' : perStack.toString();
   }
 
   @override
@@ -481,7 +487,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
             ),
             onChanged: (value) {
               final intValue = int.tryParse(value);
-              countModel.setField1(this as dynamic, intValue);
+              countModel.setField1(item, intValue);
             },
             onSubmitted: onSubmitted,
           ),
@@ -522,7 +528,7 @@ class ItemCount extends ItemCountType {
   @HiveField(1)
   int? field2;
 
-  @HiveField(6)
+  @HiveField(2)
   CountStrategy strategy;
 
   int? get count => strategy.calculateCount(field1, field2);
@@ -549,10 +555,10 @@ class ItemCount extends ItemCountType {
           );
         } catch (e) {
           // If strategy parsing fails, use default
-          strategy = const SingularCountStrategy();
+          strategy = SingularCountStrategy();
         }
       } else {
-        strategy = const SingularCountStrategy();
+        strategy = SingularCountStrategy();
       }
 
       return ItemCount(
@@ -562,17 +568,18 @@ class ItemCount extends ItemCountType {
       );
     } catch (e) {
       // If anything fails, return a basic ItemCount
-      return ItemCount(const SingularCountStrategy());
+      return ItemCount(SingularCountStrategy());
     }
   }
 }
 
 @HiveType(typeId: 11)
 class ItemNotCounted extends ItemCountType {
+  // Hive requires at least one field for subtypes
   @HiveField(0)
-  final bool notCounted = true;
+  bool? placeholder = true;
 
-  ItemNotCounted();
+  ItemNotCounted({this.placeholder});
 }
 
 abstract class ItemCountType {}

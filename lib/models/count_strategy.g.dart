@@ -12,12 +12,21 @@ class SingularCountStrategyAdapter extends TypeAdapter<SingularCountStrategy> {
 
   @override
   SingularCountStrategy read(BinaryReader reader) {
-    return SingularCountStrategy();
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return SingularCountStrategy(
+      placeholder: fields[0] as bool?,
+    );
   }
 
   @override
   void write(BinaryWriter writer, SingularCountStrategy obj) {
-    writer.writeByte(0);
+    writer
+      ..writeByte(1)
+      ..writeByte(0)
+      ..write(obj.placeholder);
   }
 
   @override
@@ -148,7 +157,7 @@ class ItemCountAdapter extends TypeAdapter<ItemCount> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return ItemCount(
-      fields[6] as CountStrategy,
+      fields[2] as CountStrategy,
       field1: fields[0] as int?,
       field2: fields[1] as int?,
     );
@@ -162,7 +171,7 @@ class ItemCountAdapter extends TypeAdapter<ItemCount> {
       ..write(obj.field1)
       ..writeByte(1)
       ..write(obj.field2)
-      ..writeByte(6)
+      ..writeByte(2)
       ..write(obj.strategy);
   }
 
@@ -183,7 +192,13 @@ class ItemNotCountedAdapter extends TypeAdapter<ItemNotCounted> {
 
   @override
   ItemNotCounted read(BinaryReader reader) {
-    return ItemNotCounted();
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return ItemNotCounted(
+      placeholder: fields[0] as bool?,
+    );
   }
 
   @override
@@ -191,7 +206,7 @@ class ItemNotCountedAdapter extends TypeAdapter<ItemNotCounted> {
     writer
       ..writeByte(1)
       ..writeByte(0)
-      ..write(obj.notCounted);
+      ..write(obj.placeholder);
   }
 
   @override

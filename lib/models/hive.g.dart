@@ -99,7 +99,7 @@ class ItemAdapter extends TypeAdapter<Item> {
       defaultCount: fields[4] as ItemCount?,
       countPhase: fields[5] as CountPhase?,
       personalCountPhase: fields[6] as CountPhase?,
-      id: fields[7] as int?,
+      id: fields[2] as int?,
     );
   }
 
@@ -119,7 +119,7 @@ class ItemAdapter extends TypeAdapter<Item> {
       ..write(obj.countPhase)
       ..writeByte(6)
       ..write(obj.personalCountPhase)
-      ..writeByte(7)
+      ..writeByte(2)
       ..write(obj.id);
   }
 

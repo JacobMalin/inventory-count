@@ -474,7 +474,7 @@ class AreaModel with ChangeNotifier {
     // Import export list
     if (data['exportList'] != null) {
       final exportListData = (data['exportList'] as List).map((json) {
-        final type = json['type'] as String;
+        final type = json['type'] as String?;
         switch (type) {
           case 'ExportItem':
             return ExportItem.fromJson(json as Map<String, dynamic>);

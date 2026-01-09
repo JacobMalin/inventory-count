@@ -41,6 +41,7 @@ class CountPage extends StatefulWidget {
 class _CountPageState extends State<CountPage> {
   void Function()? _expandUncountedCallback;
   bool _hideCountedItems = false;
+  bool _isFullyExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -49,9 +50,10 @@ class _CountPageState extends State<CountPage> {
         return Scaffold(
           body: CountList(
             hideCountedItems: _hideCountedItems,
-            onExpandCallbackChanged: (callback) {
+            onExpandCallbackChanged: (callback, isExpanded) {
               setState(() {
                 _expandUncountedCallback = callback;
+                _isFullyExpanded = isExpanded;
               });
             },
           ),
@@ -93,7 +95,11 @@ class _CountPageState extends State<CountPage> {
                     const Text('Out'),
                     const SizedBox(width: 16),
                     IconButton(
-                      icon: const Icon(Icons.unfold_more),
+                      icon: Icon(
+                        _isFullyExpanded
+                            ? Icons.unfold_less
+                            : Icons.unfold_more,
+                      ),
                       onPressed: _expandUncountedCallback,
                       constraints: const BoxConstraints(),
                     ),
@@ -160,7 +166,7 @@ class CountList extends StatefulWidget {
     required this.hideCountedItems,
   });
 
-  final void Function(void Function()?) onExpandCallbackChanged;
+  final void Function(void Function()?, bool) onExpandCallbackChanged;
   final bool hideCountedItems;
 
   @override
@@ -172,6 +178,7 @@ class _CountListState extends State<CountList> {
   TreeViewController? _treeController;
   final AutoScrollController _scrollController = AutoScrollController();
   bool _isAtBottom = false;
+  bool _hasScrollableContent = false;
 
   TreeNode _buildTree(AreaModel areaModel, CountPhase currentPhase) {
     final root = TreeNode.root();
@@ -269,8 +276,10 @@ class _CountListState extends State<CountList> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.onExpandCallbackChanged(_expandUncountedItems);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      widget.onExpandCallbackChanged(_toggleUncountedItems, false);
+      await Future.delayed(const Duration(milliseconds: 300));
+      _onScroll();
     });
   }
 
@@ -285,9 +294,13 @@ class _CountListState extends State<CountList> {
     if (_scrollController.hasClients) {
       final maxExtent = _scrollController.position.maxScrollExtent;
       final isAtBottom = _scrollController.position.pixels >= maxExtent - 50;
-      if (isAtBottom != _isAtBottom) {
+      final hasScrollableContent = maxExtent > 0;
+
+      if (isAtBottom != _isAtBottom ||
+          hasScrollableContent != _hasScrollableContent) {
         setState(() {
           _isAtBottom = isAtBottom;
+          _hasScrollableContent = hasScrollableContent;
         });
       }
     }
@@ -318,6 +331,88 @@ class _CountListState extends State<CountList> {
     }
   }
 
+  bool _areAllUncountedExpanded() {
+    if (_treeController == null) return false;
+
+    bool checkExpanded(dynamic node) {
+      final data = node.data;
+      bool hasUncounted = false;
+
+      if (data is AreaTreeData && data.uncountedItems > 0) {
+        hasUncounted = true;
+      } else if (data is ShelfTreeData && data.uncountedItems > 0) {
+        hasUncounted = true;
+      }
+
+      if (hasUncounted && node is TreeNode) {
+        if (!_expandedKeys.contains(node.key)) {
+          return false;
+        }
+        for (var child in node.childrenAsList) {
+          if (!checkExpanded(child)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    final tree = _treeController!.tree;
+    for (var child in tree.childrenAsList) {
+      if (!checkExpanded(child)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _toggleUncountedItems() {
+    if (_treeController == null) return;
+
+    final bool shouldCollapse = _areAllUncountedExpanded();
+
+    if (shouldCollapse) {
+      _collapseUncountedItems();
+    } else {
+      _expandUncountedItems();
+    }
+  }
+
+  void _collapseUncountedItems() {
+    if (_treeController == null) return;
+
+    void collapseIfHasUncounted(dynamic node) {
+      final data = node.data;
+      bool hasUncounted = false;
+
+      if (data is AreaTreeData && data.uncountedItems > 0) {
+        hasUncounted = true;
+      } else if (data is ShelfTreeData && data.uncountedItems > 0) {
+        hasUncounted = true;
+      }
+
+      if (hasUncounted && node is TreeNode) {
+        _treeController!.collapseNode(node);
+        setState(() {
+          _expandedKeys.remove(node.key);
+        });
+      }
+    }
+
+    final tree = _treeController!.tree;
+    for (var child in tree.childrenAsList) {
+      collapseIfHasUncounted(child);
+    }
+
+    _updateExpandedState();
+
+    // Update scroll arrow state after collapse
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future.delayed(const Duration(milliseconds: 300));
+      _onScroll();
+    });
+  }
+
   void _expandUncountedItems() {
     if (_treeController == null) return;
 
@@ -346,6 +441,19 @@ class _CountListState extends State<CountList> {
     for (var child in tree.childrenAsList) {
       expandIfHasUncounted(child);
     }
+
+    _updateExpandedState();
+
+    // Update scroll arrow state after expansion
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future.delayed(const Duration(milliseconds: 300));
+      _onScroll();
+    });
+  }
+
+  void _updateExpandedState() {
+    final isExpanded = _areAllUncountedExpanded();
+    widget.onExpandCallbackChanged(_toggleUncountedItems, isExpanded);
   }
 
   @override
@@ -409,7 +517,7 @@ class _CountListState extends State<CountList> {
 
             // Update callback whenever tree rebuilds
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              widget.onExpandCallbackChanged(_expandUncountedItems);
+              _updateExpandedState();
             });
 
             // Build flat list of all items for navigation
@@ -480,6 +588,15 @@ class _CountListState extends State<CountList> {
                       } else {
                         _expandedKeys.add(item.key);
                       }
+                    });
+
+                    // Update expansion state
+                    _updateExpandedState();
+
+                    // Update scroll arrow state after expansion/collapse
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      await Future.delayed(const Duration(milliseconds: 300));
+                      _onScroll();
                     });
                   },
                   builder: (context, node) {
@@ -596,25 +713,26 @@ class _CountListState extends State<CountList> {
                     }
                   },
                 ),
-                Positioned(
-                  bottom: 16,
-                  right: 16,
-                  child: FloatingActionButton.small(
-                    onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainer,
-                    foregroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant,
-                    elevation: 2,
-                    child: AnimatedRotation(
-                      duration: const Duration(milliseconds: 200),
-                      turns: _isAtBottom ? -0.5 : 0,
-                      child: const Icon(Icons.arrow_downward),
+                if (_hasScrollableContent)
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: FloatingActionButton.small(
+                      onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainer,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant,
+                      elevation: 2,
+                      child: AnimatedRotation(
+                        duration: const Duration(milliseconds: 200),
+                        turns: _isAtBottom ? -0.5 : 0,
+                        child: const Icon(Icons.arrow_downward),
+                      ),
                     ),
                   ),
-                ),
               ],
             );
           },

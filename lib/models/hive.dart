@@ -132,7 +132,7 @@ class Item extends HiveObject {
   @HiveField(6)
   CountPhase? personalCountPhase;
 
-  @HiveField(7)
+  @HiveField(2)
   int id;
 
   Item(

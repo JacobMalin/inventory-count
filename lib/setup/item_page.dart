@@ -250,6 +250,8 @@ class _ItemSettingsState extends State<ItemSettings> {
                     setState(() {
                       countStrategy = CountStrategy.fromIndex(
                         newSelection.first,
+                        modifier1: int.tryParse(strategyIntController.text),
+                        modifier2: int.tryParse(strategyInt2Controller.text),
                       );
                     });
                     areaModel.editItem(
