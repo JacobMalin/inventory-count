@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
+import 'package:inventory_count/models/count_strategy.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
@@ -155,12 +156,10 @@ class _ItemSettingsState extends State<ItemSettings> {
     countPhase = widget.item.countPhase;
     personalCountPhase = widget.item.personalCountPhase;
     countNameController.text = widget.item.countName ?? '';
-    if (widget.item.strategyInt != null) {
-      strategyIntController.text = widget.item.strategyInt.toString();
-    }
-    if (widget.item.strategyInt2 != null) {
-      strategyInt2Controller.text = widget.item.strategyInt2.toString();
-    }
+    countStrategy.populateControllers(
+      strategyIntController,
+      strategyInt2Controller,
+    );
     if (widget.item.defaultCount != null) {
       defaultCountController.text =
           widget.item.defaultCount!.field1?.toString() ?? '';
@@ -202,8 +201,6 @@ class _ItemSettingsState extends State<ItemSettings> {
                 widget.selectedOrder,
                 newDefaultCount: ItemCount(
                   countStrategy,
-                  widget.item.strategyInt,
-                  widget.item.strategyInt2,
                   field1: defaultCountField1,
                   field2: defaultCountField2,
                 ),
@@ -239,30 +236,23 @@ class _ItemSettingsState extends State<ItemSettings> {
               ),
               const SizedBox(height: 16),
               Center(
-                child: SegmentedButton<CountStrategy>(
+                child: SegmentedButton<CountStrategyType>(
                   showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment<CountStrategy>(
-                      value: CountStrategy.singular,
-                      label: Text('Singular'),
-                    ),
-                    ButtonSegment<CountStrategy>(
-                      value: CountStrategy.stacks,
-                      label: Text('Stacks'),
-                    ),
-                    ButtonSegment<CountStrategy>(
-                      value: CountStrategy.boxesAndStacks,
-                      label: Text('Both'),
-                    ),
-                    ButtonSegment<CountStrategy>(
-                      value: CountStrategy.negative,
-                      label: Text('Negative'),
-                    ),
+                  segments: [
+                    for (int i = 0; i < CountStrategyType.values.length; i++)
+                      ButtonSegment<CountStrategyType>(
+                        value: CountStrategyType.values[i],
+                        label: Text(CountStrategyType.values[i].name),
+                      ),
                   ],
-                  selected: {countStrategy},
-                  onSelectionChanged: (Set<CountStrategy> newSelection) {
+                  selected: {countStrategy.index},
+                  onSelectionChanged: (Set<CountStrategyType> newSelection) {
                     setState(() {
-                      countStrategy = newSelection.first;
+                      countStrategy = CountStrategy.fromIndex(
+                        newSelection.first,
+                        modifier1: int.tryParse(strategyIntController.text),
+                        modifier2: int.tryParse(strategyInt2Controller.text),
+                      );
                     });
                     areaModel.editItem(
                       widget.selectedOrder,
@@ -273,122 +263,15 @@ class _ItemSettingsState extends State<ItemSettings> {
                   },
                 ),
               ),
-              if (countStrategy == CountStrategy.stacks) ...[
-                const SizedBox(height: 24),
-                TextField(
-                  controller: strategyIntController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Items per stack',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    if (value.isEmpty) {
-                      areaModel.editItem(
-                        widget.selectedOrder,
-                        clearStrategyInt: true,
-                        countModel: countModel,
-                      );
-                    } else {
-                      final intValue = int.tryParse(value);
-                      areaModel.editItem(
-                        widget.selectedOrder,
-                        newStrategyInt: intValue,
-                        countModel: countModel,
-                      );
-                    }
-                  },
-                ),
-              ],
-              if (countStrategy == CountStrategy.boxesAndStacks) ...[
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: strategyIntController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Stacks per box',
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (value) {
-                          if (value.isEmpty) {
-                            areaModel.editItem(
-                              widget.selectedOrder,
-                              clearStrategyInt: true,
-                              countModel: countModel,
-                            );
-                          } else {
-                            final intValue = int.tryParse(value);
-                            areaModel.editItem(
-                              widget.selectedOrder,
-                              newStrategyInt: intValue,
-                              countModel: countModel,
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextField(
-                        controller: strategyInt2Controller,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Items per stack',
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (value) {
-                          if (value.isEmpty) {
-                            areaModel.editItem(
-                              widget.selectedOrder,
-                              clearStrategyInt2: true,
-                              countModel: countModel,
-                            );
-                          } else {
-                            final intValue = int.tryParse(value);
-                            areaModel.editItem(
-                              widget.selectedOrder,
-                              newStrategyInt2: intValue,
-                              countModel: countModel,
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-              if (countStrategy == CountStrategy.negative) ...[
-                const SizedBox(height: 24),
-                TextField(
-                  controller: strategyIntController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Starting total',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    if (value.isEmpty) {
-                      areaModel.editItem(
-                        widget.selectedOrder,
-                        clearStrategyInt: true,
-                        countModel: countModel,
-                      );
-                    } else {
-                      final intValue = int.tryParse(value);
-                      areaModel.editItem(
-                        widget.selectedOrder,
-                        newStrategyInt: intValue,
-                        countModel: countModel,
-                      );
-                    }
-                  },
-                ),
-              ],
+              ...countStrategy.buildConfigFields(
+                controller1: strategyIntController,
+                controller2: strategyInt2Controller,
+                selectedOrder: widget.selectedOrder,
+                areaModel: areaModel,
+                countModel: countModel,
+              ),
               const SizedBox(height: 24),
-              if (countStrategy != CountStrategy.negative) ...[
+              if (countStrategy is! NegativeCountStrategy) ...[
                 Text(
                   widget.item.defaultCount != null
                       ? 'Default Count: ${widget.item.defaultCount!.count}'
@@ -396,14 +279,14 @@ class _ItemSettingsState extends State<ItemSettings> {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
-                if (countStrategy == CountStrategy.singular ||
-                    countStrategy == CountStrategy.stacks)
+                if (countStrategy is SingularCountStrategy ||
+                    countStrategy is StacksCountStrategy)
                   TextField(
                     controller: defaultCountController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       hintText: '0',
-                      labelText: countStrategy == CountStrategy.stacks
+                      labelText: countStrategy is StacksCountStrategy
                           ? 'Default stacks'
                           : null,
                       border: OutlineInputBorder(),
@@ -412,7 +295,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                       updateDefaultCount();
                     },
                   )
-                else if (countStrategy == CountStrategy.boxesAndStacks)
+                else if (countStrategy is BoxesAndStacksCountStrategy)
                   Row(
                     children: [
                       Expanded(

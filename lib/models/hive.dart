@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:inventory_count/models/count_strategy.dart';
+import 'package:inventory_count/models/export_entry.dart';
 
 part 'hive.g.dart';
 
@@ -9,15 +11,12 @@ Future<void> hiveSetup() async {
   Hive.registerAdapter<Area>(AreaAdapter());
   Hive.registerAdapter<Shelf>(ShelfAdapter());
   Hive.registerAdapter<Item>(ItemAdapter());
-  Hive.registerAdapter<CountStrategy>(CountStrategyAdapter());
   Hive.registerAdapter<CountPhase>(CountPhaseAdapter());
   Hive.registerAdapter<Count>(CountAdapter());
-  Hive.registerAdapter<ExportItem>(ExportItemAdapter());
-  Hive.registerAdapter<ExportPlaceholder>(ExportPlaceholderAdapter());
-  Hive.registerAdapter<ExportTitle>(ExportTitleAdapter());
-  Hive.registerAdapter<ItemCount>(ItemCountAdapter());
-  Hive.registerAdapter<ItemNotCounted>(ItemNotCountedAdapter());
   Hive.registerAdapter<CountEntry>(CountEntryAdapter());
+
+  registerCountStrategyAdapters();
+  registerExportEntryAdapters();
 
   await Hive.openBox('areas');
   await Hive.openBox<Count>('counts');
@@ -121,12 +120,6 @@ class Item extends HiveObject {
   @HiveField(1)
   CountStrategy strategy;
 
-  @HiveField(2)
-  int? strategyInt;
-
-  @HiveField(8)
-  int? strategyInt2;
-
   @HiveField(3)
   String? countName;
 
@@ -139,20 +132,18 @@ class Item extends HiveObject {
   @HiveField(6)
   CountPhase? personalCountPhase;
 
-  @HiveField(7)
+  @HiveField(2)
   int id;
 
   Item(
     this.name, {
     CountStrategy? strategy,
-    this.strategyInt,
-    this.strategyInt2,
     this.countName,
     this.defaultCount,
     CountPhase? countPhase,
     this.personalCountPhase,
     int? id,
-  }) : strategy = strategy ?? CountStrategy.singular,
+  }) : strategy = strategy ?? SingularCountStrategy(),
        countPhase = countPhase ?? CountPhase.back,
        id = id ?? _generateId();
 
@@ -173,9 +164,7 @@ class Item extends HiveObject {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
-      'strategy': strategy.index,
-      'strategyInt': strategyInt,
-      'strategyInt2': strategyInt2,
+      'strategy': strategy.toJson(),
       'countName': countName,
       'defaultCount': defaultCount?.toJson(),
       'countPhase': countPhase.index,
@@ -185,54 +174,60 @@ class Item extends HiveObject {
   }
 
   static Item fromJson(Map<String, dynamic> json) {
-    final strategyIndex = json['strategy'] ?? 0;
-    final countPhaseIndex = json['countPhase'] ?? 0;
-    final personalCountPhaseIndex = json['personalCountPhase'];
+    try {
+      final countPhaseIndex = json['countPhase'] ?? 0;
+      final personalCountPhaseIndex = json['personalCountPhase'];
 
-    return Item(
-      json['name'] as String? ?? '',
-      strategy:
-          strategyIndex >= 0 && strategyIndex < CountStrategy.values.length
-          ? CountStrategy.values[strategyIndex]
-          : CountStrategy.singular,
-      strategyInt: json['strategyInt'] is int
-          ? json['strategyInt'] as int
-          : null,
-      strategyInt2: json['strategyInt2'] is int
-          ? json['strategyInt2'] as int
-          : null,
-      countName: json['countName'] as String?,
-      defaultCount: json['defaultCount'] != null && json['defaultCount'] is Map
-          ? ItemCount.fromJson(json['defaultCount'] as Map<String, dynamic>)
-          : null,
-      countPhase:
-          countPhaseIndex >= 0 && countPhaseIndex < CountPhase.values.length
-          ? CountPhase.values[countPhaseIndex]
-          : CountPhase.back,
-      personalCountPhase:
-          personalCountPhaseIndex != null &&
-              personalCountPhaseIndex >= 0 &&
-              personalCountPhaseIndex < CountPhase.values.length
-          ? CountPhase.values[personalCountPhaseIndex]
-          : null,
-      id: json['id'] as int?,
-    );
+      CountStrategy? strategy;
+      if (json['strategy'] != null) {
+        try {
+          if (json['strategy'] is Map<String, dynamic>) {
+            strategy = CountStrategy.fromJson(
+              json['strategy'] as Map<String, dynamic>,
+            );
+          }
+        } catch (e) {
+          // If strategy parsing fails, use default
+          strategy = null;
+        }
+      }
+
+      ItemCount? defaultCount;
+      if (json['defaultCount'] != null) {
+        try {
+          if (json['defaultCount'] is Map<String, dynamic>) {
+            defaultCount = ItemCount.fromJson(
+              json['defaultCount'] as Map<String, dynamic>,
+            );
+          }
+        } catch (e) {
+          // If defaultCount parsing fails, use null
+          defaultCount = null;
+        }
+      }
+
+      return Item(
+        json['name'] as String? ?? '',
+        strategy: strategy,
+        countName: json['countName'] as String?,
+        defaultCount: defaultCount,
+        countPhase:
+            countPhaseIndex >= 0 && countPhaseIndex < CountPhase.values.length
+            ? CountPhase.values[countPhaseIndex]
+            : CountPhase.back,
+        personalCountPhase:
+            personalCountPhaseIndex != null &&
+                personalCountPhaseIndex >= 0 &&
+                personalCountPhaseIndex < CountPhase.values.length
+            ? CountPhase.values[personalCountPhaseIndex]
+            : null,
+        id: json['id'] as int?,
+      );
+    } catch (e) {
+      // If anything fails, return a basic item with the name
+      return Item(json['name'] as String? ?? 'Unknown Item');
+    }
   }
-}
-
-@HiveType(typeId: 3)
-enum CountStrategy {
-  @HiveField(0)
-  singular,
-
-  @HiveField(1)
-  stacks,
-
-  @HiveField(2)
-  boxesAndStacks,
-
-  @HiveField(3)
-  negative,
 }
 
 @HiveType(typeId: 4)
@@ -314,6 +309,27 @@ class Count extends HiveObject {
     return isValue ? total : null;
   }
 
+  String? getCountSumNotationByName(String name, CountPhase phase) {
+    List<String> notations = [];
+
+    for (final MapEntry<int, CountEntry> entry in itemCounts.entries) {
+      final ItemCountType itemCountType = entry.value.countType;
+      if (entry.value.name == name && entry.value.phase == phase) {
+        if (itemCountType is ItemNotCounted) {
+          notations.add('-');
+        } else if (itemCountType is ItemCount) {
+          notations.add(itemCountType.count.toString());
+        }
+      }
+    }
+
+    if (notations.isEmpty) {
+      return null;
+    }
+
+    return notations.join(' + ');
+  }
+
   void updateCountForItem(Item data) {
     if (!itemCounts.containsKey(data.id)) {
       return;
@@ -325,8 +341,6 @@ class Count extends HiveObject {
     if (existingCountType is ItemCount) {
       existingCountType = ItemCount(
         data.strategy,
-        data.strategyInt,
-        data.strategyInt2,
         field1: existingCountType.field1,
         field2: existingCountType.field2,
       );
@@ -339,164 +353,3 @@ class Count extends HiveObject {
     );
   }
 }
-
-@HiveType(typeId: 7)
-class ExportItem extends HiveObject implements ExportEntry {
-  @override
-  @HiveField(0)
-  String name;
-
-  @HiveField(1)
-  List<String> paths;
-
-  ExportItem(this.name, {List<String>? paths}) : paths = paths ?? [];
-
-  @override
-  Map<String, dynamic> toJson() {
-    return {'type': 'ExportItem', 'name': name, 'paths': paths};
-  }
-
-  static ExportItem fromJson(Map<String, dynamic> json) {
-    final pathsList = json['paths'];
-    return ExportItem(
-      json['name'] as String? ?? '',
-      paths: pathsList is List ? pathsList.whereType<String>().toList() : [],
-    );
-  }
-}
-
-@HiveType(typeId: 8)
-class ExportPlaceholder extends HiveObject implements ExportEntry {
-  @override
-  @HiveField(0)
-  String name;
-
-  ExportPlaceholder(this.name);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return {'type': 'ExportPlaceholder', 'name': name};
-  }
-
-  static ExportPlaceholder fromJson(Map<String, dynamic> json) {
-    return ExportPlaceholder(json['name'] as String? ?? '');
-  }
-}
-
-@HiveType(typeId: 9)
-class ExportTitle extends HiveObject implements ExportEntry {
-  @override
-  @HiveField(0)
-  String name;
-
-  ExportTitle(this.name);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return {'type': 'ExportTitle', 'name': name};
-  }
-
-  static ExportTitle fromJson(Map<String, dynamic> json) {
-    return ExportTitle(json['name'] as String? ?? '');
-  }
-}
-
-// Base class for type checking (not stored in Hive)
-abstract class ExportEntry {
-  String get name;
-  set name(String value);
-
-  Map<String, dynamic> toJson();
-}
-
-@HiveType(typeId: 10)
-class ItemCount extends HiveObject implements ItemCountType {
-  @HiveField(0)
-  int? field1;
-
-  @HiveField(1)
-  int? field2;
-
-  @HiveField(3)
-  int? modifier1;
-
-  @HiveField(4)
-  int? modifier2;
-
-  @HiveField(5)
-  CountStrategy strategy;
-
-  int? get count {
-    if (isEmpty()) {
-      return null;
-    }
-
-    switch (strategy) {
-      case CountStrategy.singular:
-        return field1!;
-      case CountStrategy.negative:
-        return (modifier1 ?? 0) - field1!;
-      case CountStrategy.stacks:
-        return field1! * (modifier1 ?? 1);
-      case CountStrategy.boxesAndStacks:
-        return ((field1 ?? 0) * (modifier1 ?? 1) + (field2 ?? 0)) *
-            (modifier2 ?? 1);
-    }
-  }
-
-  bool isCounted() {
-    return count != null;
-  }
-
-  bool isEmpty() {
-    switch (strategy) {
-      case CountStrategy.singular:
-      case CountStrategy.negative:
-      case CountStrategy.stacks:
-        return field1 == null;
-      case CountStrategy.boxesAndStacks:
-        return field1 == null && field2 == null;
-    }
-  }
-
-  ItemCount(
-    this.strategy,
-    this.modifier1,
-    this.modifier2, {
-    this.field1,
-    this.field2,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'field1': field1,
-      'field2': field2,
-      'modifier1': modifier1,
-      'modifier2': modifier2,
-      'strategy': strategy.index,
-    };
-  }
-
-  static ItemCount fromJson(Map<String, dynamic> json) {
-    final strategyIndex = json['strategy'] ?? 0;
-    return ItemCount(
-      strategyIndex >= 0 && strategyIndex < CountStrategy.values.length
-          ? CountStrategy.values[strategyIndex]
-          : CountStrategy.singular,
-      json['modifier1'] as int?,
-      json['modifier2'] as int?,
-      field1: json['field1'] as int?,
-      field2: json['field2'] as int?,
-    );
-  }
-}
-
-@HiveType(typeId: 11)
-class ItemNotCounted extends HiveObject implements ItemCountType {
-  @HiveField(0)
-  final bool notCounted = true;
-
-  ItemNotCounted();
-}
-
-abstract class ItemCountType extends HiveObject {}

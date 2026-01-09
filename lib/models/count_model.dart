@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:inventory_count/models/count_strategy.dart';
 import 'package:inventory_count/models/hive.dart';
 
 class CountModel with ChangeNotifier {
@@ -65,7 +66,7 @@ class CountModel with ChangeNotifier {
 
     ItemCount itemCount = (existingCount is ItemCount)
         ? existingCount
-        : ItemCount(data.strategy, data.strategyInt, data.strategyInt2);
+        : ItemCount(data.strategy);
     itemCount.field1 = count;
     currentCount.setCount(data, itemCount);
     countBox.put(date, currentCount);
@@ -79,7 +80,7 @@ class CountModel with ChangeNotifier {
 
     ItemCount itemCount = (existingCount is ItemCount)
         ? existingCount
-        : ItemCount(data.strategy, data.strategyInt, data.strategyInt2);
+        : ItemCount(data.strategy);
     itemCount.field2 = count;
     currentCount.setCount(data, itemCount);
     countBox.put(date, currentCount);
@@ -100,22 +101,15 @@ class CountModel with ChangeNotifier {
 
     ItemCount defaultWithCurrentModifiers;
 
-    if (data.strategy == CountStrategy.negative) {
+    if (data.strategy is NegativeCountStrategy) {
       // For negative strategy, always use 0
-      defaultWithCurrentModifiers = ItemCount(
-        data.strategy,
-        data.strategyInt,
-        data.strategyInt2,
-        field1: 0,
-      );
+      defaultWithCurrentModifiers = ItemCount(data.strategy, field1: 0);
     } else {
       if (data.defaultCount == null) return;
 
       // Create a new ItemCount with current modifiers
       defaultWithCurrentModifiers = ItemCount(
         data.strategy,
-        data.strategyInt,
-        data.strategyInt2,
         field1: data.defaultCount!.field1,
         field2: data.defaultCount!.field2,
       );
@@ -138,7 +132,17 @@ class CountModel with ChangeNotifier {
       if (pastCount == null) continue;
 
       final ItemCountType? itemCount = pastCount.getCount(item);
-      if (itemCount != null) return itemCount;
+      if (itemCount != null) {
+        if (itemCount is ItemCount) {
+          return ItemCount(
+            item.strategy,
+            field1: itemCount.field1,
+            field2: itemCount.field2,
+          );
+        } else if (itemCount is ItemNotCounted) {
+          return ItemNotCounted();
+        }
+      }
     }
 
     return null;
@@ -160,6 +164,13 @@ class CountModel with ChangeNotifier {
     final Count currentCount = countBox.get(date) ?? Count();
 
     return currentCount.getCountValueByName(name, phase);
+  }
+
+  String? getCountSumNotationByName(String name, CountPhase phase) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+
+    return currentCount.getCountSumNotationByName(name, phase);
   }
 
   void removeFromCountList(Item data) {

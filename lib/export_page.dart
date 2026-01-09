@@ -1,11 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
+import 'package:inventory_count/models/export_entry.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
-class ExportPage extends StatelessWidget {
+class ExportPage extends StatefulWidget {
   const ExportPage({super.key});
+
+  @override
+  State<ExportPage> createState() => _ExportPageState();
+}
+
+class _ExportPageState extends State<ExportPage> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isAtBottom = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final isAtBottom =
+          _scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 50;
+      if (isAtBottom != _isAtBottom) {
+        setState(() {
+          _isAtBottom = isAtBottom;
+        });
+      }
+    }
+  }
+
+  void _scrollToBottom() async {
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _scrollToTop() async {
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   double _getTextWidth(BuildContext context, String text, TextStyle? style) {
     final textPainter = TextPainter(
@@ -28,89 +83,110 @@ class ExportPage extends StatelessWidget {
         scrolledUnderElevation: 0,
         backgroundColor: Theme.of(context).colorScheme.surface,
       ),
-      body: Consumer2<AreaModel, CountModel>(
-        builder: (context, areaModel, countModel, child) {
-          final exportList = areaModel.exportList;
+      body: Stack(
+        children: [
+          Consumer2<AreaModel, CountModel>(
+            builder: (context, areaModel, countModel, child) {
+              final exportList = areaModel.exportList;
 
-          // Calculate the width needed for headers with padding
-          final textStyle = Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold);
+              // Calculate the width needed for headers with padding
+              final textStyle = Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold);
 
-          final columnWidths = {
-            'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
-            'Cabinet': _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
-            'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
-            'Total': _getTextWidth(context, 'Total', textStyle) + 24.0,
-          };
+              final columnWidths = {
+                'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
+                'Cabinet': _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
+                'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
+                'Total': _getTextWidth(context, 'Total', textStyle) + 24.0,
+              };
 
-          return Align(
-            alignment: Alignment.topCenter,
-            child: SingleChildScrollView(
-              child: Table(
-                border: TableBorder.all(
-                  color: Theme.of(context).colorScheme.outline,
-                  width: 1,
-                ),
-                columnWidths: {
-                  0: const FlexColumnWidth(),
-                  1: FixedColumnWidth(columnWidths['Back']!),
-                  2: FixedColumnWidth(columnWidths['Cabinet']!),
-                  3: FixedColumnWidth(columnWidths['Out']!),
-                  4: FixedColumnWidth(columnWidths['Total']!),
-                },
-                children: [
-                  // Header row
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
+              return Align(
+                alignment: Alignment.topCenter,
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 70.0),
+                    child: Table(
+                      border: TableBorder.all(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 1,
+                      ),
+                      columnWidths: {
+                        0: const FlexColumnWidth(),
+                        1: FixedColumnWidth(columnWidths['Back']!),
+                        2: FixedColumnWidth(columnWidths['Cabinet']!),
+                        3: FixedColumnWidth(columnWidths['Out']!),
+                        4: FixedColumnWidth(columnWidths['Total']!),
+                      },
+                      children: [
+                        // Header row
+                        TableRow(
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
+                          ),
+                          children: [
+                            _buildHeaderCell(
+                              context,
+                              'Item',
+                              TextAlign.left,
+                              textStyle,
+                            ),
+                            _buildHeaderCell(
+                              context,
+                              'Back',
+                              TextAlign.center,
+                              textStyle,
+                            ),
+                            _buildHeaderCell(
+                              context,
+                              'Cabinet',
+                              TextAlign.center,
+                              textStyle,
+                            ),
+                            _buildHeaderCell(
+                              context,
+                              'Out',
+                              TextAlign.center,
+                              textStyle,
+                            ),
+                            _buildHeaderCell(
+                              context,
+                              'Total',
+                              TextAlign.center,
+                              textStyle,
+                            ),
+                          ],
+                        ),
+                        // Data rows
+                        for (final entry in exportList)
+                          if (entry is ExportItem)
+                            _buildItemRow(context, entry, countModel)
+                          else if (entry is ExportTitle)
+                            _buildTitleRow(context, entry)
+                          else if (entry is ExportPlaceholder)
+                            _buildPlaceholderRow(context, entry),
+                      ],
                     ),
-                    children: [
-                      _buildHeaderCell(
-                        context,
-                        'Item',
-                        TextAlign.left,
-                        textStyle,
-                      ),
-                      _buildHeaderCell(
-                        context,
-                        'Back',
-                        TextAlign.center,
-                        textStyle,
-                      ),
-                      _buildHeaderCell(
-                        context,
-                        'Cabinet',
-                        TextAlign.center,
-                        textStyle,
-                      ),
-                      _buildHeaderCell(
-                        context,
-                        'Out',
-                        TextAlign.center,
-                        textStyle,
-                      ),
-                      _buildHeaderCell(
-                        context,
-                        'Total',
-                        TextAlign.center,
-                        textStyle,
-                      ),
-                    ],
                   ),
-                  // Data rows
-                  for (final entry in exportList)
-                    if (entry is ExportItem)
-                      _buildItemRow(context, entry, countModel)
-                    else if (entry is ExportTitle)
-                      _buildTitleRow(context, entry)
-                    else if (entry is ExportPlaceholder)
-                      _buildPlaceholderRow(context, entry),
-                ],
-              ),
-            ),
-          );
-        },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.small(
+        onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+        foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        elevation: 2,
+        child: AnimatedRotation(
+          duration: const Duration(milliseconds: 200),
+          turns: _isAtBottom ? -0.5 : 0,
+          child: const Icon(Icons.arrow_downward),
+        ),
       ),
     );
   }
@@ -146,6 +222,19 @@ class ExportPage extends StatelessWidget {
       CountPhase.cabinet,
     );
     int? outCount = countModel.getCountValueByName(item.name, CountPhase.out);
+
+    String? backSumNotation = countModel.getCountSumNotationByName(
+      item.name,
+      CountPhase.back,
+    );
+    String? cabinetSumNotation = countModel.getCountSumNotationByName(
+      item.name,
+      CountPhase.cabinet,
+    );
+    String? outSumNotation = countModel.getCountSumNotationByName(
+      item.name,
+      CountPhase.out,
+    );
 
     bool backIsNotCounted = backCount == -1;
     bool cabinetIsNotCounted = cabinetCount == -1;
@@ -184,7 +273,7 @@ class ExportPage extends StatelessWidget {
         _buildDataCell(context, item.name, TextAlign.left),
         _buildDataCell(
           context,
-          backIsNotCounted ? '-' : backCount?.toString() ?? '',
+          backIsNotCounted ? '-' : backSumNotation ?? '',
           TextAlign.center,
           backgroundColor: backIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
@@ -192,7 +281,7 @@ class ExportPage extends StatelessWidget {
         ),
         _buildDataCell(
           context,
-          cabinetIsNotCounted ? '-' : cabinetCount?.toString() ?? '',
+          cabinetIsNotCounted ? '-' : cabinetSumNotation ?? '',
           TextAlign.center,
           backgroundColor: cabinetIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
@@ -202,7 +291,7 @@ class ExportPage extends StatelessWidget {
         ),
         _buildDataCell(
           context,
-          outIsNotCounted ? '-' : outCount?.toString() ?? '',
+          outIsNotCounted ? '-' : outSumNotation ?? '',
           TextAlign.center,
           backgroundColor: outIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)

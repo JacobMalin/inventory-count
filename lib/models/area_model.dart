@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:inventory_count/models/count_model.dart';
+import 'package:inventory_count/models/count_strategy.dart';
+import 'package:inventory_count/models/export_entry.dart';
 import 'package:inventory_count/models/hive.dart';
 
 class AreaModel with ChangeNotifier {
@@ -187,16 +189,12 @@ class AreaModel with ChangeNotifier {
     List<int> selectedOrder, {
     String? newName,
     CountStrategy? newStrategy,
-    int? newStrategyInt,
-    int? newStrategyInt2,
     String? newCountName,
     ItemCount? newDefaultCount,
     CountPhase? newCountPhase,
     CountPhase? newPersonalCountPhase,
     CountModel? countModel,
     bool clearDefaultCount = false,
-    bool clearStrategyInt = false,
-    bool clearStrategyInt2 = false,
     bool clearPersonalCountPhase = false,
   }) {
     var currentAreas = _areasBox.get('areas');
@@ -229,14 +227,6 @@ class AreaModel with ChangeNotifier {
       item.strategy = newStrategy;
       countListNeedsUpdate = true;
     }
-    if (newStrategyInt != null) {
-      item.strategyInt = newStrategyInt;
-      countListNeedsUpdate = true;
-    }
-    if (newStrategyInt2 != null) {
-      item.strategyInt2 = newStrategyInt2;
-      countListNeedsUpdate = true;
-    }
     if (newCountName != null) {
       item.countName = newCountName.isEmpty ? null : newCountName;
 
@@ -259,14 +249,6 @@ class AreaModel with ChangeNotifier {
 
     if (clearDefaultCount) {
       item.defaultCount = null;
-    }
-    if (clearStrategyInt) {
-      item.strategyInt = null;
-      countListNeedsUpdate = true;
-    }
-    if (clearStrategyInt2) {
-      item.strategyInt2 = null;
-      countListNeedsUpdate = true;
     }
 
     _areasBox.put('areas', currentAreas);
@@ -438,19 +420,9 @@ class AreaModel with ChangeNotifier {
 
     // Import export list
     if (data['exportList'] != null) {
-      final exportListData = (data['exportList'] as List).map((json) {
-        final type = json['type'] as String;
-        switch (type) {
-          case 'ExportItem':
-            return ExportItem.fromJson(json as Map<String, dynamic>);
-          case 'ExportTitle':
-            return ExportTitle.fromJson(json as Map<String, dynamic>);
-          case 'ExportPlaceholder':
-            return ExportPlaceholder.fromJson(json as Map<String, dynamic>);
-          default:
-            throw Exception('Unknown export entry type: $type');
-        }
-      }).toList();
+      final exportListData = (data['exportList'] as List<Map<String, dynamic>>)
+          .map(ExportEntry.fromJson)
+          .toList();
 
       Hive.box('settings').put('exportList', exportListData);
       maintainExportList();
@@ -486,6 +458,11 @@ class AreaModel with ChangeNotifier {
       final areasList = (data['areas'] as List)
           .map((json) => Area.fromJson(json as Map<String, dynamic>))
           .toList();
+
+      // Clear existing areas first
+      _areasBox.delete('areas');
+
+      // Save the new areas list
       _areasBox.put('areas', areasList);
     }
 
@@ -497,7 +474,7 @@ class AreaModel with ChangeNotifier {
     // Import export list
     if (data['exportList'] != null) {
       final exportListData = (data['exportList'] as List).map((json) {
-        final type = json['type'] as String;
+        final type = json['type'] as String?;
         switch (type) {
           case 'ExportItem':
             return ExportItem.fromJson(json as Map<String, dynamic>);

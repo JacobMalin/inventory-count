@@ -176,33 +176,6 @@ class ItemTile extends StatelessWidget {
   final List<int> selectedOrder;
   final void Function(int) select;
 
-  String _getStrategyText(
-    CountStrategy strategy,
-    int? strategyInt,
-    int? strategyInt2,
-  ) {
-    switch (strategy) {
-      case CountStrategy.singular:
-        return 'Singular';
-      case CountStrategy.stacks:
-        return strategyInt != null
-            ? 'Stacks ($strategyInt per stack)'
-            : 'Stacks';
-      case CountStrategy.boxesAndStacks:
-        if (strategyInt != null && strategyInt2 != null) {
-          return 'Both ($strategyInt per box, $strategyInt2 per stack)';
-        } else if (strategyInt != null) {
-          return 'Both ($strategyInt per box)';
-        } else {
-          return 'Both';
-        }
-      case CountStrategy.negative:
-        return strategyInt != null
-            ? 'Negative (from $strategyInt)'
-            : 'Negative';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
@@ -216,12 +189,8 @@ class ItemTile extends StatelessWidget {
           title: Text(item.name),
           subtitle: Text(
             item.defaultCount != null
-                ? '${_getStrategyText(item.strategy, item.strategyInt, item.strategyInt2)} • Default: ${item.defaultCount!.count}'
-                : _getStrategyText(
-                    item.strategy,
-                    item.strategyInt,
-                    item.strategyInt2,
-                  ),
+                ? '${item.strategy.strategyText} • Default: ${item.defaultCount!.count}'
+                : item.strategy.strategyText,
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
