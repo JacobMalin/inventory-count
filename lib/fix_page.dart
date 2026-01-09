@@ -5,16 +5,17 @@ import 'package:inventory_count/models/export_entry.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
-class ExportPage extends StatefulWidget {
-  const ExportPage({super.key});
+class FixPage extends StatefulWidget {
+  const FixPage({super.key});
 
   @override
-  State<ExportPage> createState() => _ExportPageState();
+  State<FixPage> createState() => _FixPageState();
 }
 
-class _ExportPageState extends State<ExportPage> {
+class _FixPageState extends State<FixPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isAtBottom = false;
+  final Set<String> _itemsToFix = {};
 
   @override
   void initState() {
@@ -40,6 +41,16 @@ class _ExportPageState extends State<ExportPage> {
         });
       }
     }
+  }
+
+  void _toggleItemToFix(String itemName) {
+    setState(() {
+      if (_itemsToFix.contains(itemName)) {
+        _itemsToFix.remove(itemName);
+      } else {
+        _itemsToFix.add(itemName);
+      }
+    });
   }
 
   void _scrollToBottom() async {
@@ -116,9 +127,7 @@ class _ExportPageState extends State<ExportPage> {
                           // Header row
                           TableRow(
                             decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
+                              color: const Color.fromARGB(255, 189, 124, 27),
                             ),
                             children: [
                               _buildHeaderCell(
@@ -179,6 +188,43 @@ class _ExportPageState extends State<ExportPage> {
             duration: const Duration(milliseconds: 200),
             turns: _isAtBottom ? -0.5 : 0,
             child: const Icon(Icons.arrow_downward),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemNameButton(
+    BuildContext context,
+    String itemName,
+    bool isMarked,
+  ) {
+    return Container(
+      color: isMarked ? Colors.yellow.withAlpha(80) : null,
+      child: InkWell(
+        onTap: () => _toggleItemToFix(itemName),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              if (isMarked)
+                Icon(
+                  Icons.check_box_outline_blank,
+                  size: 16,
+                  color: Colors.yellow.withAlpha(160),
+                ),
+              if (isMarked) const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  itemName,
+                  textAlign: TextAlign.left,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  softWrap: false,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -262,9 +308,11 @@ class _ExportPageState extends State<ExportPage> {
       totalStr = '';
     }
 
+    final isMarkedToFix = _itemsToFix.contains(item.name);
+
     return TableRow(
       children: [
-        _buildDataCell(context, item.name, TextAlign.left),
+        _buildItemNameButton(context, item.name, isMarkedToFix),
         _buildDataCell(
           context,
           backIsNotCounted ? '-' : backSumNotation ?? '',
@@ -307,9 +355,7 @@ class _ExportPageState extends State<ExportPage> {
 
   TableRow _buildTitleRow(BuildContext context, ExportTitle title) {
     return TableRow(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-      ),
+      decoration: BoxDecoration(color: const Color.fromARGB(255, 94, 71, 37)),
       children: [
         Padding(
           padding: const EdgeInsets.all(12.0),

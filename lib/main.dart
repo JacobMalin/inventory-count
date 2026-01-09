@@ -1,6 +1,7 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:inventory_count/fix_page.dart';
 import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:inventory_count/models/area_model.dart';
@@ -83,7 +84,11 @@ class _HomePageState extends State<HomePage> {
             label: 'Count',
             tooltip: '',
           ),
-          // NavigationDestination(icon: Icon(Icons.bug_report), label: 'Fix'),
+          NavigationDestination(
+            icon: Icon(Icons.bug_report),
+            label: 'Fix',
+            tooltip: '',
+          ),
           NavigationDestination(
             icon: Icon(Icons.print),
             label: 'Export',
@@ -99,7 +104,7 @@ class _HomePageState extends State<HomePage> {
       ),
       body: [
         const CountPage(),
-        // const Center(child: Text('Fix Page')),
+        const FixPage(),
         const ExportPage(),
         const SetupPage(),
       ][currentPageIndex],

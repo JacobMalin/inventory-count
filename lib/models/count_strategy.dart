@@ -371,7 +371,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
   @override
   int? calculateCount(int? field1, int? field2) {
     if (field1 == null && field2 == null) return null;
-    return (field1 ?? 0) * perBox + (field2 ?? 0) * perStack;
+    return ((field1 ?? 0) * perBox + (field2 ?? 0)) * perStack;
   }
 
   @override
