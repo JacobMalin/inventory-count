@@ -15,7 +15,7 @@ class FixPage extends StatefulWidget {
 class _FixPageState extends State<FixPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isAtBottom = false;
-  final Set<String> _itemsToFix = {};
+  bool _showAllItems = true;
 
   @override
   void initState() {
@@ -43,14 +43,24 @@ class _FixPageState extends State<FixPage> {
     }
   }
 
-  void _toggleItemToFix(String itemName) {
-    setState(() {
-      if (_itemsToFix.contains(itemName)) {
-        _itemsToFix.remove(itemName);
+  void _toggleItemToFix(
+    String itemName,
+    CountModel countModel,
+    bool showAllItems,
+  ) {
+    final itemsToFix = countModel.itemsToFix;
+    if (showAllItems) {
+      // In show-all mode, toggle presence in the map
+      if (itemsToFix.containsKey(itemName)) {
+        itemsToFix.remove(itemName);
       } else {
-        _itemsToFix.add(itemName);
+        itemsToFix[itemName] = false;
       }
-    });
+    } else {
+      // In filtered mode, toggle the fixed status
+      itemsToFix[itemName] = !(itemsToFix[itemName] ?? false);
+    }
+    countModel.setItemsToFix(itemsToFix);
   }
 
   void _scrollToBottom() async {
@@ -82,6 +92,82 @@ class _FixPageState extends State<FixPage> {
     return textPainter.width;
   }
 
+  void _showBumpCountDialog(
+    BuildContext context,
+    String itemName,
+    CountPhase phase,
+    bool isNotCounted,
+    CountModel countModel,
+    AreaModel areaModel,
+  ) {
+    final items = countModel.findItemsByName(itemName, phase, areaModel);
+    if (items.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                phase.name,
+                style: DefaultTextStyle.of(
+                  context,
+                ).style.copyWith(fontSize: 14, fontWeight: FontWeight.normal),
+              ),
+              Text(itemName, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 16,
+          children: [
+            for (final itemData in items)
+              Builder(
+                builder: (context) {
+                  final itemArea = itemData.area;
+                  final itemShelf = itemData.shelf;
+                  final item = itemData.item;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          style: DefaultTextStyle.of(context).style.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.normal,
+                          ),
+                          children: [
+                            if (itemArea != null)
+                              TextSpan(
+                                text: itemArea.name,
+                                style: TextStyle(color: itemArea.color),
+                              ),
+                            if (itemArea != null && itemShelf != null)
+                              const TextSpan(text: ' > '),
+                            if (itemShelf != null)
+                              TextSpan(text: itemShelf.name),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: item.strategy.buildBumpDisplay(context, item),
+                      ),
+                    ],
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -91,6 +177,52 @@ class _FixPageState extends State<FixPage> {
             Consumer2<AreaModel, CountModel>(
               builder: (context, areaModel, countModel, child) {
                 final exportList = areaModel.exportList;
+
+                // Filter items if needed
+                final List<ExportEntry> displayList;
+                if (_showAllItems) {
+                  displayList = exportList;
+                } else {
+                  // First pass: filter items and mark which titles have children
+                  final filteredItems = <ExportEntry>[];
+                  final titlesWithChildren = <ExportTitle>{};
+
+                  for (int i = 0; i < exportList.length; i++) {
+                    final entry = exportList[i];
+
+                    if (entry is ExportItem) {
+                      if (countModel.itemsToFix.containsKey(entry.name)) {
+                        filteredItems.add(entry);
+
+                        // Find the parent title for this item
+                        for (int j = i - 1; j >= 0; j--) {
+                          if (exportList[j] is ExportTitle) {
+                            titlesWithChildren.add(
+                              exportList[j] as ExportTitle,
+                            );
+                            break;
+                          }
+                        }
+                      }
+                    } else if (entry is ExportTitle) {
+                      filteredItems.add(entry);
+                    }
+                    // Skip ExportPlaceholder entries
+                  }
+
+                  // Second pass: remove titles without children
+                  displayList = filteredItems.where((entry) {
+                    if (entry is ExportTitle) {
+                      return titlesWithChildren.contains(entry);
+                    }
+                    return true;
+                  }).toList();
+                }
+
+                // Check if there are any items in the filtered list
+                final hasItems = displayList.any(
+                  (entry) => entry is ExportItem,
+                );
 
                 // Calculate the width needed for headers with padding
                 final textStyle = Theme.of(
@@ -104,6 +236,22 @@ class _FixPageState extends State<FixPage> {
                   'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
                   'Total': _getTextWidth(context, 'Total', textStyle) + 24.0,
                 };
+
+                // Show message if no items
+                if (!hasItems) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        'Add items in Setup to begin counting!',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  );
+                }
 
                 return Align(
                   alignment: Alignment.topCenter,
@@ -163,9 +311,15 @@ class _FixPageState extends State<FixPage> {
                             ],
                           ),
                           // Data rows
-                          for (final entry in exportList)
+                          for (final entry in displayList)
                             if (entry is ExportItem)
-                              _buildItemRow(context, entry, countModel)
+                              _buildItemRow(
+                                context,
+                                entry,
+                                countModel,
+                                areaModel,
+                                _showAllItems,
+                              )
                             else if (entry is ExportTitle)
                               _buildTitleRow(context, entry)
                             else if (entry is ExportPlaceholder)
@@ -177,18 +331,39 @@ class _FixPageState extends State<FixPage> {
                 );
               },
             ),
+            Positioned(
+              left: 16,
+              bottom: 16,
+              child: FloatingActionButton.small(
+                onPressed: () {
+                  setState(() {
+                    _showAllItems = !_showAllItems;
+                  });
+                },
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+                foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                elevation: 2,
+                child: Icon(
+                  _showAllItems ? Icons.visibility : Icons.visibility_off,
+                ),
+              ),
+            ),
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: FloatingActionButton.small(
+                onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+                foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                elevation: 2,
+                child: AnimatedRotation(
+                  duration: const Duration(milliseconds: 200),
+                  turns: _isAtBottom ? -0.5 : 0,
+                  child: const Icon(Icons.arrow_downward),
+                ),
+              ),
+            ),
           ],
-        ),
-        floatingActionButton: FloatingActionButton.small(
-          onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-          foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-          elevation: 2,
-          child: AnimatedRotation(
-            duration: const Duration(milliseconds: 200),
-            turns: _isAtBottom ? -0.5 : 0,
-            child: const Icon(Icons.arrow_downward),
-          ),
         ),
       ),
     );
@@ -198,18 +373,21 @@ class _FixPageState extends State<FixPage> {
     BuildContext context,
     String itemName,
     bool isMarked,
+    bool isFixed,
+    CountModel countModel,
+    bool showAllItems,
   ) {
     return Container(
       color: isMarked ? Colors.yellow.withAlpha(80) : null,
       child: InkWell(
-        onTap: () => _toggleItemToFix(itemName),
+        onTap: () => _toggleItemToFix(itemName, countModel, showAllItems),
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
               if (isMarked)
                 Icon(
-                  Icons.check_box_outline_blank,
+                  isFixed ? Icons.check_box : Icons.check_box_outline_blank,
                   size: 16,
                   color: Colors.yellow.withAlpha(160),
                 ),
@@ -254,6 +432,8 @@ class _FixPageState extends State<FixPage> {
     BuildContext context,
     ExportItem item,
     CountModel countModel,
+    AreaModel areaModel,
+    bool showAllItems,
   ) {
     // Get counts for each phase
     int? backCount = countModel.getCountValueByName(item.name, CountPhase.back);
@@ -308,33 +488,56 @@ class _FixPageState extends State<FixPage> {
       totalStr = '';
     }
 
-    final isMarkedToFix = _itemsToFix.contains(item.name);
+    final isMarkedToFix = countModel.itemsToFix.containsKey(item.name);
+    final bool isFixed = countModel.itemsToFix[item.name] ?? false;
 
     return TableRow(
       children: [
-        _buildItemNameButton(context, item.name, isMarkedToFix),
-        _buildDataCell(
+        _buildItemNameButton(
+          context,
+          item.name,
+          isMarkedToFix,
+          isFixed,
+          countModel,
+          showAllItems,
+        ),
+        _buildClickableCountCell(
           context,
           backIsNotCounted ? '-' : backSumNotation ?? '',
-          TextAlign.center,
+          item.name,
+          CountPhase.back,
+          backIsNotCounted,
+          backCount != null || backIsNotCounted,
+          countModel,
+          areaModel,
           backgroundColor: backIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (backCount == null ? Colors.red.withValues(alpha: 0.1) : null),
         ),
-        _buildDataCell(
+        _buildClickableCountCell(
           context,
           cabinetIsNotCounted ? '-' : cabinetSumNotation ?? '',
-          TextAlign.center,
+          item.name,
+          CountPhase.cabinet,
+          cabinetIsNotCounted,
+          cabinetCount != null || cabinetIsNotCounted,
+          countModel,
+          areaModel,
           backgroundColor: cabinetIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (cabinetCount == null
                     ? Colors.red.withValues(alpha: 0.1)
                     : null),
         ),
-        _buildDataCell(
+        _buildClickableCountCell(
           context,
           outIsNotCounted ? '-' : outSumNotation ?? '',
-          TextAlign.center,
+          item.name,
+          CountPhase.out,
+          outIsNotCounted,
+          outCount != null || outIsNotCounted,
+          countModel,
+          areaModel,
           backgroundColor: outIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (outCount == null ? Colors.red.withValues(alpha: 0.1) : null),
@@ -409,6 +612,45 @@ class _FixPageState extends State<FixPage> {
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
         softWrap: false,
+      ),
+    );
+  }
+
+  Widget _buildClickableCountCell(
+    BuildContext context,
+    String text,
+    String itemName,
+    CountPhase phase,
+    bool isNotCounted,
+    bool hasCounted,
+    CountModel countModel,
+    AreaModel areaModel, {
+    Color? backgroundColor,
+  }) {
+    return Container(
+      color: backgroundColor,
+      child: InkWell(
+        onTap: (isNotCounted || hasCounted)
+            ? () => _showBumpCountDialog(
+                context,
+                itemName,
+                phase,
+                isNotCounted,
+                countModel,
+                areaModel,
+              )
+            : null,
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            softWrap: false,
+          ),
+        ),
       ),
     );
   }

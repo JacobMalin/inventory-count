@@ -135,6 +135,9 @@ class Item extends HiveObject {
   @HiveField(2)
   int id;
 
+  @HiveField(7)
+  bool doubleChecked = false;
+
   Item(
     this.name, {
     CountStrategy? strategy,
@@ -143,6 +146,7 @@ class Item extends HiveObject {
     CountPhase? countPhase,
     this.personalCountPhase,
     int? id,
+    this.doubleChecked = false,
   }) : strategy = strategy ?? SingularCountStrategy(),
        countPhase = countPhase ?? CountPhase.back,
        id = id ?? _generateId();
@@ -170,6 +174,7 @@ class Item extends HiveObject {
       'countPhase': countPhase.index,
       'personalCountPhase': personalCountPhase?.index,
       'id': id,
+      'doubleChecked': doubleChecked,
     };
   }
 
@@ -222,6 +227,7 @@ class Item extends HiveObject {
             ? CountPhase.values[personalCountPhaseIndex]
             : null,
         id: json['id'] as int?,
+        doubleChecked: json['doubleChecked'] as bool? ?? false,
       );
     } catch (e) {
       // If anything fails, return a basic item with the name
@@ -239,7 +245,18 @@ enum CountPhase {
   cabinet,
 
   @HiveField(2)
-  out,
+  out;
+
+  String get name {
+    switch (this) {
+      case CountPhase.back:
+        return 'Back';
+      case CountPhase.cabinet:
+        return 'Cabinet';
+      case CountPhase.out:
+        return 'Out';
+    }
+  }
 }
 
 @HiveType(typeId: 6)
@@ -264,9 +281,16 @@ class Count extends HiveObject {
   @HiveField(1)
   CountPhase countPhase = CountPhase.back;
 
-  Count({Map<int, CountEntry>? itemCounts, CountPhase? countPhase})
-    : itemCounts = itemCounts ?? {},
-      countPhase = countPhase ?? CountPhase.back;
+  @HiveField(2)
+  Map<String, bool> itemsToFix = {};
+
+  Count({
+    Map<int, CountEntry>? itemCounts,
+    CountPhase? countPhase,
+    Map<String, bool>? itemsToFix,
+  }) : itemCounts = itemCounts ?? <int, CountEntry>{},
+       countPhase = countPhase ?? CountPhase.back,
+       itemsToFix = itemsToFix ?? <String, bool>{};
 
   ItemCountType? getCount(Item data) {
     return itemCounts[data.id]?.countType;

@@ -193,6 +193,7 @@ class AreaModel with ChangeNotifier {
     ItemCount? newDefaultCount,
     CountPhase? newCountPhase,
     CountPhase? newPersonalCountPhase,
+    bool? newDoubleChecked,
     CountModel? countModel,
     bool clearDefaultCount = false,
     bool clearPersonalCountPhase = false,
@@ -245,6 +246,9 @@ class AreaModel with ChangeNotifier {
     }
     if (clearPersonalCountPhase) {
       item.personalCountPhase = null;
+    }
+    if (newDoubleChecked != null) {
+      item.doubleChecked = newDoubleChecked;
     }
 
     if (clearDefaultCount) {

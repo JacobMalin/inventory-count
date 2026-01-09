@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/hive.dart';
+import 'package:provider/provider.dart';
 
 part 'count_strategy.g.dart';
 
@@ -69,6 +70,8 @@ abstract class CountStrategy {
     required Item item,
     required void Function(String) onSubmitted,
   });
+
+  Widget buildBumpDisplay(BuildContext context, Item item);
 
   const CountStrategy();
 
@@ -150,6 +153,90 @@ class SingularCountStrategy extends CountStrategy {
         countModel.setField1(item, intValue);
       },
       onSubmitted: onSubmitted,
+    );
+  }
+
+  @override
+  Widget buildBumpDisplay(BuildContext context, Item item) {
+    return Consumer<CountModel>(
+      builder: (context, countModel, child) {
+        final itemCountType = countModel.getCount(item);
+        final isNotCounted = itemCountType is ItemNotCounted;
+        final itemCount = itemCountType is ItemCount ? itemCountType : null;
+        final count = isNotCounted ? '-' : itemCount?.count;
+        final currentValue = itemCount?.field1;
+        final controller = TextEditingController(
+          text: isNotCounted ? '-' : (currentValue?.toString() ?? ''),
+        );
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(Icons.remove),
+              onPressed: isNotCounted
+                  ? null
+                  : () {
+                      final value = currentValue ?? 0;
+                      if (value <= 0) {
+                        countModel.setNotCounted(item);
+                      } else {
+                        countModel.setField1(item, value - 1);
+                      }
+                    },
+              style: IconButton.styleFrom(
+                padding: EdgeInsets.all(8),
+                minimumSize: Size(40, 40),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: BoxConstraints(minWidth: 80),
+              child: IntrinsicWidth(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  onTap: () {
+                    controller.selection = TextSelection(
+                      baseOffset: 0,
+                      extentOffset: controller.text.length,
+                    );
+                  },
+                  onChanged: (value) {
+                    final intValue = int.tryParse(value);
+                    countModel.setField1(item, intValue);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: Icon(Icons.add),
+              onPressed: () {
+                if (currentValue == null) {
+                  countModel.setField1(item, 0);
+                } else {
+                  countModel.setField1(item, currentValue + 1);
+                }
+              },
+              style: IconButton.styleFrom(
+                padding: EdgeInsets.all(8),
+                minimumSize: Size(40, 40),
+              ),
+            ),
+            Text(
+              ' =  $count',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -242,6 +329,103 @@ class NegativeCountStrategy extends CountStrategy {
         countModel.setField1(item, intValue);
       },
       onSubmitted: onSubmitted,
+    );
+  }
+
+  @override
+  Widget buildBumpDisplay(BuildContext context, Item item) {
+    return Consumer<CountModel>(
+      builder: (context, countModel, child) {
+        final itemCountType = countModel.getCount(item);
+        final isNotCounted = itemCountType is ItemNotCounted;
+        final itemCount = itemCountType is ItemCount ? itemCountType : null;
+        final count = isNotCounted ? '-' : itemCount?.count;
+        final field1 = itemCount?.field1;
+        final controller = TextEditingController(
+          // TODO controller bumps too often
+          text: isNotCounted ? '-' : (field1?.toString() ?? ''),
+        );
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$from - ',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                IconButton(
+                  icon: Icon(Icons.remove),
+                  onPressed: isNotCounted
+                      ? null
+                      : () {
+                          final currentValue = field1 ?? 0;
+                          if (currentValue <= 0) {
+                            countModel.setNotCounted(item);
+                          } else {
+                            countModel.setField1(item, currentValue - 1);
+                          }
+                        },
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.all(8),
+                    minimumSize: Size(40, 40),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: 50),
+                  child: IntrinsicWidth(
+                    child: TextField(
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                      onTap: () {
+                        controller.selection = TextSelection(
+                          baseOffset: 0,
+                          extentOffset: controller.text.length,
+                        );
+                      },
+                      onChanged: (value) {
+                        final intValue = int.tryParse(value);
+                        countModel.setField1(item, intValue);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: (!isNotCounted && field1 != null && field1 >= from)
+                      ? null
+                      : () {
+                          final currentValue = field1;
+                          if (currentValue == null) {
+                            countModel.setField1(item, 0);
+                          } else {
+                            countModel.setField1(item, currentValue + 1);
+                          }
+                        },
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.all(8),
+                    minimumSize: Size(40, 40),
+                  ),
+                ),
+                Text(
+                  ' =  $count',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -344,6 +528,92 @@ class StacksCountStrategy extends CountStrategy {
         countModel.setField1(item, intValue);
       },
       onSubmitted: onSubmitted,
+    );
+  }
+
+  @override
+  Widget buildBumpDisplay(BuildContext context, Item item) {
+    return Consumer<CountModel>(
+      builder: (context, countModel, child) {
+        final itemCountType = countModel.getCount(item);
+        final isNotCounted = itemCountType is ItemNotCounted;
+        final itemCount = itemCountType is ItemCount ? itemCountType : null;
+        var count = isNotCounted ? '-' : itemCount?.count;
+        final stacks = itemCount?.field1;
+        final controller = TextEditingController(
+          text: isNotCounted ? '-' : (stacks?.toString() ?? ''),
+        );
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(Icons.remove),
+              onPressed: isNotCounted
+                  ? null
+                  : () {
+                      final currentValue = stacks ?? 0;
+                      if (currentValue <= 0) {
+                        countModel.setNotCounted(item);
+                      } else {
+                        countModel.setField1(item, currentValue - 1);
+                      }
+                    },
+              style: IconButton.styleFrom(
+                padding: EdgeInsets.all(8),
+                minimumSize: Size(40, 40),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: BoxConstraints(minWidth: 60),
+              child: IntrinsicWidth(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  decoration: InputDecoration(
+                    labelText: 'x$perStack',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  onTap: () {
+                    controller.selection = TextSelection(
+                      baseOffset: 0,
+                      extentOffset: controller.text.length,
+                    );
+                  },
+                  onChanged: (value) {
+                    final intValue = int.tryParse(value);
+                    countModel.setField1(item, intValue);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: Icon(Icons.add),
+              onPressed: () {
+                final currentValue = stacks;
+                if (currentValue == null) {
+                  countModel.setField1(item, 0);
+                } else {
+                  countModel.setField1(item, currentValue + 1);
+                }
+              },
+              style: IconButton.styleFrom(
+                padding: EdgeInsets.all(8),
+                minimumSize: Size(40, 40),
+              ),
+            ),
+            Text(
+              ' =  $count',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -510,6 +780,171 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
           ),
         ),
       ],
+    );
+  }
+
+  @override
+  Widget buildBumpDisplay(BuildContext context, Item item) {
+    // TODO refine
+    return Consumer<CountModel>(
+      builder: (context, countModel, child) {
+        final itemCountType = countModel.getCount(item);
+        final isNotCounted = itemCountType is ItemNotCounted;
+        final itemCount = itemCountType is ItemCount ? itemCountType : null;
+        final count = isNotCounted ? '-' : itemCount?.count;
+        final boxes = itemCount?.field1;
+        final stacks = itemCount?.field2;
+        final boxController = TextEditingController(
+          text: isNotCounted ? '-' : (boxes?.toString() ?? ''),
+        );
+        final stackController = TextEditingController(
+          text: isNotCounted ? '-' : (stacks?.toString() ?? ''),
+        );
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Boxes row
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.remove),
+                  onPressed: isNotCounted
+                      ? null
+                      : () {
+                          final currentValue = boxes ?? 0;
+                          if (currentValue <= 0) {
+                            countModel.setField1(item, null);
+                          } else {
+                            countModel.setField1(item, currentValue - 1);
+                          }
+                        },
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.all(8),
+                    minimumSize: Size(40, 40),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: 50),
+                  child: IntrinsicWidth(
+                    child: TextField(
+                      controller: boxController,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      decoration: InputDecoration(
+                        labelText: 'Boxes',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onTap: () {
+                        boxController.selection = TextSelection(
+                          baseOffset: 0,
+                          extentOffset: boxController.text.length,
+                        );
+                      },
+                      onChanged: (value) {
+                        final intValue = int.tryParse(value);
+                        countModel.setField1(item, intValue);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: () {
+                    final currentValue = boxes;
+                    if (currentValue == null) {
+                      countModel.setField1(item, 1);
+                    } else {
+                      countModel.setField1(item, currentValue + 1);
+                    }
+                  },
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.all(8),
+                    minimumSize: Size(40, 40),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Stacks row
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.remove),
+                  onPressed: isNotCounted
+                      ? null
+                      : () {
+                          final currentValue = stacks ?? 0;
+                          if (currentValue <= 0) {
+                            countModel.setField2(item, null);
+                          } else {
+                            countModel.setField2(item, currentValue - 1);
+                          }
+                        },
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.all(8),
+                    minimumSize: Size(40, 40),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: 50),
+                  child: IntrinsicWidth(
+                    child: TextField(
+                      controller: stackController,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      decoration: InputDecoration(
+                        labelText: 'Stacks',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onTap: () {
+                        stackController.selection = TextSelection(
+                          baseOffset: 0,
+                          extentOffset: stackController.text.length,
+                        );
+                      },
+                      onChanged: (value) {
+                        final intValue = int.tryParse(value);
+                        countModel.setField2(item, intValue);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: () {
+                    final currentValue = stacks;
+                    if (currentValue == null) {
+                      countModel.setField2(item, 1);
+                    } else {
+                      countModel.setField2(item, currentValue + 1);
+                    }
+                  },
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.all(8),
+                    minimumSize: Size(40, 40),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '(${boxes ?? 0} × $perBox + ${stacks ?? 0}) × $perStack = ${count ?? 0}',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        );
+      },
     );
   }
 

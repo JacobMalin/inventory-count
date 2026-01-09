@@ -81,6 +81,9 @@ class _ExportPageState extends State<ExportPage> {
               builder: (context, areaModel, countModel, child) {
                 final exportList = areaModel.exportList;
 
+                // Check if there are any items in the list
+                final hasItems = exportList.any((entry) => entry is ExportItem);
+
                 // Calculate the width needed for headers with padding
                 final textStyle = Theme.of(
                   context,
@@ -93,6 +96,22 @@ class _ExportPageState extends State<ExportPage> {
                   'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
                   'Total': _getTextWidth(context, 'Total', textStyle) + 24.0,
                 };
+
+                // Show message if no items
+                if (!hasItems) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        'Add items in Setup to begin counting!',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
 
                 return Align(
                   alignment: Alignment.topCenter,
