@@ -181,9 +181,7 @@ class _FixPageState extends State<FixPage> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Center(
-                        child: item.strategy.buildBumpDisplay(context, item),
-                      ),
+                      item.strategy.buildBumpDisplay(context, item),
                     ],
                   );
                 },

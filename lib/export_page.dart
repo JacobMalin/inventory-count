@@ -371,14 +371,13 @@ class _ExportPageState extends State<ExportPage> {
   Widget _buildItemNameCell(BuildContext context, String itemName) {
     return Container(
       padding: const EdgeInsets.all(12),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: Text(
-          itemName,
-          textAlign: TextAlign.left,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+      child: Text(
+        itemName,
+        textAlign: TextAlign.left,
+        style: Theme.of(context).textTheme.bodyMedium,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+        softWrap: false,
       ),
     );
   }

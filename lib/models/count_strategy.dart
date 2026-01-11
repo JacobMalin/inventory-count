@@ -981,7 +981,7 @@ class _BoxesAndStacksBumpDisplayState
         }
 
         return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          // mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Column(
               mainAxisSize: MainAxisSize.min,
