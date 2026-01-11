@@ -15,12 +15,13 @@ class FixPage extends StatefulWidget {
 class _FixPageState extends State<FixPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isAtBottom = false;
-  bool _showAllItems = true;
+  static bool _showAllItems = true;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
   }
 
   @override
@@ -135,24 +136,43 @@ class _FixPageState extends State<FixPage> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      RichText(
-                        text: TextSpan(
-                          style: DefaultTextStyle.of(context).style.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.normal,
+                      Row(
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              style: DefaultTextStyle.of(context).style
+                                  .copyWith(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                              children: [
+                                if (itemArea != null)
+                                  TextSpan(
+                                    text: itemArea.name,
+                                    style: TextStyle(color: itemArea.color),
+                                  ),
+                                if (itemArea != null && itemShelf != null)
+                                  const TextSpan(text: ' > '),
+                                if (itemShelf != null)
+                                  TextSpan(text: itemShelf.name),
+                              ],
+                            ),
                           ),
-                          children: [
-                            if (itemArea != null)
-                              TextSpan(
-                                text: itemArea.name,
-                                style: TextStyle(color: itemArea.color),
-                              ),
-                            if (itemArea != null && itemShelf != null)
-                              const TextSpan(text: ' > '),
-                            if (itemShelf != null)
-                              TextSpan(text: itemShelf.name),
-                          ],
-                        ),
+                          Spacer(),
+                          Consumer<CountModel>(
+                            builder: (context, countModel, child) {
+                              return Checkbox(
+                                value: countModel.getCount(item)?.doubleChecked,
+                                onChanged: (value) {
+                                  countModel.setDoubleChecked(
+                                    item,
+                                    value ?? false,
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Center(
@@ -256,10 +276,13 @@ class _FixPageState extends State<FixPage> {
                 return Align(
                   alignment: Alignment.topCenter,
                   child: SingleChildScrollView(
+                    key: PageStorageKey('fix_page_scroll'),
                     controller: _scrollController,
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 70.0),
                       child: Table(
+                        defaultVerticalAlignment:
+                            TableCellVerticalAlignment.middle,
                         border: TableBorder.all(
                           color: Theme.of(context).colorScheme.outline,
                           width: 1,
@@ -641,14 +664,10 @@ class _FixPageState extends State<FixPage> {
               )
             : null,
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            softWrap: false,
+          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ),
       ),

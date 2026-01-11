@@ -135,9 +135,6 @@ class Item extends HiveObject {
   @HiveField(2)
   int id;
 
-  @HiveField(7)
-  bool doubleChecked = false;
-
   Item(
     this.name, {
     CountStrategy? strategy,
@@ -146,7 +143,6 @@ class Item extends HiveObject {
     CountPhase? countPhase,
     this.personalCountPhase,
     int? id,
-    this.doubleChecked = false,
   }) : strategy = strategy ?? SingularCountStrategy(),
        countPhase = countPhase ?? CountPhase.back,
        id = id ?? _generateId();
@@ -174,7 +170,6 @@ class Item extends HiveObject {
       'countPhase': countPhase.index,
       'personalCountPhase': personalCountPhase?.index,
       'id': id,
-      'doubleChecked': doubleChecked,
     };
   }
 
@@ -227,7 +222,6 @@ class Item extends HiveObject {
             ? CountPhase.values[personalCountPhaseIndex]
             : null,
         id: json['id'] as int?,
-        doubleChecked: json['doubleChecked'] as bool? ?? false,
       );
     } catch (e) {
       // If anything fails, return a basic item with the name
@@ -342,7 +336,11 @@ class Count extends HiveObject {
         if (itemCountType is ItemNotCounted) {
           notations.add('-');
         } else if (itemCountType is ItemCount) {
-          notations.add(itemCountType.count.toString());
+          notations.add(
+            itemCountType.doubleChecked
+                ? '${itemCountType.count} ✓'
+                : '${itemCountType.count}',
+          );
         }
       }
     }

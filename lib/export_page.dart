@@ -20,6 +20,7 @@ class _ExportPageState extends State<ExportPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
   }
 
   @override
@@ -116,6 +117,7 @@ class _ExportPageState extends State<ExportPage> {
                 return Align(
                   alignment: Alignment.topCenter,
                   child: SingleChildScrollView(
+                    key: const PageStorageKey('export_table_scroll'),
                     controller: _scrollController,
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 70.0),
@@ -374,14 +376,14 @@ class _ExportPageState extends State<ExportPage> {
   }) {
     return Container(
       color: backgroundColor,
-      padding: const EdgeInsets.all(12.0),
-      child: Text(
-        text,
-        textAlign: textAlign,
-        style: Theme.of(context).textTheme.bodyMedium,
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-        softWrap: false,
+      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          textAlign: textAlign,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
       ),
     );
   }

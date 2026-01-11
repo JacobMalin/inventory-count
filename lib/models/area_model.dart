@@ -199,7 +199,7 @@ class AreaModel with ChangeNotifier {
     bool clearPersonalCountPhase = false,
   }) {
     var currentAreas = _areasBox.get('areas');
-    Item item;
+    Item? item;
 
     if (selectedOrder.length == 2) {
       // Item is directly in area
@@ -246,9 +246,6 @@ class AreaModel with ChangeNotifier {
     }
     if (clearPersonalCountPhase) {
       item.personalCountPhase = null;
-    }
-    if (newDoubleChecked != null) {
-      item.doubleChecked = newDoubleChecked;
     }
 
     if (clearDefaultCount) {

@@ -107,6 +107,19 @@ class CountModel with ChangeNotifier {
     notifyListeners();
   }
 
+  void setDoubleChecked(Item data, bool value) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+    ItemCountType? existingCount = currentCount.getCount(data);
+
+    if (existingCount != null) {
+      existingCount.doubleChecked = value;
+      currentCount.setCount(data, existingCount);
+      countBox.put(date, currentCount);
+      notifyListeners();
+    }
+  }
+
   void setDefaultCount(Item data) {
     final Box<Count> countBox = Hive.box<Count>('counts');
     final Count currentCount = countBox.get(date) ?? Count();
