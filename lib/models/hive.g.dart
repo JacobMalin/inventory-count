@@ -187,17 +187,20 @@ class CountAdapter extends TypeAdapter<Count> {
     return Count(
       itemCounts: (fields[0] as Map?)?.cast<int, CountEntry>(),
       countPhase: fields[1] as CountPhase?,
+      itemsToFix: (fields[2] as Map?)?.cast<String, bool>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Count obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.itemCounts)
       ..writeByte(1)
-      ..write(obj.countPhase);
+      ..write(obj.countPhase)
+      ..writeByte(2)
+      ..write(obj.itemsToFix);
   }
 
   @override

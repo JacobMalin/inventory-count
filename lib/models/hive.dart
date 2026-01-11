@@ -239,7 +239,18 @@ enum CountPhase {
   cabinet,
 
   @HiveField(2)
-  out,
+  out;
+
+  String get name {
+    switch (this) {
+      case CountPhase.back:
+        return 'Back';
+      case CountPhase.cabinet:
+        return 'Cabinet';
+      case CountPhase.out:
+        return 'Out';
+    }
+  }
 }
 
 @HiveType(typeId: 6)
@@ -264,9 +275,16 @@ class Count extends HiveObject {
   @HiveField(1)
   CountPhase countPhase = CountPhase.back;
 
-  Count({Map<int, CountEntry>? itemCounts, CountPhase? countPhase})
-    : itemCounts = itemCounts ?? {},
-      countPhase = countPhase ?? CountPhase.back;
+  @HiveField(2)
+  Map<String, bool> itemsToFix = {};
+
+  Count({
+    Map<int, CountEntry>? itemCounts,
+    CountPhase? countPhase,
+    Map<String, bool>? itemsToFix,
+  }) : itemCounts = itemCounts ?? <int, CountEntry>{},
+       countPhase = countPhase ?? CountPhase.back,
+       itemsToFix = itemsToFix ?? <String, bool>{};
 
   ItemCountType? getCount(Item data) {
     return itemCounts[data.id]?.countType;
@@ -318,7 +336,11 @@ class Count extends HiveObject {
         if (itemCountType is ItemNotCounted) {
           notations.add('-');
         } else if (itemCountType is ItemCount) {
-          notations.add(itemCountType.count.toString());
+          notations.add(
+            itemCountType.doubleChecked
+                ? '${itemCountType.count} ✓'
+                : '${itemCountType.count}',
+          );
         }
       }
     }

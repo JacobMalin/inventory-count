@@ -381,27 +381,21 @@ class _CountListState extends State<CountList> {
   void _collapseUncountedItems() {
     if (_treeController == null) return;
 
-    void collapseIfHasUncounted(dynamic node) {
-      final data = node.data;
-      bool hasUncounted = false;
-
-      if (data is AreaTreeData && data.uncountedItems > 0) {
-        hasUncounted = true;
-      } else if (data is ShelfTreeData && data.uncountedItems > 0) {
-        hasUncounted = true;
-      }
-
-      if (hasUncounted && node is TreeNode) {
+    void collapseAll(dynamic node) {
+      if (node is TreeNode) {
         _treeController!.collapseNode(node);
         setState(() {
           _expandedKeys.remove(node.key);
         });
+        for (var child in node.childrenAsList) {
+          collapseAll(child);
+        }
       }
     }
 
     final tree = _treeController!.tree;
     for (var child in tree.childrenAsList) {
-      collapseIfHasUncounted(child);
+      collapseAll(child);
     }
 
     _updateExpandedState();
@@ -518,6 +512,12 @@ class _CountListState extends State<CountList> {
             // Update callback whenever tree rebuilds
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _updateExpandedState();
+            });
+
+            // Update scroll arrow after tree rebuilds
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              await Future.delayed(const Duration(milliseconds: 300));
+              _onScroll();
             });
 
             // Build flat list of all items for navigation

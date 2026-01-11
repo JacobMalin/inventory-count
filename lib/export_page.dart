@@ -20,6 +20,7 @@ class _ExportPageState extends State<ExportPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
   }
 
   @override
@@ -73,119 +74,133 @@ class _ExportPageState extends State<ExportPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Export View',
-          style: Theme.of(context).textTheme.headlineLarge,
-        ),
-        centerTitle: true,
-        scrolledUnderElevation: 0,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-      ),
-      body: Stack(
-        children: [
-          Consumer2<AreaModel, CountModel>(
-            builder: (context, areaModel, countModel, child) {
-              final exportList = areaModel.exportList;
+    return SafeArea(
+      child: Scaffold(
+        body: Stack(
+          children: [
+            Consumer2<AreaModel, CountModel>(
+              builder: (context, areaModel, countModel, child) {
+                final exportList = areaModel.exportList;
 
-              // Calculate the width needed for headers with padding
-              final textStyle = Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold);
+                // Check if there are any items in the list
+                final hasItems = exportList.any((entry) => entry is ExportItem);
 
-              final columnWidths = {
-                'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
-                'Cabinet': _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
-                'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
-                'Total': _getTextWidth(context, 'Total', textStyle) + 24.0,
-              };
+                // Calculate the width needed for headers with padding
+                final textStyle = Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold);
 
-              return Align(
-                alignment: Alignment.topCenter,
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 70.0),
-                    child: Table(
-                      border: TableBorder.all(
-                        color: Theme.of(context).colorScheme.outline,
-                        width: 1,
-                      ),
-                      columnWidths: {
-                        0: const FlexColumnWidth(),
-                        1: FixedColumnWidth(columnWidths['Back']!),
-                        2: FixedColumnWidth(columnWidths['Cabinet']!),
-                        3: FixedColumnWidth(columnWidths['Out']!),
-                        4: FixedColumnWidth(columnWidths['Total']!),
-                      },
-                      children: [
-                        // Header row
-                        TableRow(
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primaryContainer,
-                          ),
-                          children: [
-                            _buildHeaderCell(
-                              context,
-                              'Item',
-                              TextAlign.left,
-                              textStyle,
-                            ),
-                            _buildHeaderCell(
-                              context,
-                              'Back',
-                              TextAlign.center,
-                              textStyle,
-                            ),
-                            _buildHeaderCell(
-                              context,
-                              'Cabinet',
-                              TextAlign.center,
-                              textStyle,
-                            ),
-                            _buildHeaderCell(
-                              context,
-                              'Out',
-                              TextAlign.center,
-                              textStyle,
-                            ),
-                            _buildHeaderCell(
-                              context,
-                              'Total',
-                              TextAlign.center,
-                              textStyle,
-                            ),
-                          ],
+                final columnWidths = {
+                  'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
+                  'Cabinet':
+                      _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
+                  'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
+                  'Total': _getTextWidth(context, 'Total', textStyle) + 24.0,
+                };
+
+                // Show message if no items
+                if (!hasItems) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        'Add items in Setup to begin counting!',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                        // Data rows
-                        for (final entry in exportList)
-                          if (entry is ExportItem)
-                            _buildItemRow(context, entry, countModel)
-                          else if (entry is ExportTitle)
-                            _buildTitleRow(context, entry)
-                          else if (entry is ExportPlaceholder)
-                            _buildPlaceholderRow(context, entry),
-                      ],
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+
+                return Align(
+                  alignment: Alignment.topCenter,
+                  child: SingleChildScrollView(
+                    key: const PageStorageKey('export_table_scroll'),
+                    controller: _scrollController,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 70.0),
+                      child: Table(
+                        border: TableBorder.all(
+                          color: Theme.of(context).colorScheme.outline,
+                          width: 1,
+                        ),
+                        columnWidths: {
+                          0: const FlexColumnWidth(),
+                          1: FixedColumnWidth(columnWidths['Back']!),
+                          2: FixedColumnWidth(columnWidths['Cabinet']!),
+                          3: FixedColumnWidth(columnWidths['Out']!),
+                          4: FixedColumnWidth(columnWidths['Total']!),
+                        },
+                        children: [
+                          // Header row
+                          TableRow(
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
+                            ),
+                            children: [
+                              _buildHeaderCell(
+                                context,
+                                'Item',
+                                TextAlign.left,
+                                textStyle,
+                              ),
+                              _buildHeaderCell(
+                                context,
+                                'Back',
+                                TextAlign.center,
+                                textStyle,
+                              ),
+                              _buildHeaderCell(
+                                context,
+                                'Cabinet',
+                                TextAlign.center,
+                                textStyle,
+                              ),
+                              _buildHeaderCell(
+                                context,
+                                'Out',
+                                TextAlign.center,
+                                textStyle,
+                              ),
+                              _buildHeaderCell(
+                                context,
+                                'Total',
+                                TextAlign.center,
+                                textStyle,
+                              ),
+                            ],
+                          ),
+                          // Data rows
+                          for (final entry in exportList)
+                            if (entry is ExportItem)
+                              _buildItemRow(context, entry, countModel)
+                            else if (entry is ExportTitle)
+                              _buildTitleRow(context, entry)
+                            else if (entry is ExportPlaceholder)
+                              _buildPlaceholderRow(context, entry),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.small(
+          onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+          foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+          elevation: 2,
+          child: AnimatedRotation(
+            duration: const Duration(milliseconds: 200),
+            turns: _isAtBottom ? -0.5 : 0,
+            child: const Icon(Icons.arrow_downward),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.small(
-        onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-        foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-        elevation: 2,
-        child: AnimatedRotation(
-          duration: const Duration(milliseconds: 200),
-          turns: _isAtBottom ? -0.5 : 0,
-          child: const Icon(Icons.arrow_downward),
         ),
       ),
     );
@@ -361,14 +376,14 @@ class _ExportPageState extends State<ExportPage> {
   }) {
     return Container(
       color: backgroundColor,
-      padding: const EdgeInsets.all(12.0),
-      child: Text(
-        text,
-        textAlign: textAlign,
-        style: Theme.of(context).textTheme.bodyMedium,
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-        softWrap: false,
+      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          textAlign: textAlign,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
       ),
     );
   }

@@ -157,22 +157,25 @@ class ItemCountAdapter extends TypeAdapter<ItemCount> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return ItemCount(
-      fields[2] as CountStrategy,
-      field1: fields[0] as int?,
-      field2: fields[1] as int?,
+      fields[3] as CountStrategy,
+      field1: fields[1] as int?,
+      field2: fields[2] as int?,
+      doubleChecked: fields[0] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, ItemCount obj) {
     writer
-      ..writeByte(3)
-      ..writeByte(0)
-      ..write(obj.field1)
+      ..writeByte(4)
       ..writeByte(1)
-      ..write(obj.field2)
+      ..write(obj.field1)
       ..writeByte(2)
-      ..write(obj.strategy);
+      ..write(obj.field2)
+      ..writeByte(3)
+      ..write(obj.strategy)
+      ..writeByte(0)
+      ..write(obj.doubleChecked);
   }
 
   @override
@@ -197,7 +200,7 @@ class ItemNotCountedAdapter extends TypeAdapter<ItemNotCounted> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return ItemNotCounted(
-      placeholder: fields[0] as bool?,
+      doubleChecked: fields[0] as bool,
     );
   }
 
@@ -206,7 +209,7 @@ class ItemNotCountedAdapter extends TypeAdapter<ItemNotCounted> {
     writer
       ..writeByte(1)
       ..writeByte(0)
-      ..write(obj.placeholder);
+      ..write(obj.doubleChecked);
   }
 
   @override

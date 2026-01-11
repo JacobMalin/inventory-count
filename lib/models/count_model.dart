@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:inventory_count/count_page.dart';
+import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_strategy.dart';
 import 'package:inventory_count/models/hive.dart';
 
@@ -46,6 +48,16 @@ class CountModel with ChangeNotifier {
   Count get _thisCount => Hive.box<Count>('counts').get(date) ?? Count();
 
   CountPhase get countPhase => _thisCount.countPhase;
+
+  Map<String, bool> get itemsToFix => _thisCount.itemsToFix;
+
+  void setItemsToFix(Map<String, bool> items) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+    currentCount.itemsToFix = items;
+    countBox.put(date, currentCount);
+    notifyListeners();
+  }
 
   void setCountPhase(CountPhase phase) {
     final Box<Count> countBox = Hive.box<Count>('counts');
@@ -93,6 +105,19 @@ class CountModel with ChangeNotifier {
     currentCount.setNotCounted(data);
     countBox.put(date, currentCount);
     notifyListeners();
+  }
+
+  void setDoubleChecked(Item data, bool value) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+    ItemCountType? existingCount = currentCount.getCount(data);
+
+    if (existingCount != null) {
+      existingCount.doubleChecked = value;
+      currentCount.setCount(data, existingCount);
+      countBox.put(date, currentCount);
+      notifyListeners();
+    }
   }
 
   void setDefaultCount(Item data) {
@@ -171,6 +196,44 @@ class CountModel with ChangeNotifier {
     final Count currentCount = countBox.get(date) ?? Count();
 
     return currentCount.getCountSumNotationByName(name, phase);
+  }
+
+  List<ItemTreeData> findItemsByName(
+    String name,
+    CountPhase phase,
+    AreaModel areaModel,
+  ) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+
+    List<int> itemIds = [];
+    List<ItemTreeData> items = [];
+
+    for (final MapEntry<int, CountEntry> entry
+        in currentCount.itemCounts.entries) {
+      if (entry.value.name == name && entry.value.phase == phase) {
+        itemIds.add(entry.key);
+      }
+    }
+
+    for (int i = 0; i < areaModel.numAreas; i++) {
+      final area = areaModel.getArea(i);
+      for (var shelfOrItem in area.shelvesAndItems) {
+        if (shelfOrItem is Item) {
+          if (itemIds.contains(shelfOrItem.id)) {
+            items.add(ItemTreeData(shelfOrItem, area: area));
+          }
+        } else if (shelfOrItem is Shelf) {
+          for (var item in shelfOrItem.items) {
+            if (itemIds.contains(item.id)) {
+              items.add(ItemTreeData(item, area: area, shelf: shelfOrItem));
+            }
+          }
+        }
+      }
+    }
+
+    return items;
   }
 
   void removeFromCountList(Item data) {
