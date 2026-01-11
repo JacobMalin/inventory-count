@@ -16,6 +16,7 @@ class _FixPageState extends State<FixPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isAtBottom = false;
   static bool _showAllItems = true;
+  bool _hasScrollableContent = false;
 
   @override
   void initState() {
@@ -36,9 +37,14 @@ class _FixPageState extends State<FixPage> {
       final isAtBottom =
           _scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 50;
-      if (isAtBottom != _isAtBottom) {
+      final hasScrollableContent =
+          _scrollController.position.maxScrollExtent > 0;
+
+      if (isAtBottom != _isAtBottom ||
+          hasScrollableContent != _hasScrollableContent) {
         setState(() {
           _isAtBottom = isAtBottom;
+          _hasScrollableContent = hasScrollableContent;
         });
       }
     }
@@ -192,201 +198,242 @@ class _FixPageState extends State<FixPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        body: Stack(
-          children: [
-            Consumer2<AreaModel, CountModel>(
-              builder: (context, areaModel, countModel, child) {
-                final exportList = areaModel.exportList;
+        body: Consumer2<AreaModel, CountModel>(
+          builder: (context, areaModel, countModel, child) {
+            final exportList = areaModel.exportList;
 
-                // Filter items if needed
-                final List<ExportEntry> displayList;
-                if (_showAllItems) {
-                  displayList = exportList;
-                } else {
-                  // First pass: filter items and mark which titles have children
-                  final filteredItems = <ExportEntry>[];
-                  final titlesWithChildren = <ExportTitle>{};
+            // Filter items if needed
+            final List<ExportEntry> displayList;
+            if (_showAllItems) {
+              displayList = exportList;
+            } else {
+              // First pass: filter items and mark which titles have children
+              final filteredItems = <ExportEntry>[];
+              final titlesWithChildren = <ExportTitle>{};
 
-                  for (int i = 0; i < exportList.length; i++) {
-                    final entry = exportList[i];
+              for (int i = 0; i < exportList.length; i++) {
+                final entry = exportList[i];
 
-                    if (entry is ExportItem) {
-                      if (countModel.itemsToFix.containsKey(entry.name)) {
-                        filteredItems.add(entry);
+                if (entry is ExportItem) {
+                  if (countModel.itemsToFix.containsKey(entry.name)) {
+                    filteredItems.add(entry);
 
-                        // Find the parent title for this item
-                        for (int j = i - 1; j >= 0; j--) {
-                          if (exportList[j] is ExportTitle) {
-                            titlesWithChildren.add(
-                              exportList[j] as ExportTitle,
-                            );
-                            break;
-                          }
-                        }
+                    // Find the parent title for this item
+                    for (int j = i - 1; j >= 0; j--) {
+                      if (exportList[j] is ExportTitle) {
+                        titlesWithChildren.add(exportList[j] as ExportTitle);
+                        break;
                       }
-                    } else if (entry is ExportTitle) {
-                      filteredItems.add(entry);
                     }
-                    // Skip ExportPlaceholder entries
                   }
-
-                  // Second pass: remove titles without children
-                  displayList = filteredItems.where((entry) {
-                    if (entry is ExportTitle) {
-                      return titlesWithChildren.contains(entry);
-                    }
-                    return true;
-                  }).toList();
+                } else if (entry is ExportTitle) {
+                  filteredItems.add(entry);
                 }
+                // Skip ExportPlaceholder entries
+              }
 
-                // Check if there are any items in the filtered list
-                final hasItems = displayList.any(
-                  (entry) => entry is ExportItem,
-                );
-
-                // Calculate the width needed for headers with padding
-                final textStyle = Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold);
-
-                final columnWidths = {
-                  'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
-                  'Cabinet':
-                      _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
-                  'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
-                  'Total': _getTextWidth(context, 'Total', textStyle) + 24.0,
-                };
-
-                // Show message if no items
-                if (!hasItems) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Text(
-                        'Add items in Setup to begin counting!',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  );
+              // Second pass: remove titles without children
+              displayList = filteredItems.where((entry) {
+                if (entry is ExportTitle) {
+                  return titlesWithChildren.contains(entry);
                 }
+                return true;
+              }).toList();
+            }
 
-                return Align(
-                  alignment: Alignment.topCenter,
-                  child: SingleChildScrollView(
-                    key: PageStorageKey('fix_page_scroll'),
-                    controller: _scrollController,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 70.0),
-                      child: Table(
-                        defaultVerticalAlignment:
-                            TableCellVerticalAlignment.middle,
-                        border: TableBorder.all(
-                          color: Theme.of(context).colorScheme.outline,
-                          width: 1,
-                        ),
-                        columnWidths: {
-                          0: const FlexColumnWidth(),
-                          1: FixedColumnWidth(columnWidths['Back']!),
-                          2: FixedColumnWidth(columnWidths['Cabinet']!),
-                          3: FixedColumnWidth(columnWidths['Out']!),
-                          4: FixedColumnWidth(columnWidths['Total']!),
-                        },
-                        children: [
-                          // Header row
-                          TableRow(
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 189, 124, 27),
+            // Check if there are any items in the filtered list
+            final hasItems = displayList.any((entry) => entry is ExportItem);
+            return Stack(
+              children: [
+                Builder(
+                  builder: (context) {
+                    // Calculate the width needed for headers with padding
+                    final textStyle = Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold);
+
+                    final columnWidths = {
+                      'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
+                      'Cabinet':
+                          _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
+                      'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
+                      'Total':
+                          _getTextWidth(context, 'Total', textStyle) + 24.0,
+                    };
+
+                    // Show message if no items
+                    if (!hasItems) {
+                      if (areaModel.hasAnyItems()) {
+                        // There are items, but none are selected (all hidden)
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Text(
+                              'No items are selected to fix.',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                             ),
+                          ),
+                        );
+                      } else {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Text(
+                              'Add items in Setup to begin counting!',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+
+                    return Align(
+                      alignment: Alignment.topCenter,
+                      child: SingleChildScrollView(
+                        key: PageStorageKey('fix_page_scroll'),
+                        controller: _scrollController,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 70.0),
+                          child: Table(
+                            defaultVerticalAlignment:
+                                TableCellVerticalAlignment.middle,
+                            border: TableBorder.all(
+                              color: Theme.of(context).colorScheme.outline,
+                              width: 1,
+                            ),
+                            columnWidths: {
+                              0: const FlexColumnWidth(),
+                              1: FixedColumnWidth(columnWidths['Back']!),
+                              2: FixedColumnWidth(columnWidths['Cabinet']!),
+                              3: FixedColumnWidth(columnWidths['Out']!),
+                              4: FixedColumnWidth(columnWidths['Total']!),
+                            },
                             children: [
-                              _buildHeaderCell(
-                                context,
-                                'Item',
-                                TextAlign.left,
-                                textStyle,
+                              // Header row
+                              TableRow(
+                                decoration: BoxDecoration(
+                                  color: const Color.fromARGB(
+                                    255,
+                                    189,
+                                    124,
+                                    27,
+                                  ),
+                                ),
+                                children: [
+                                  _buildHeaderCell(
+                                    context,
+                                    'Item',
+                                    TextAlign.left,
+                                    textStyle,
+                                  ),
+                                  _buildHeaderCell(
+                                    context,
+                                    'Back',
+                                    TextAlign.center,
+                                    textStyle,
+                                  ),
+                                  _buildHeaderCell(
+                                    context,
+                                    'Cabinet',
+                                    TextAlign.center,
+                                    textStyle,
+                                  ),
+                                  _buildHeaderCell(
+                                    context,
+                                    'Out',
+                                    TextAlign.center,
+                                    textStyle,
+                                  ),
+                                  _buildHeaderCell(
+                                    context,
+                                    'Total',
+                                    TextAlign.center,
+                                    textStyle,
+                                  ),
+                                ],
                               ),
-                              _buildHeaderCell(
-                                context,
-                                'Back',
-                                TextAlign.center,
-                                textStyle,
-                              ),
-                              _buildHeaderCell(
-                                context,
-                                'Cabinet',
-                                TextAlign.center,
-                                textStyle,
-                              ),
-                              _buildHeaderCell(
-                                context,
-                                'Out',
-                                TextAlign.center,
-                                textStyle,
-                              ),
-                              _buildHeaderCell(
-                                context,
-                                'Total',
-                                TextAlign.center,
-                                textStyle,
-                              ),
+                              // Data rows
+                              for (final entry in displayList)
+                                if (entry is ExportItem)
+                                  _buildItemRow(
+                                    context,
+                                    entry,
+                                    countModel,
+                                    areaModel,
+                                    _showAllItems,
+                                  )
+                                else if (entry is ExportTitle)
+                                  _buildTitleRow(context, entry)
+                                else if (entry is ExportPlaceholder)
+                                  _buildPlaceholderRow(context, entry),
                             ],
                           ),
-                          // Data rows
-                          for (final entry in displayList)
-                            if (entry is ExportItem)
-                              _buildItemRow(
-                                context,
-                                entry,
-                                countModel,
-                                areaModel,
-                                _showAllItems,
-                              )
-                            else if (entry is ExportTitle)
-                              _buildTitleRow(context, entry)
-                            else if (entry is ExportPlaceholder)
-                              _buildPlaceholderRow(context, entry),
-                        ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                Positioned(
+                  left: 16,
+                  bottom: 16,
+                  child: FloatingActionButton.small(
+                    onPressed: () {
+                      setState(() {
+                        _showAllItems = !_showAllItems;
+                      });
+
+                      // Update scroll arrow state after collapse
+                      WidgetsBinding.instance.addPostFrameCallback((_) async {
+                        await Future.delayed(const Duration(milliseconds: 300));
+                        _onScroll();
+                      });
+                    },
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainer,
+                    foregroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant,
+                    elevation: 2,
+                    child: Icon(
+                      _showAllItems ? Icons.visibility : Icons.visibility_off,
+                    ),
+                  ),
+                ),
+                if (_hasScrollableContent && hasItems)
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: FloatingActionButton.small(
+                      onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainer,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant,
+                      elevation: 2,
+                      child: AnimatedRotation(
+                        duration: const Duration(milliseconds: 200),
+                        turns: _isAtBottom ? -0.5 : 0,
+                        child: const Icon(Icons.arrow_downward),
                       ),
                     ),
                   ),
-                );
-              },
-            ),
-            Positioned(
-              left: 16,
-              bottom: 16,
-              child: FloatingActionButton.small(
-                onPressed: () {
-                  setState(() {
-                    _showAllItems = !_showAllItems;
-                  });
-                },
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-                foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                elevation: 2,
-                child: Icon(
-                  _showAllItems ? Icons.visibility : Icons.visibility_off,
-                ),
-              ),
-            ),
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: FloatingActionButton.small(
-                onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-                foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                elevation: 2,
-                child: AnimatedRotation(
-                  duration: const Duration(milliseconds: 200),
-                  turns: _isAtBottom ? -0.5 : 0,
-                  child: const Icon(Icons.arrow_downward),
-                ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );

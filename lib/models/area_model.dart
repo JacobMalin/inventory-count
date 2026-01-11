@@ -494,4 +494,20 @@ class AreaModel with ChangeNotifier {
     maintainExportList();
     notifyListeners();
   }
+
+  bool hasAnyItems() {
+    for (int i = 0; i < numAreas; i++) {
+      final area = getArea(i);
+      for (var shelfOrItem in area.shelvesAndItems) {
+        if (shelfOrItem is Shelf) {
+          if (shelfOrItem.items.isNotEmpty) {
+            return true;
+          }
+        } else if (shelfOrItem is Item) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }
