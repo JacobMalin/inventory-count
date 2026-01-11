@@ -285,7 +285,7 @@ class _ExportPageState extends State<ExportPage> {
 
     return TableRow(
       children: [
-        _buildDataCell(context, item.name, TextAlign.left),
+        _buildItemNameCell(context, item.name),
         _buildDataCell(
           context,
           backIsNotCounted ? '-' : backSumNotation ?? '',
@@ -359,12 +359,27 @@ class _ExportPageState extends State<ExportPage> {
     return TableRow(
       decoration: BoxDecoration(color: Colors.yellow.withValues(alpha: 0.2)),
       children: [
-        _buildDataCell(context, placeholder.name, TextAlign.left),
+        _buildItemNameCell(context, placeholder.name),
         const SizedBox(),
         const SizedBox(),
         const SizedBox(),
         const SizedBox(),
       ],
+    );
+  }
+
+  Widget _buildItemNameCell(BuildContext context, String itemName) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          itemName,
+          textAlign: TextAlign.left,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ),
     );
   }
 
@@ -379,6 +394,9 @@ class _ExportPageState extends State<ExportPage> {
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4),
       child: FittedBox(
         fit: BoxFit.scaleDown,
+        alignment: textAlign == TextAlign.left
+            ? Alignment.centerLeft
+            : Alignment.center,
         child: Text(
           text,
           textAlign: textAlign,

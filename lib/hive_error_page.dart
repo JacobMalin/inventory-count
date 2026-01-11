@@ -150,6 +150,8 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
 
   @override
   Widget build(BuildContext context) {
+    const headlineColor = Color.fromARGB(255, 240, 234, 234);
+    const bodyColor = Color.fromARGB(255, 222, 208, 208);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       locale: DevicePreview.locale(context),
@@ -175,13 +177,16 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
                   'Failed to Initialize Database',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: headlineColor,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'The app encountered an error while loading the database. This may be due to corrupted data.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: bodyColor),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
@@ -199,6 +204,7 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
                         'Error Details:',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: headlineColor,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -206,6 +212,7 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
                         widget.errorMessage,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontFamily: 'monospace',
+                          color: bodyColor,
                         ),
                       ),
                     ],
@@ -216,14 +223,22 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
                   'Select boxes to delete:',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: headlineColor,
                   ),
                 ),
                 ..._boxesToDelete.keys.map((boxName) {
                   return CheckboxListTile(
-                    title: Text(boxName),
+                    title: Text(
+                      boxName,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.copyWith(color: bodyColor),
+                    ),
                     subtitle: Text(
                       _boxDescriptions[boxName] ?? '',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: bodyColor),
                     ),
                     value: _boxesToDelete[boxName],
                     onChanged: (_isDeleting || _isChecking)
