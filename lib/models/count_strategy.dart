@@ -374,7 +374,7 @@ class NegativeCountStrategy extends CountStrategy {
       controller: controller1,
       focusNode: focusNode,
       autofocus: true,
-      keyboardType: TextInputType.phone,
+      keyboardType: TextInputType.number,
       decoration: InputDecoration(
         labelText: 'Count (negative from $from)',
         border: const OutlineInputBorder(),
