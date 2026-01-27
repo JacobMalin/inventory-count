@@ -10,6 +10,7 @@
       "version": "0.1.0",
       "versionDate": "2026-01-27T20:08:20.665Z",
       "size": 8211869,
+      "localizedDescription": "A simple inventory counting app.",
       "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.0/InventoryCount.ipa",
       "versions": [
         {
