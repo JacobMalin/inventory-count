@@ -7,22 +7,16 @@
       "name": "Inventory Count",
       "bundleIdentifier": "com.rexvos.inventoryCount",
       "developerName": "RexVos",
-      "version": "0.1.0",
-      "versionDate": "2026-01-27T17:32:50.567Z",
-      "size": 8211869,
-      "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.0/InventoryCount.ipa",
+      "version": "",
+      "versionDate": "",
+      "size": 0,
+      "downloadURL": "",
       "versions": [
         {
           "version": "0.1.0",
-          "date": "2026-01-27T19:48:40.531Z",
-          "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.0/InventoryCount.ipa",
-          "size": 8211869
-        },
-        {
-          "version": "",
-          "date": "",
-          "size": 8211869,
-          "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.0/InventoryCount.ipa"
+          "date": "2026-01.531Z",
+          "downloadURL": "https://github.com/JacobMalinleases/download/v0.1.0/InventoryCount.ipa",
+          "size": 82118
         }
       ]
     }

@@ -92,10 +92,13 @@ jobs:
         env:
           IPA_SIZE: ${{ needs.build-ios.outputs.ipa-size }}
         run: |
-          sed -i "s/\"version\": \"0.6.2\"/\"version\": \"$VERSION\"/" ios/app_description.json
-          sed -i "s/\"versionDate\": \"2025-07-01T01:20:17Z\"/\"versionDate\": \"$VERSION_DATE\"/" ios/app_description.json
-          sed -i "s/\"size\": [0-9]\+/\"size\": $IPA_SIZE/" ios/app_description.json
-          sed -i "s#\"downloadURL\": \"[^\"]*\"#\"downloadURL\": \"$DOWNLOAD_URL\"#" ios/app_description.json
+          jq \
+            --arg v "$VERSION" \
+            --arg d "$VERSION_DATE" \
+            --argjson s "$IPA_SIZE" \
+            --arg u "$DOWNLOAD_URL" \
+            '.apps[0].version = $v | .apps[0].versionDate = $d | .apps[0].size = $s | .apps[0].downloadURL = $u' \
+            ios/app_description.json > ios/app_description.json.tmp && mv ios/app_description.json.tmp ios/app_description.json
 
       - name: Add version to app's versions list
         env:
