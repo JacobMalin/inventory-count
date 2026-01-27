@@ -9,16 +9,24 @@
       "developerName": "RexVos",
       "version": "0.1.0",
       "versionDate": "2026-01-27T17:32:50.567Z",
-      "size": 28873303,
-      "downloadURL": "https://github.com/SideStore/SideStore/releases/download/v0.1.0/InventoryCount.ipa",
+      "size": 8211868,
+      "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.0/InventoryCount.ipa",
       "versions": [
         {
           "version": "0.1.0",
           "date": "2026-01-27T17:32:50.567Z",
-          "downloadURL": "https://github.com/SideStore/SideStore/releases/download/v0.1.0/InventoryCount.ipa",
-          "size": 28873303
+          "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.0/InventoryCount.ipa",
+          "size": 8211868
         }
       ]
+    }
+  ],
+  "versions": [
+    {
+      "version": "0.1.0",
+      "versionDate": "2026-01-27T18:25:48.587Z",
+      "size": 8211868,
+      "downloadURL": ""
     }
   ]
 }
