@@ -1,0 +1,24 @@
+{
+  "name": "Inventory Count",
+  "identifier": "com.rexvos.inventoryCount",
+  "sourceURL": "https://apps.jacobmalin.com",
+  "apps": [
+    {
+      "name": "Inventory Count",
+      "bundleIdentifier": "com.rexvos.inventoryCount",
+      "developerName": "RexVos",
+      "version": "0.1.0",
+      "versionDate": "2026-01-27T17:32:50.567Z",
+      "size": 28873303,
+      "downloadURL": "https://github.com/SideStore/SideStore/releases/download/v0.1.0/InventoryCount.ipa",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-01-27T17:32:50.567Z",
+          "downloadURL": "https://github.com/SideStore/SideStore/releases/download/v0.1.0/InventoryCount.ipa",
+          "size": 28873303
+        }
+      ]
+    }
+  ]
+}

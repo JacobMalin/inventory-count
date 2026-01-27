@@ -6,9 +6,31 @@ on:
       - main
 
 jobs:
+  get-version:
+    name: Get Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    env:
+      release:
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Get Version from Project File
+        id: get-version
+        run: echo "version=$(yq '.version' pubspec.yaml)" >> $GITHUB_OUTPUT
+      - name: Get Current Version
+        run: |
+          echo "release=$(curl -qsSL \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/releases/latest" \
+          | jq -r .tag_name)" >> $GITHUB_ENV
   build-ios:
     name: 🎉 iOS Build
     runs-on: macos-latest
+    needs: get-version
     steps:
       - uses: actions/checkout@v3
 
@@ -39,6 +61,51 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: build/ios/iphoneos/FlutterIpaExport.ipa
-          tag: v1.0
+          tag: v${{ needs.get-version.outputs.version }}
+          asset_name: InventoryCount.ipa
           overwrite: true
-          body: "This is first release"
+  update-app-description:
+    name: Update app_description.json
+    runs-on: ubuntu-latest
+    needs: get-version
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Update app_description.json
+        run: |
+          sed -i "s/\"version\": \"0.6.2\"/\"version\": \"${{ needs.get-version.outputs.version }}\"/" ios/app_description.json
+          sed -i "s/\"versionDate\": \"2025-07-01T01:20:17Z\"/\"versionDate\": \"$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)\"/" ios/app_description.json
+          IPA_SIZE=$(stat --format=%s build/ios/iphoneos/FlutterIpaExport.ipa)
+          sed -i "s/\"size\": [0-9]\+/\"size\": $IPA_SIZE/" ios/app_description.json
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v${{ needs.get-version.outputs.version }}/InventoryCount.ipa"
+          sed -i "s#\"downloadURL\": \"[^\"]*\"#\"downloadURL\": \"$DOWNLOAD_URL\"#" ios/app_description.json
+
+      - name: Add version to versions list
+        run: |
+          VERSION=$(yq '.version' pubspec.yaml)
+          VERSION_DATE=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+          # Add or update versions list
+          if grep -q '"versions"' ios/app_description.json; then
+            jq \
+              --arg v "$VERSION" \
+              --arg d "$VERSION_DATE" \
+              --argjson s "$IPA_SIZE" \
+              --arg u "$DOWNLOAD_URL" \
+              '(.versions // []) as $versions | .versions = (
+                if ($versions | map(.version == $v) | any) then
+                  ($versions | map(if .version == $v then .version = $v | .versionDate = $d | .size = $s | .downloadURL = $u else . end))
+                else
+                  ($versions + [{version: $v, versionDate: $d, size: $s, downloadURL: $u}])
+                end
+              )' \
+              ios/app_description.json > ios/app_description.json.tmp && mv ios/app_description.json.tmp ios/app_description.json
+          else
+            jq \
+              --arg v "$VERSION" \
+              --arg d "$VERSION_DATE" \
+              --argjson s "$IPA_SIZE" \
+              --arg u "$DOWNLOAD_URL" \
+              '. + {versions: [{version: $v, versionDate: $d, size: $s, downloadURL: $u}]}' \
+              ios/app_description.json > ios/app_description.json.tmp && mv ios/app_description.json.tmp ios/app_description.json
+          fi
