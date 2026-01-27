@@ -36,6 +36,27 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # Cache Flutter pub packages
+      - name: Cache Flutter pub packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+          key: pub-cache-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml') }}
+          restore-keys: |
+            pub-cache-${{ runner.os }}-
+
+      # Cache CocoaPods
+      - name: Cache CocoaPods
+        uses: actions/cache@v3
+        with:
+          path: |
+            ios/Pods
+            ios/Podfile.lock
+          key: cocoapods-${{ runner.os }}-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            cocoapods-${{ runner.os }}-
+
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -89,36 +110,26 @@ jobs:
           DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v${{ needs.get-version.outputs.version }}/InventoryCount.ipa"
           sed -i "s#\"downloadURL\": \"[^\"]*\"#\"downloadURL\": \"$DOWNLOAD_URL\"#" ios/app_description.json
 
-      - name: Add version to versions list
+      - name: Add version to app's versions list
         env:
           IPA_SIZE: ${{ needs.build-ios.outputs.ipa-size }}
         run: |
           VERSION=$(yq '.version' pubspec.yaml)
           VERSION_DATE=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
-          # Add or update versions list
-          if grep -q '"versions"' ios/app_description.json; then
-            jq \
-              --arg v "$VERSION" \
-              --arg d "$VERSION_DATE" \
-              --argjson s "$IPA_SIZE" \
-              --arg u "$DOWNLOAD_URL" \
-              '(.versions // []) as $versions | .versions = (
-                if ($versions | map(.version == $v) | any) then
-                  ($versions | map(if .version == $v then .version = $v | .versionDate = $d | .size = $s | .downloadURL = $u else . end))
-                else
-                  ($versions + [{version: $v, versionDate: $d, size: $s, downloadURL: $u}])
-                end
-              )' \
-              ios/app_description.json > ios/app_description.json.tmp && mv ios/app_description.json.tmp ios/app_description.json
-          else
-            jq \
-              --arg v "$VERSION" \
-              --arg d "$VERSION_DATE" \
-              --argjson s "$IPA_SIZE" \
-              --arg u "$DOWNLOAD_URL" \
-              '. + {versions: [{version: $v, versionDate: $d, size: $s, downloadURL: $u}]}' \
-              ios/app_description.json > ios/app_description.json.tmp && mv ios/app_description.json.tmp ios/app_description.json
-          fi
+          # Update the versions array inside the first app object
+          jq \
+            --arg v "$VERSION" \
+            --arg d "$VERSION_DATE" \
+            --argjson s "$IPA_SIZE" \
+            --arg u "$DOWNLOAD_URL" \
+            '(.apps[0].versions // []) as $versions | .apps[0].versions = (
+              if ($versions | map(.version == $v) | any) then
+                ($versions | map(if .version == $v then .version = $v | .date = $d | .size = $s | .downloadURL = $u else . end))
+              else
+                ($versions + [{version: $v, date: $d, size: $s, downloadURL: $u}])
+              end
+            )' \
+            ios/app_description.json > ios/app_description.json.tmp && mv ios/app_description.json.tmp ios/app_description.json
       
       - name: Commit and push updated app_description.json
         run: |
