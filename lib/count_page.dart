@@ -975,7 +975,8 @@ class _CountDialogState extends State<CountDialog> {
                                   ),
                                 ),
                                 child: Text(switch (lastCount) {
-                                  ItemCount() => 'Last: ${lastCount.count}',
+                                  ItemCount() =>
+                                    'Last: ${lastCount.lastDisplay}',
                                   ItemNotCounted() => 'Last: -',
                                   _ => 'Last',
                                 }),

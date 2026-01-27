@@ -49,6 +49,8 @@ abstract class CountStrategy {
 
   String get strategyText;
 
+  String? getLastDisplay(int? field1, int? field2);
+
   void populateControllers(
     TextEditingController controller1,
     TextEditingController controller2,
@@ -126,6 +128,11 @@ class SingularCountStrategy extends CountStrategy {
 
   @override
   bool isEmpty(int? field1, int? field2) => field1 == null;
+
+  @override
+  String? getLastDisplay(int? field1, int? field2) {
+    return calculateCount(field1, field2)?.toString();
+  }
 
   @override
   get strategyText => 'Singular';
@@ -306,6 +313,12 @@ class NegativeCountStrategy extends CountStrategy {
 
   @override
   bool isEmpty(int? field1, int? field2) => field1 == null;
+
+  @override
+  String? getLastDisplay(int? field1, int? field2) {
+    if (field1 == null) return null;
+    return '${calculateCount(field1, field2)} ($from-$field1)';
+  }
 
   @override
   get strategyText => 'Negative (from $from)';
@@ -538,6 +551,12 @@ class StacksCountStrategy extends CountStrategy {
   bool isEmpty(int? field1, int? field2) => field1 == null;
 
   @override
+  String? getLastDisplay(int? field1, int? field2) {
+    if (field1 == null) return null;
+    return '${calculateCount(field1, field2)} (${field1}stk)';
+  }
+
+  @override
   get strategyText => 'Stacks ($perStack per stack)';
 
   @override
@@ -768,6 +787,15 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
 
   @override
   bool isEmpty(int? field1, int? field2) => field1 == null && field2 == null;
+
+  @override
+  String? getLastDisplay(int? field1, int? field2) {
+    if (field1 == null && field2 == null) return null;
+    final total = calculateCount(field1, field2);
+    final boxes = field1 ?? 0;
+    final stacks = field2 ?? 0;
+    return '$total (${boxes}bx, ${stacks}stk)';
+  }
 
   @override
   get strategyText => 'Both ($perBox per box, $perStack per stack)';
@@ -1158,6 +1186,8 @@ class ItemCount extends ItemCountType {
   CountStrategy strategy;
 
   int? get count => strategy.calculateCount(field1, field2);
+
+  String? get lastDisplay => strategy.getLastDisplay(field1, field2);
 
   bool isCounted() => count != null;
   bool isEmpty() => strategy.isEmpty(field1, field2);
