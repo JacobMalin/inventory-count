@@ -6,31 +6,9 @@ on:
       - main
 
 jobs:
-  get-version:
-    name: Get Version
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.get-version.outputs.version }}
-    env:
-      release:
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-      - name: Get Version from Project File
-        id: get-version
-        run: echo "version=$(yq '.version' pubspec.yaml)" >> $GITHUB_OUTPUT
-      - name: Get Current Version
-        run: |
-          echo "release=$(curl -qsSL \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "${{ github.api_url }}/repos/${{ github.repository }}/releases/latest" \
-          | jq -r .tag_name)" >> $GITHUB_ENV
   build-ios:
     name: 🎉 iOS Build
     runs-on: macos-latest
-    needs: get-version
     outputs:
       ipa-size: ${{ steps.ipa-size.outputs.size }}
     steps:
@@ -95,27 +73,33 @@ jobs:
   update-app-description:
     name: Update app_description.json
     runs-on: ubuntu-latest
-    needs: [get-version, build-ios]
+    needs: build-ios
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Set version variables
+        run: |
+          VERSION=$(yq '.version' pubspec.yaml)
+          echo "version=$VERSION" >> $GITHUB_ENV
+          VERSION_DATE=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+          echo "version_date=$VERSION_DATE" >> $GITHUB_ENV
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v$VERSION/InventoryCount.ipa"
+          echo "DOWNLOAD_URL=$DOWNLOAD_URL" >> $GITHUB_ENV
 
       - name: Update app_description.json
         env:
           IPA_SIZE: ${{ needs.build-ios.outputs.ipa-size }}
         run: |
-          sed -i "s/\"version\": \"0.6.2\"/\"version\": \"${{ needs.get-version.outputs.version }}\"/" ios/app_description.json
-          sed -i "s/\"versionDate\": \"2025-07-01T01:20:17Z\"/\"versionDate\": \"$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)\"/" ios/app_description.json
+          sed -i "s/\"version\": \"0.6.2\"/\"version\": \"$VERSION\"/" ios/app_description.json
+          sed -i "s/\"versionDate\": \"2025-07-01T01:20:17Z\"/\"versionDate\": \"$VERSION_DATE\"/" ios/app_description.json
           sed -i "s/\"size\": [0-9]\+/\"size\": $IPA_SIZE/" ios/app_description.json
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v${{ needs.get-version.outputs.version }}/InventoryCount.ipa"
           sed -i "s#\"downloadURL\": \"[^\"]*\"#\"downloadURL\": \"$DOWNLOAD_URL\"#" ios/app_description.json
 
       - name: Add version to app's versions list
         env:
           IPA_SIZE: ${{ needs.build-ios.outputs.ipa-size }}
         run: |
-          VERSION=$(yq '.version' pubspec.yaml)
-          VERSION_DATE=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
           # Update the versions array inside the first app object
           jq \
             --arg v "$VERSION" \
