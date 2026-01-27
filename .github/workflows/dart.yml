@@ -63,7 +63,7 @@ jobs:
         shell: bash
 
       - name: Save IPA as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: FlutterIpaExport
           path: build/ios/iphoneos/FlutterIpaExport.ipa
@@ -129,7 +129,7 @@ jobs:
     needs: [build-ios, update-app-description]
     steps:
       - name: Download IPA artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: FlutterIpaExport
           path: .
