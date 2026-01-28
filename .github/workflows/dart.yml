@@ -114,7 +114,7 @@ jobs:
               if ($versions | map(.version == $v) | any) then
                 ($versions | map(if .version == $v then .version = $v | .date = $d | .size = $s | .downloadURL = $u else . end))
               else
-                ($versions + [{version: $v, date: $d, size: $s, downloadURL: $u}])
+                ([{version: $v, date: $d, size: $s, downloadURL: $u}] + $versions)
               end
             )' \
             ios/app_description.json > ios/app_description.json.tmp && mv ios/app_description.json.tmp ios/app_description.json
