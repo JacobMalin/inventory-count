@@ -379,9 +379,9 @@ class Count extends HiveObject {
       exportData[phase.name] = getCountSumNotationByName(countName, phase);
     }
 
-    var backCount = exportData['back'];
-    var cabinetCount = exportData['cabinet'];
-    var outCount = exportData['out'];
+    var backCount = getCountValueByName(countName, CountPhase.back);
+    var cabinetCount = getCountValueByName(countName, CountPhase.cabinet);
+    var outCount = getCountValueByName(countName, CountPhase.out);
 
     bool backIsNotCounted = backCount == -1;
     bool cabinetIsNotCounted = cabinetCount == -1;
