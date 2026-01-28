@@ -265,6 +265,26 @@ class CountEntry extends HiveObject {
   ItemCountType countType;
 
   CountEntry(this.name, this.phase, this.countType);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'phase': phase.index,
+      'countType': countType.toJson(),
+    };
+  }
+
+  factory CountEntry.fromJson(Map<String, dynamic> json) {
+    final name = json['name'] as String? ?? '';
+    final phaseIndex = json['phase'] as int? ?? 0;
+    final phase = (phaseIndex >= 0 && phaseIndex < CountPhase.values.length)
+        ? CountPhase.values[phaseIndex]
+        : CountPhase.back;
+
+    ItemCountType countType = ItemCountType.fromJson(json['countType']);
+
+    return CountEntry(name, phase, countType);
+  }
 }
 
 @HiveType(typeId: 5)
@@ -352,6 +372,54 @@ class Count extends HiveObject {
     return notations.join(' + ');
   }
 
+  Map<String, dynamic> getItemExportJson(String countName) {
+    final Map<String, dynamic> exportData = {};
+
+    for (final phase in CountPhase.values) {
+      exportData[phase.name] = getCountSumNotationByName(countName, phase);
+    }
+
+    var backCount = exportData['back'];
+    var cabinetCount = exportData['cabinet'];
+    var outCount = exportData['out'];
+
+    bool backIsNotCounted = backCount == -1;
+    bool cabinetIsNotCounted = cabinetCount == -1;
+    bool outIsNotCounted = outCount == -1;
+
+    if (backIsNotCounted) {
+      backCount = null;
+    }
+    if (cabinetIsNotCounted) {
+      cabinetCount = null;
+    }
+    if (outIsNotCounted) {
+      outCount = null;
+    }
+
+    // Calculate total
+    final bool anyNotCounted =
+        backIsNotCounted || cabinetIsNotCounted || outIsNotCounted;
+    final bool hasAnyValue =
+        (!backIsNotCounted && backCount != null) ||
+        (!cabinetIsNotCounted && cabinetCount != null) ||
+        (!outIsNotCounted && outCount != null);
+
+    final String totalStr;
+    if (hasAnyValue) {
+      final total = (backCount ?? 0) + (cabinetCount ?? 0) + (outCount ?? 0);
+      totalStr = total.toString();
+    } else if (anyNotCounted) {
+      totalStr = '-';
+    } else {
+      totalStr = '';
+    }
+
+    exportData['total'] = totalStr;
+
+    return exportData;
+  }
+
   void updateCountForItem(Item data) {
     if (!itemCounts.containsKey(data.id)) {
       return;
@@ -372,6 +440,51 @@ class Count extends HiveObject {
       data.countName ?? data.name,
       data.countPhase,
       existingCountType,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'countPhase': countPhase.index,
+      'itemsToFix': itemsToFix,
+      'itemCounts': itemCounts.entries.map((e) {
+        return {'itemId': e.key, 'entry': e.value.toJson()};
+      }).toList(),
+    };
+  }
+
+  factory Count.fromJson(Map<String, dynamic> json) {
+    final phaseIndex = json['countPhase'] as int? ?? 0;
+    final phase = (phaseIndex >= 0 && phaseIndex < CountPhase.values.length)
+        ? CountPhase.values[phaseIndex]
+        : CountPhase.back;
+
+    final itemsToFixRaw = json['itemsToFix'] as Map<String, dynamic>?;
+    final itemsToFix = itemsToFixRaw != null
+        ? itemsToFixRaw.map((k, v) => MapEntry(k, v as bool))
+        : <String, bool>{};
+
+    final itemCountsList = (json['itemCounts'] as List<dynamic>?) ?? [];
+    final Map<int, CountEntry> itemCountsMap = {};
+    for (final element in itemCountsList) {
+      if (element is Map<String, dynamic>) {
+        final itemId = element['itemId'] as int?;
+        final entryJson = element['entry'] as Map<String, dynamic>?;
+        if (itemId != null && entryJson != null) {
+          try {
+            final entry = CountEntry.fromJson(entryJson);
+            itemCountsMap[itemId] = entry;
+          } catch (e) {
+            // skip malformed entries
+          }
+        }
+      }
+    }
+
+    return Count(
+      itemCounts: itemCountsMap,
+      countPhase: phase,
+      itemsToFix: itemsToFix,
     );
   }
 }

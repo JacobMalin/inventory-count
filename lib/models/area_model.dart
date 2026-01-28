@@ -370,20 +370,33 @@ class AreaModel with ChangeNotifier {
     notifyListeners();
   }
 
+  String exportInExportOrder(CountModel countModel) {
+    final currentExportList = exportList;
+
+    final data = {};
+
+    var currentTitle = '';
+    for (var entry in currentExportList) {
+      if (entry is ExportItem) {
+        data[currentTitle][entry.name] = countModel.getItemExportJson(
+          entry.name,
+        );
+      } else if (entry is ExportTitle) {
+        currentTitle = entry.name;
+        data[currentTitle] = {};
+      }
+    }
+
+    return jsonEncode(data);
+  }
+
   String exportAreasToJson() {
     final data = {
-      'areas': _areasBox.get('areas'),
+      'areas': _areasBox.get('areas').map((item) => item.toJson()).toList(),
       'itemIdCounter': _areasBox.get('itemIdCounter', defaultValue: 0),
     };
 
-    return jsonEncode(
-      data.map((key, value) {
-        if (value is List) {
-          return MapEntry(key, value.map((item) => item.toJson()).toList());
-        }
-        return MapEntry(key, value);
-      }),
-    );
+    return jsonEncode(data);
   }
 
   void importAreasFromJson(String jsonString) {

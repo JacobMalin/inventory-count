@@ -1196,6 +1196,7 @@ class ItemCount extends ItemCountType {
 
   @override
   Map<String, dynamic> toJson() => {
+    'type': 'ItemCount',
     'field1': field1,
     'field2': field2,
     'strategy': strategy.toJson(),
@@ -1238,6 +1239,12 @@ class ItemNotCounted extends ItemCountType {
 
   ItemNotCounted.fromJson(Map<String, dynamic> json)
     : super(doubleChecked: json['doubleChecked'] as bool? ?? false);
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': 'ItemNotCounted',
+    ...super.toJson(),
+  };
 }
 
 abstract class ItemCountType {
@@ -1247,4 +1254,16 @@ abstract class ItemCountType {
   Map<String, dynamic> toJson() => {'doubleChecked': doubleChecked};
 
   ItemCountType({this.doubleChecked = false});
+
+  factory ItemCountType.fromJson(Map<String, dynamic> json) {
+    final type = json['type'] as String?;
+    switch (type) {
+      case 'ItemCount':
+        return ItemCount.fromJson(json);
+      case 'ItemNotCounted':
+        return ItemNotCounted.fromJson(json);
+      default:
+        return ItemNotCounted();
+    }
+  }
 }

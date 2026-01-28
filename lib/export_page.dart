@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/export_entry.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ExportPage extends StatefulWidget {
   const ExportPage({super.key});
@@ -75,133 +78,197 @@ class _ExportPageState extends State<ExportPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Scaffold(
-        body: Stack(
-          children: [
-            Consumer2<AreaModel, CountModel>(
-              builder: (context, areaModel, countModel, child) {
-                final exportList = areaModel.exportList;
+      child: Stack(
+        children: [
+          Consumer2<AreaModel, CountModel>(
+            builder: (context, areaModel, countModel, child) {
+              final exportList = areaModel.exportList;
 
-                // Check if there are any items in the list
-                final hasItems = exportList.any((entry) => entry is ExportItem);
+              // Check if there are any items in the list
+              final hasItems = exportList.any((entry) => entry is ExportItem);
 
-                // Calculate the width needed for headers with padding
-                final textStyle = Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold);
+              // Calculate the width needed for headers with padding
+              final textStyle = Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold);
 
-                final columnWidths = {
-                  'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
-                  'Cabinet':
-                      _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
-                  'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
-                  'Total': _getTextWidth(context, 'Total', textStyle) + 24.0,
-                };
+              final columnWidths = {
+                'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
+                'Cabinet': _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
+                'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
+                'Total': _getTextWidth(context, 'Total', textStyle) + 24.0,
+              };
 
-                // Show message if no items
-                if (!hasItems) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Text(
-                        'Add items in Setup to begin counting!',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
+              // Show message if no items
+              if (!hasItems) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Text(
+                      'Add items in Setup to begin counting!',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                    ),
-                  );
-                }
-
-                return Align(
-                  alignment: Alignment.topCenter,
-                  child: SingleChildScrollView(
-                    key: const PageStorageKey('export_table_scroll'),
-                    controller: _scrollController,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 70.0),
-                      child: Table(
-                        border: TableBorder.all(
-                          color: Theme.of(context).colorScheme.outline,
-                          width: 1,
-                        ),
-                        columnWidths: {
-                          0: const FlexColumnWidth(),
-                          1: FixedColumnWidth(columnWidths['Back']!),
-                          2: FixedColumnWidth(columnWidths['Cabinet']!),
-                          3: FixedColumnWidth(columnWidths['Out']!),
-                          4: FixedColumnWidth(columnWidths['Total']!),
-                        },
-                        children: [
-                          // Header row
-                          TableRow(
-                            decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
-                            ),
-                            children: [
-                              _buildHeaderCell(
-                                context,
-                                'Item',
-                                TextAlign.left,
-                                textStyle,
-                              ),
-                              _buildHeaderCell(
-                                context,
-                                'Back',
-                                TextAlign.center,
-                                textStyle,
-                              ),
-                              _buildHeaderCell(
-                                context,
-                                'Cabinet',
-                                TextAlign.center,
-                                textStyle,
-                              ),
-                              _buildHeaderCell(
-                                context,
-                                'Out',
-                                TextAlign.center,
-                                textStyle,
-                              ),
-                              _buildHeaderCell(
-                                context,
-                                'Total',
-                                TextAlign.center,
-                                textStyle,
-                              ),
-                            ],
-                          ),
-                          // Data rows
-                          for (final entry in exportList)
-                            if (entry is ExportItem)
-                              _buildItemRow(context, entry, countModel)
-                            else if (entry is ExportTitle)
-                              _buildTitleRow(context, entry)
-                            else if (entry is ExportPlaceholder)
-                              _buildPlaceholderRow(context, entry),
-                        ],
-                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 );
+              }
+
+              return Align(
+                alignment: Alignment.topCenter,
+                child: SingleChildScrollView(
+                  key: const PageStorageKey('export_table_scroll'),
+                  controller: _scrollController,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 70.0),
+                    child: Table(
+                      border: TableBorder.all(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 1,
+                      ),
+                      columnWidths: {
+                        0: const FlexColumnWidth(),
+                        1: FixedColumnWidth(columnWidths['Back']!),
+                        2: FixedColumnWidth(columnWidths['Cabinet']!),
+                        3: FixedColumnWidth(columnWidths['Out']!),
+                        4: FixedColumnWidth(columnWidths['Total']!),
+                      },
+                      children: [
+                        // Header row
+                        TableRow(
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
+                          ),
+                          children: [
+                            _buildHeaderCell(
+                              context,
+                              'Item',
+                              TextAlign.left,
+                              textStyle,
+                            ),
+                            _buildHeaderCell(
+                              context,
+                              'Back',
+                              TextAlign.center,
+                              textStyle,
+                            ),
+                            _buildHeaderCell(
+                              context,
+                              'Cabinet',
+                              TextAlign.center,
+                              textStyle,
+                            ),
+                            _buildHeaderCell(
+                              context,
+                              'Out',
+                              TextAlign.center,
+                              textStyle,
+                            ),
+                            _buildHeaderCell(
+                              context,
+                              'Total',
+                              TextAlign.center,
+                              textStyle,
+                            ),
+                          ],
+                        ),
+                        // Data rows
+                        for (final entry in exportList)
+                          if (entry is ExportItem)
+                            _buildItemRow(context, entry, countModel)
+                          else if (entry is ExportTitle)
+                            _buildTitleRow(context, entry)
+                          else if (entry is ExportPlaceholder)
+                            _buildPlaceholderRow(context, entry),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          Positioned(
+            bottom: 16,
+            left: 16,
+            child: Consumer2<AreaModel, CountModel>(
+              builder: (context, areaModel, countModel, child) {
+                return FloatingActionButton.small(
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+
+                    try {
+                      final jsonString = areaModel.exportInExportOrder(
+                        countModel,
+                      );
+
+                      final now = DateTime.now();
+                      final timestamp =
+                          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+                      final fileName = '$timestamp.json';
+
+                      final tempDir = Directory.systemTemp;
+                      final file = File('${tempDir.path}/$fileName');
+                      file.writeAsStringSync(jsonString);
+
+                      await Supabase.instance.client.storage
+                          .from('Counts')
+                          .upload(fileName, file);
+
+                      file.delete();
+
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: GestureDetector(
+                            onTap: () => messenger.hideCurrentSnackBar(),
+                            child: const Text('Exported successfully!'),
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: GestureDetector(
+                            onTap: () => messenger.hideCurrentSnackBar(),
+                            child: Text('Export failed: $e'),
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainer,
+                  foregroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant,
+                  elevation: 2,
+                  child: const Icon(Icons.cloud_upload),
+                );
               },
             ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton.small(
-          onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-          foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-          elevation: 2,
-          child: AnimatedRotation(
-            duration: const Duration(milliseconds: 200),
-            turns: _isAtBottom ? -0.5 : 0,
-            child: const Icon(Icons.arrow_downward),
           ),
-        ),
+
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton.small(
+              onPressed: _isAtBottom ? _scrollToTop : _scrollToBottom,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+              foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+              elevation: 2,
+              child: AnimatedRotation(
+                duration: const Duration(milliseconds: 200),
+                turns: _isAtBottom ? -0.5 : 0,
+                child: const Icon(Icons.arrow_downward),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

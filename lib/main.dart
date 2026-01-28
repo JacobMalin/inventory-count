@@ -10,9 +10,15 @@ import 'package:inventory_count/export_page.dart';
 import 'package:inventory_count/setup/setup_page.dart';
 import 'package:inventory_count/hive_error_page.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://qvlnvdgtmvjgjcsgfiiq.supabase.co',
+    anonKey: 'sb_publishable_6GGLYRmVrTZ5yLI64u1vmQ_jkm5imVL',
+  );
 
   String? hiveError;
   try {

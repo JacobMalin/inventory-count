@@ -198,6 +198,13 @@ class CountModel with ChangeNotifier {
     return currentCount.getCountSumNotationByName(name, phase);
   }
 
+  Map<String, dynamic> getItemExportJson(String name) {
+    final Box<Count> countBox = Hive.box<Count>('counts');
+    final Count currentCount = countBox.get(date) ?? Count();
+
+    return currentCount.getItemExportJson(name);
+  }
+
   List<ItemTreeData> findItemsByName(
     String name,
     CountPhase phase,
