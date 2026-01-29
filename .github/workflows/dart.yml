@@ -130,7 +130,7 @@ jobs:
         run: |
           VERSION_DATE=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
           echo "VERSION_DATE=$VERSION_DATE" >> $GITHUB_ENV
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v$VERSION/InventoryCount.ipa"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v${{ needs.get-and-bump-version.outputs.version }}/InventoryCount.ipa"
           echo "DOWNLOAD_URL=$DOWNLOAD_URL" >> $GITHUB_ENV
 
       - name: Update app_description.json
