@@ -37,7 +37,7 @@ Dim xlApp : Set xlApp = CreateObject("Excel.Application")
 Dim xlBook : Set xlBook = xlApp.Workbooks.Open(ExcelFilePath, 0, true)
 
 ' Make workbook visible
-xlApp.Visible = True
+' xlApp.Visible = True
 
 ' Read JSON file and validate it, then pass the JSON text to the macro
 If Not fso.FileExists(CountJsonPath) Then
