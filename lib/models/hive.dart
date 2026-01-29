@@ -415,7 +415,7 @@ class Count extends HiveObject {
       totalStr = '';
     }
 
-    exportData['total'] = totalStr;
+    exportData['Total'] = totalStr;
 
     return exportData;
   }
