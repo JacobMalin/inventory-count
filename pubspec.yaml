@@ -26,4 +26,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/print_json.vbs
+    - assets/PrintCount.vbs
+    - assets/VbsJson.vbs

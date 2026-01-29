@@ -383,10 +383,9 @@ class AreaModel with ChangeNotifier {
         );
       } else if (entry is ExportTitle) {
         currentTitle = entry.name;
-        data[currentTitle] = {};
+        if (!data.containsKey(currentTitle)) data[currentTitle] = {};
       }
     }
-
     return jsonEncode(data);
   }
 

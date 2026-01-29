@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -10,7 +12,9 @@ class SupabaseCountsPage extends StatelessWidget {
 
   Future<bool> printJson(BuildContext context, String json) async {
     // Prompt user to locate Excel if not configured
-    if (WindowModel.countExcelPath == null) {
+    if (WindowModel.countExcelPath == null ||
+        !await File(WindowModel.countExcelPath!).exists()) {
+      if (!context.mounted) return false;
       final locate = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -43,7 +47,80 @@ class SupabaseCountsPage extends StatelessWidget {
       WindowModel.countExcelPath = path;
     }
 
-    return true;
+    if (!context.mounted) return false;
+
+    final String printCountVbs = await DefaultAssetBundle.of(
+      context,
+    ).loadString('assets/PrintCount.vbs');
+
+    final String vbsJsonVbs = await DefaultAssetBundle.of(
+      context,
+    ).loadString('assets/VbsJson.vbs');
+
+    // Create temporary VBS script and JSON file
+    final tempDir = Directory.systemTemp;
+    final scriptFile = await File(
+      '${tempDir.path}\\print_count_${DateTime.now().millisecondsSinceEpoch}.vbs',
+    ).create();
+    await scriptFile.writeAsString(printCountVbs);
+
+    final vbsJsonFile = await File(
+      '${tempDir.path}\\vbs_json_${DateTime.now().millisecondsSinceEpoch}.vbs',
+    ).create();
+    await vbsJsonFile.writeAsString(vbsJsonVbs);
+
+    final jsonFile = await File(
+      '${tempDir.path}\\count_${DateTime.now().millisecondsSinceEpoch}.json',
+    ).create();
+    await jsonFile.writeAsString(json);
+
+    try {
+      if (!Platform.isWindows) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Printing is only supported on Windows.'),
+            ),
+          );
+        }
+        return false;
+      }
+
+      final proc = await Process.start('cscript', [
+        '//Nologo',
+        scriptFile.path,
+        vbsJsonFile.path,
+        WindowModel.countExcelPath!,
+        jsonFile.path,
+      ]);
+
+      final stdoutData = proc.stdout.transform(utf8.decoder).join();
+      final stderrData = proc.stderr.transform(utf8.decoder).join();
+
+      final exitCode = await proc.exitCode;
+      final out = await stdoutData;
+      final err = await stderrData;
+
+      if (exitCode != 0) {
+        throw Exception(
+          'cscript failed (exit $exitCode): ${err.isNotEmpty ? err : out}',
+        );
+      }
+
+      print(out);
+
+      return true;
+    } finally {
+      try {
+        if (await scriptFile.exists()) await scriptFile.delete();
+      } catch (_) {}
+      try {
+        if (await vbsJsonFile.exists()) await vbsJsonFile.delete();
+      } catch (_) {}
+      try {
+        if (await jsonFile.exists()) await jsonFile.delete();
+      } catch (_) {}
+    }
   }
 
   @override
