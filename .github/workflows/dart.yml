@@ -6,9 +6,57 @@ on:
       - main
 
 jobs:
+  get-and-bump-version:
+    name: Get and Bump Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Get current version
+        id: get-version
+        run: |
+          VERSION=$(yq '.version' pubspec.yaml)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump version if same as latest release
+        run: |
+          CURRENT_VERSION=$(yq '.version' pubspec.yaml)
+          echo "Current pubspec version: $CURRENT_VERSION"
+
+          # Get latest release tag from GitHub API (strip a leading 'v' if present).
+          LATEST_TAG=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name // empty')
+          LATEST_TAG=${LATEST_TAG#v}
+          echo "Latest release tag: ${LATEST_TAG:-<none>}"
+
+          SHOULD_BUMP=false
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No latest release found; will bump version."
+            SHOULD_BUMP=true
+          elif [ "$LATEST_TAG" = "$CURRENT_VERSION" ]; then
+            echo "Latest release matches current version; will bump version."
+            SHOULD_BUMP=true
+          else
+            echo "Latest release ($LATEST_TAG) differs from current version ($CURRENT_VERSION); skipping bump."
+            SHOULD_BUMP=false
+          fi
+
+          if [ "$SHOULD_BUMP" = true ]; then
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+            yq -i ".version = \"$NEW_VERSION\"" pubspec.yaml
+            echo "Bumped version from $CURRENT_VERSION to $NEW_VERSION"
+            echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          fi
   build-ios:
     name: 🎉 iOS Build
     runs-on: macos-latest
+    needs: get-and-bump-version
     outputs:
       ipa-size: ${{ steps.ipa-size.outputs.size }}
     steps:
@@ -70,9 +118,7 @@ jobs:
   update-app-description:
     name: Update app_description.json
     runs-on: ubuntu-latest
-    needs: build-ios
-    outputs:
-      version: ${{ steps.set-version-vars.outputs.version }}
+    needs: [build-ios, get-and-bump-version]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -80,9 +126,6 @@ jobs:
       - name: Set version variables
         id: set-version-vars
         run: |
-          VERSION=$(yq '.version' pubspec.yaml)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
           VERSION_DATE=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
           echo "VERSION_DATE=$VERSION_DATE" >> $GITHUB_ENV
           DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v$VERSION/InventoryCount.ipa"
@@ -93,7 +136,7 @@ jobs:
           IPA_SIZE: ${{ needs.build-ios.outputs.ipa-size }}
         run: |
           jq \
-            --arg v "$VERSION" \
+            --arg v "${{ needs.get-and-bump-version.outputs.version }}" \
             --arg d "$VERSION_DATE" \
             --argjson s "$IPA_SIZE" \
             --arg u "$DOWNLOAD_URL" \
@@ -106,7 +149,7 @@ jobs:
         run: |
           # Update the versions array inside the first app object
           jq \
-            --arg v "$VERSION" \
+            --arg v "${{ needs.get-and-bump-version.outputs.version }}" \
             --arg d "$VERSION_DATE" \
             --argjson s "$IPA_SIZE" \
             --arg u "$DOWNLOAD_URL" \
@@ -129,7 +172,7 @@ jobs:
   upload-IPA-to-release:
     name: Upload IPA to GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-ios, update-app-description]
+    needs: [build-ios, update-app-description, get-and-bump-version]
     steps:
       - name: Download IPA artifact
         uses: actions/download-artifact@v4
@@ -142,6 +185,6 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: FlutterIpaExport.ipa
-          tag: v${{ needs.update-app-description.outputs.version }}
+          tag: v${{ needs.get-and-bump-version.outputs.version }}
           asset_name: InventoryCount.ipa
           overwrite: true

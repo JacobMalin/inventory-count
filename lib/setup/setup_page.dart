@@ -59,26 +59,25 @@ class BackupButton extends StatelessWidget {
     );
   }
 
-  Future<dynamic> showBackupAndRestore(BuildContext context) {
+  Future<dynamic> showBackupAndRestore(BuildContext hostContext) {
     return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: hostContext,
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Backup & Restore'),
         content: const Text(
           'Choose an option to backup or restore your inventory data.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: const Text('Cancel'),
           ),
           Consumer<AreaModel>(
             builder: (context, areaModel, child) {
               return TextButton(
                 onPressed: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final navigator = Navigator.of(context);
-                  navigator.pop();
+                  final messengerHost = ScaffoldMessenger.of(hostContext);
+                  Navigator.of(dialogCtx).pop();
 
                   try {
                     final jsonString = areaModel.exportAllToJson();
@@ -92,8 +91,8 @@ class BackupButton extends StatelessWidget {
                       text: defaultFileName,
                     );
                     final String? chosenName = await showDialog<String>(
-                      context: context,
-                      builder: (context) => AlertDialog(
+                      context: hostContext,
+                      builder: (ctx) => AlertDialog(
                         title: const Text('Export file name'),
                         content: TextField(
                           controller: nameController,
@@ -103,14 +102,12 @@ class BackupButton extends StatelessWidget {
                         ),
                         actions: [
                           TextButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () => Navigator.pop(ctx),
                             child: const Text('Cancel'),
                           ),
                           TextButton(
-                            onPressed: () => Navigator.pop(
-                              context,
-                              nameController.text.trim(),
-                            ),
+                            onPressed: () =>
+                                Navigator.pop(ctx, nameController.text.trim()),
                             child: const Text('Save'),
                           ),
                         ],
@@ -143,9 +140,9 @@ class BackupButton extends StatelessWidget {
                     }
 
                     if (exists) {
-                      if (!context.mounted) return;
+                      if (!hostContext.mounted) return;
                       final overwrite = await showDialog<bool>(
-                        context: context,
+                        context: hostContext,
                         builder: (ctx) => AlertDialog(
                           title: const Text('File exists'),
                           content: Text(
@@ -165,7 +162,7 @@ class BackupButton extends StatelessWidget {
                       );
 
                       if (overwrite != true) {
-                        messenger.showSnackBar(
+                        messengerHost.showSnackBar(
                           const SnackBar(
                             content: Text('Upload cancelled.'),
                             behavior: SnackBarBehavior.floating,
@@ -173,26 +170,28 @@ class BackupButton extends StatelessWidget {
                         );
                         return;
                       }
-                    }
 
-                    await storage.upload(fileName, file);
+                      await storage.update(fileName, file);
+                    } else {
+                      await storage.upload(fileName, file);
+                    }
 
                     file.delete();
 
-                    messenger.showSnackBar(
+                    messengerHost.showSnackBar(
                       SnackBar(
                         content: GestureDetector(
-                          onTap: () => messenger.hideCurrentSnackBar(),
+                          onTap: () => messengerHost.hideCurrentSnackBar(),
                           child: const Text('Data exported successfully!'),
                         ),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   } catch (e) {
-                    messenger.showSnackBar(
+                    messengerHost.showSnackBar(
                       SnackBar(
                         content: GestureDetector(
-                          onTap: () => messenger.hideCurrentSnackBar(),
+                          onTap: () => messengerHost.hideCurrentSnackBar(),
                           child: Text('Export failed: $e'),
                         ),
                         behavior: SnackBarBehavior.floating,
@@ -204,7 +203,7 @@ class BackupButton extends StatelessWidget {
               );
             },
           ),
-          RestoreButton(),
+          RestoreButton(hostContext: hostContext),
         ],
       ),
     );
@@ -212,7 +211,8 @@ class BackupButton extends StatelessWidget {
 }
 
 class RestoreButton extends StatelessWidget {
-  const RestoreButton({super.key});
+  final BuildContext hostContext;
+  const RestoreButton({super.key, required this.hostContext});
 
   @override
   Widget build(BuildContext context) {
@@ -220,42 +220,48 @@ class RestoreButton extends StatelessWidget {
       builder: (context, areaModel, child) {
         return TextButton(
           onPressed: () async {
-            final messenger = ScaffoldMessenger.of(context);
-            final navigator = Navigator.of(context);
-            navigator.pop();
+            Navigator.of(context).pop();
+            final messengerHost = ScaffoldMessenger.of(hostContext);
 
             // Show confirmation dialog
             final confirm = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
+              context: hostContext,
+              builder: (confirmCtx) => AlertDialog(
                 title: const Text('Restore Data'),
                 content: const Text(
                   'This will replace all current areas, items, and export order. Are you sure?',
                 ),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => Navigator.pop(confirmCtx, false),
                     child: const Text('Cancel'),
                   ),
                   TextButton(
                     onPressed: () async {
-                      final dialogMessenger = ScaffoldMessenger.of(context);
-                      final dialogNavigator = Navigator.of(context);
                       final storage = Supabase.instance.client.storage.from(
                         'Setups',
                       );
-                      dialogNavigator.pop();
+
+                      // close the confirmation dialog
+                      Navigator.of(confirmCtx).pop();
 
                       // Show dialog that lists files using FutureBuilder
                       final choice = await showDialog<String?>(
-                        context: context,
+                        context: hostContext,
                         builder: (dialogCtx) {
                           return AlertDialog(
                             title: const Text('Select backup to restore'),
                             content: SizedBox(
                               width: double.maxFinite,
                               child: FutureBuilder<List<FileObject>>(
-                                future: storage.list(),
+                                future: storage.list(
+                                  searchOptions: SearchOptions(
+                                    sortBy: SortBy(
+                                      column: 'updated_at',
+                                      order: 'desc',
+                                    ),
+                                  ),
+                                ),
                                 builder: (ctx, snap) {
                                   if (snap.connectionState !=
                                       ConnectionState.done) {
@@ -329,14 +335,16 @@ class RestoreButton extends StatelessWidget {
 
                         areaModel.importAllFromJson(jsonString);
 
-                        dialogMessenger.showSnackBar(
+                        if (!hostContext.mounted) return;
+                        ScaffoldMessenger.of(hostContext).showSnackBar(
                           const SnackBar(
                             content: Text('Backup restored.'),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
                       } catch (e) {
-                        dialogMessenger.showSnackBar(
+                        if (!hostContext.mounted) return;
+                        ScaffoldMessenger.of(hostContext).showSnackBar(
                           SnackBar(
                             content: Text('Restore failed: $e'),
                             behavior: SnackBarBehavior.floating,
@@ -363,10 +371,10 @@ class RestoreButton extends StatelessWidget {
 
                   areaModel.importAllFromJson(jsonString);
 
-                  messenger.showSnackBar(
+                  messengerHost.showSnackBar(
                     SnackBar(
                       content: GestureDetector(
-                        onTap: () => messenger.hideCurrentSnackBar(),
+                        onTap: () => messengerHost.hideCurrentSnackBar(),
                         child: const Text('Data imported successfully!'),
                       ),
                       behavior: SnackBarBehavior.floating,
@@ -374,10 +382,10 @@ class RestoreButton extends StatelessWidget {
                   );
                 }
               } catch (e) {
-                messenger.showSnackBar(
+                messengerHost.showSnackBar(
                   SnackBar(
                     content: GestureDetector(
-                      onTap: () => messenger.hideCurrentSnackBar(),
+                      onTap: () => messengerHost.hideCurrentSnackBar(),
                       child: Text('Import failed: $e'),
                     ),
                     behavior: SnackBarBehavior.floating,
