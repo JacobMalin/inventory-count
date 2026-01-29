@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:intl/intl.dart';
 
 import 'package:file_picker/file_picker.dart';
@@ -99,6 +98,7 @@ class BackupButton extends StatelessWidget {
                           decoration: const InputDecoration(
                             labelText: 'File name',
                           ),
+                          textCapitalization: TextCapitalization.sentences,
                         ),
                         actions: [
                           TextButton(
@@ -159,7 +159,7 @@ class BackupButton extends StatelessWidget {
                       if (overwrite != true) {
                         messengerHost.showSnackBar(
                           const SnackBar(
-                            content: Text('Upload cancelled.'),
+                            content: Text('Upload canceled.'),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );

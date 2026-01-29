@@ -51,6 +51,15 @@ class WindowModel {
       _box.put('y', value.dy);
     }
   }
+
+  static String? get countExcelPath => _box.get('countExcelPath') as String?;
+  static set countExcelPath(String? value) {
+    if (value == null) {
+      _box.delete('countExcelPath');
+    } else {
+      _box.put('countExcelPath', value);
+    }
+  }
 }
 
 class WindowSetupWatcher extends StatefulWidget {
