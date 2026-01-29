@@ -13,7 +13,7 @@ jobs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Bump version if same as latest release
         id: get-version
@@ -49,6 +49,7 @@ jobs:
             # Commit and push the bumped pubspec
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git pull
             git add pubspec.yaml
             git commit -m "chore: bump version to $NEW_VERSION [skip ci]" || echo "No changes to commit"
             git push
@@ -62,7 +63,11 @@ jobs:
     outputs:
       ipa-size: ${{ steps.ipa-size.outputs.size }}
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Ensure up to date
+        run: git pull
 
       # Cache Flutter pub packages
       - name: Cache Flutter pub packages
@@ -123,7 +128,7 @@ jobs:
     needs: [build-ios, get-and-bump-version]
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set version variables
         id: set-version-vars
