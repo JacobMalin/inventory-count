@@ -21,16 +21,16 @@
           "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.2/InventoryCount.ipa"
         },
         {
-          "version": "0.1.0",
-          "date": "2026-01-27T21:35:21.280Z",
-          "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.0/InventoryCount.ipa",
-          "size": 8210948
-        },
-        {
           "version": "0.1.1",
           "date": "2026-01-28T23:52:23.405Z",
           "size": 8682130,
           "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.1/InventoryCount.ipa"
+        },
+        {
+          "version": "0.1.0",
+          "date": "2026-01-27T21:35:21.280Z",
+          "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.0/InventoryCount.ipa",
+          "size": 8210948
         }
       ]
     }
