@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -15,11 +13,10 @@ class SupabaseCountsPage extends StatelessWidget {
 
     return SafeArea(
       child: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: Supabase.instance.client
-            .from('counts')
-            .stream(primaryKey: ['created_at']),
+        stream: storage
+            .stream(primaryKey: ['created_at'])
+            .order('created_at', ascending: false),
         builder: (context, snapshot) {
-          print(snapshot.data);
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }

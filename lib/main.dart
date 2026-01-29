@@ -22,7 +22,7 @@ void main(List<String> args) async {
     anonKey: 'sb_publishable_6GGLYRmVrTZ5yLI64u1vmQ_jkm5imVL',
   );
 
-  if (args.contains('-companion') || true) {
+  if (args.contains('-companion')) {
     await companionHiveSetup();
 
     await windowSetup();

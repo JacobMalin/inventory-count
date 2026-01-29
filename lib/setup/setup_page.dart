@@ -119,22 +119,17 @@ class BackupButton extends StatelessWidget {
                       return;
                     }
 
-                    var fileName = chosenName;
-                    if (!fileName.toLowerCase().endsWith('.json')) {
-                      fileName = '$fileName.json';
-                    }
-
-                    final tempDir = Directory.systemTemp;
-                    final file = File('${tempDir.path}/$fileName');
-                    await file.writeAsString(jsonString);
-
-                    final storage = Supabase.instance.client.storage.from(
-                      'Setups',
-                    );
+                    final storage = Supabase.instance.client.from('setups');
 
                     bool exists = false;
                     try {
-                      exists = await storage.exists(fileName);
+                      exists =
+                          (await storage
+                                  .select()
+                                  .eq('name', chosenName)
+                                  .count())
+                              .count >
+                          0;
                     } catch (_) {
                       // ignore exists check errors, proceed to upload which may fail
                     }
@@ -146,7 +141,7 @@ class BackupButton extends StatelessWidget {
                         builder: (ctx) => AlertDialog(
                           title: const Text('File exists'),
                           content: Text(
-                            'A backup named "$fileName" already exists. Overwrite?',
+                            'A backup named "$chosenName" already exists. Overwrite?',
                           ),
                           actions: [
                             TextButton(
@@ -171,12 +166,20 @@ class BackupButton extends StatelessWidget {
                         return;
                       }
 
-                      await storage.update(fileName, file);
+                      await storage
+                          .update({
+                            'json': jsonString,
+                            'updated_at': DateTime.now()
+                                .toUtc()
+                                .toIso8601String(),
+                          })
+                          .eq('name', chosenName);
                     } else {
-                      await storage.upload(fileName, file);
+                      await storage.insert({
+                        'name': chosenName,
+                        'json': jsonString,
+                      });
                     }
-
-                    file.delete();
 
                     messengerHost.showSnackBar(
                       SnackBar(
@@ -238,9 +241,7 @@ class RestoreButton extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () async {
-                      final storage = Supabase.instance.client.storage.from(
-                        'Setups',
-                      );
+                      final storage = Supabase.instance.client.from('setups');
 
                       // close the confirmation dialog
                       Navigator.of(confirmCtx).pop();
@@ -253,18 +254,13 @@ class RestoreButton extends StatelessWidget {
                             title: const Text('Select backup to restore'),
                             content: SizedBox(
                               width: double.maxFinite,
-                              child: FutureBuilder<List<FileObject>>(
-                                future: storage.list(
-                                  searchOptions: SearchOptions(
-                                    sortBy: SortBy(
-                                      column: 'updated_at',
-                                      order: 'desc',
-                                    ),
-                                  ),
-                                ),
-                                builder: (ctx, snap) {
-                                  if (snap.connectionState !=
-                                      ConnectionState.done) {
+                              child: StreamBuilder(
+                                stream: storage
+                                    .stream(primaryKey: ['name'])
+                                    .order('updated_at', ascending: false),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
                                     return const SizedBox(
                                       height: 80,
                                       child: Center(
@@ -272,35 +268,32 @@ class RestoreButton extends StatelessWidget {
                                       ),
                                     );
                                   }
-                                  if (snap.hasError || snap.data == null) {
+                                  if (snapshot.hasError ||
+                                      snapshot.data == null) {
                                     return const Text(
                                       'Failed to list backups.',
                                     );
                                   }
 
-                                  final files = snap.data!;
-                                  if (files.isEmpty) {
+                                  final backups = snapshot.data!;
+                                  if (backups.isEmpty) {
                                     return const Text('No backups found.');
                                   }
 
                                   return ListView.builder(
                                     shrinkWrap: true,
-                                    itemCount: files.length,
+                                    itemCount: backups.length,
                                     itemBuilder: (context, index) {
-                                      final f = files[index];
-                                      final name = f.name;
-                                      final displayName =
-                                          name.toLowerCase().endsWith('.json')
-                                          ? name.substring(0, name.length - 5)
-                                          : name;
+                                      final backup = backups[index];
+                                      final name = backup['name'] as String;
                                       String updated = '';
-                                      if (f.updatedAt != null) {
+                                      if (backup['updated_at'] != null) {
                                         DateTime? dt;
-                                        if (f.updatedAt is DateTime) {
-                                          dt = f.updatedAt as DateTime;
+                                        if (backup['updated_at'] is DateTime) {
+                                          dt = backup['updated_at'] as DateTime;
                                         } else {
                                           dt = DateTime.tryParse(
-                                            f.updatedAt.toString(),
+                                            backup['updated_at'].toString(),
                                           )?.toLocal();
                                         }
                                         if (dt != null) {
@@ -308,14 +301,17 @@ class RestoreButton extends StatelessWidget {
                                               .add_jm()
                                               .format(dt);
                                         } else {
-                                          updated = f.updatedAt.toString();
+                                          updated = backup['updated_at']
+                                              .toString();
                                         }
                                       }
                                       return ListTile(
-                                        title: Text(displayName),
+                                        title: Text(name),
                                         subtitle: Text(updated),
-                                        onTap: () =>
-                                            Navigator.pop(dialogCtx, name),
+                                        onTap: () => Navigator.pop(
+                                          dialogCtx,
+                                          backup['json'],
+                                        ),
                                       );
                                     },
                                   );
@@ -329,11 +325,7 @@ class RestoreButton extends StatelessWidget {
                       if (choice == null) return;
 
                       try {
-                        final res = await storage.download(choice);
-
-                        String jsonString = utf8.decode(res as List<int>);
-
-                        areaModel.importAllFromJson(jsonString);
+                        areaModel.importAllFromJson(choice);
 
                         if (!hostContext.mounted) return;
                         ScaffoldMessenger.of(hostContext).showSnackBar(
