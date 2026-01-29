@@ -1,11 +1,9 @@
 name: inventory_count
 description: ""
 publish_to: 'none'
-version: 0.1.2
-
+version: 0.1.3
 environment:
   sdk: ^3.10.4
-
 dependencies:
   flutter:
     sdk: flutter
@@ -16,14 +14,11 @@ dependencies:
   animated_tree_view: ^2.3.0
   file_picker: ^10.3.8
   supabase_flutter: ^2.12.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
   hive_generator: ^2.0.1
   build_runner: ^2.4.13
-
-
 flutter:
   uses-material-design: true
