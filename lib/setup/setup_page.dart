@@ -301,7 +301,7 @@ class RestoreButton extends StatelessWidget {
                                         } else {
                                           dt = DateTime.tryParse(
                                             f.updatedAt.toString(),
-                                          );
+                                          )?.toLocal();
                                         }
                                         if (dt != null) {
                                           updated = DateFormat.yMMMd()

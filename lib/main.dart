@@ -1,6 +1,8 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:inventory_count/companion/companion_app.dart';
+import 'package:inventory_count/companion/companion_setup.dart';
 import 'package:inventory_count/fix_page.dart';
 import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/hive.dart';
@@ -12,13 +14,23 @@ import 'package:inventory_count/hive_error_page.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
     url: 'https://qvlnvdgtmvjgjcsgfiiq.supabase.co',
     anonKey: 'sb_publishable_6GGLYRmVrTZ5yLI64u1vmQ_jkm5imVL',
   );
+
+  if (args.contains('-companion') || true) {
+    await companionHiveSetup();
+
+    await windowSetup();
+
+    runApp(const CompanionApp());
+
+    return;
+  }
 
   String? hiveError;
   try {

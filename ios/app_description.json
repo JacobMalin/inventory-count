@@ -11,7 +11,7 @@
       "versionDate": "2026-01-29T03:17:59.584Z",
       "size": 8682069,
       "localizedDescription": "A simple inventory counting app.",
-      "iconURL": "https://raw.githubusercontent.com/JacobMalin/inventory-count/refs/heads/main/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5%402x.png",
+      "iconURL": "https://raw.githubusercontent.com/JacobMalin/inventory-count/refs/heads/main/ios/Runner/Assets.xcassets/AppIcon.appiconset/AppIcon-83.5@2x~ipad.png",
       "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.4/InventoryCount.ipa",
       "versions": [
         {

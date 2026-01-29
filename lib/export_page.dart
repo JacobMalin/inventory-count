@@ -204,20 +204,9 @@ class _ExportPageState extends State<ExportPage> {
                         countModel,
                       );
 
-                      final now = DateTime.now();
-                      final timestamp =
-                          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
-                      final fileName = '$timestamp.json';
-
-                      final tempDir = Directory.systemTemp;
-                      final file = File('${tempDir.path}/$fileName');
-                      file.writeAsStringSync(jsonString);
-
-                      await Supabase.instance.client.storage
-                          .from('Counts')
-                          .upload(fileName, file);
-
-                      file.delete();
+                      await Supabase.instance.client.from('counts').insert({
+                        'json': jsonString,
+                      });
 
                       messenger.showSnackBar(
                         SnackBar(
