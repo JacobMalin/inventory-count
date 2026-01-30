@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:intl/intl.dart';
 
 import 'package:file_picker/file_picker.dart';
@@ -310,7 +311,9 @@ class RestoreButton extends StatelessWidget {
                                         subtitle: Text(updated),
                                         onTap: () => Navigator.pop(
                                           dialogCtx,
-                                          backup['json'],
+                                          backup['json'] is String
+                                              ? backup['json'] as String
+                                              : jsonEncode(backup['json']),
                                         ),
                                       );
                                     },

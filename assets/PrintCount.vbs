@@ -52,9 +52,17 @@ If Not fso.FileExists(CountJsonPath) Then
     WScript.Quit 1
 End If
 
-Dim JsonFile : Set JsonFile = fso.OpenTextFile(CountJsonPath)
-Dim JsonText : JsonText = JsonFile.ReadAll
-JsonFile.Close
+    
+Dim oStreamUTF8 : Set oStreamUTF8 = CreateObject("ADODB.Stream")
+With oStreamUTF8
+    .Charset = "UTF-8"
+    .Type = 2 'adTypeText
+    .Open
+    .LoadFromFile CountJsonPath
+    JsonText = .ReadText
+    .Close
+End With
+Set oStreamUTF8 = Nothing
 
 ' Try to parse JSON using the JScript engine for validation
 On Error Resume Next
@@ -70,7 +78,7 @@ Dim MacroRunName : MacroRunName = Replace(Replace("'{0}'!{1}", "{0}", FileName),
 xlApp.Run MacroRunName, JsonParsed
 
 ' Close workbook and excel
-xlBook.Close
+xlBook.Close False
 xlApp.Quit
 
 ' Clean up

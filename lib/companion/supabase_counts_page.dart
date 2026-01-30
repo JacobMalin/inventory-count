@@ -53,6 +53,8 @@ class SupabaseCountsPage extends StatelessWidget {
       context,
     ).loadString('assets/PrintCount.vbs');
 
+    if (!context.mounted) return false;
+
     final String vbsJsonVbs = await DefaultAssetBundle.of(
       context,
     ).loadString('assets/VbsJson.vbs');
@@ -106,8 +108,6 @@ class SupabaseCountsPage extends StatelessWidget {
           'cscript failed (exit $exitCode): ${err.isNotEmpty ? err : out}',
         );
       }
-
-      print(out);
 
       return true;
     } finally {
@@ -193,19 +193,29 @@ class SupabaseCountsPage extends StatelessWidget {
                               try {
                                 bool success = await printJson(
                                   hostContext,
-                                  count['json'],
+                                  count['json'] is String
+                                      ? count['json'] as String
+                                      : jsonEncode(count['json']),
                                 );
+
                                 if (hostContext.mounted) {
                                   ScaffoldMessenger.of(
                                     hostContext,
                                   ).showSnackBar(
                                     SnackBar(
                                       content: success
-                                          ? Text('Print completed.')
+                                          ? Text('Print completed. Exiting...')
                                           : Text('Print canceled.'),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
+                                }
+
+                                if (success) {
+                                  await Future.delayed(
+                                    const Duration(seconds: 2),
+                                  );
+                                  exit(0);
                                 }
                               } catch (e) {
                                 if (hostContext.mounted) {
