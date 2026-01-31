@@ -224,12 +224,17 @@ jobs:
   upload-release:
     name: Upload Release
     runs-on: ubuntu-latest
-    needs: [build-android, build-ios]
+    needs: [build-android, build-ios, get-and-bump-version]
     steps:
-      - uses: actions/upload-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: my-artifact
-          path: |
-            build/release/InventoryCount.ipa
-            build/release/InventoryCount.apk
+          path: build/release
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build/release/*
+          tag: v${{ needs.get-and-bump-version.outputs.version }}
+          file_glob: true
+          overwrite: true
     
