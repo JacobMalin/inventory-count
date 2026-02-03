@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/export_entry.dart';
+import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
@@ -196,9 +197,9 @@ class _FixPageState extends State<FixPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        body: Consumer2<AreaModel, CountModel>(
-          builder: (context, areaModel, countModel, child) {
-            final exportList = areaModel.exportList;
+        body: Consumer3<AreaModel, ExportModel, CountModel>(
+          builder: (context, areaModel, exportModel, countModel, child) {
+            final exportList = exportModel.exportList;
 
             // Filter items if needed
             final List<ExportEntry> displayList;
@@ -364,17 +365,20 @@ class _FixPageState extends State<FixPage> {
                               // Data rows
                               for (final entry in displayList)
                                 if (entry is ExportItem)
-                                  _buildItemRow(
-                                    context,
-                                    entry,
-                                    countModel,
-                                    areaModel,
-                                    _showAllItems,
-                                  )
+                                  if (areaModel
+                                      .getPathsForItem(entry.name)
+                                      .isEmpty)
+                                    _buildPlaceholderRow(context, entry)
+                                  else
+                                    _buildItemRow(
+                                      context,
+                                      entry,
+                                      countModel,
+                                      areaModel,
+                                      _showAllItems,
+                                    )
                                 else if (entry is ExportTitle)
-                                  _buildTitleRow(context, entry)
-                                else if (entry is ExportPlaceholder)
-                                  _buildPlaceholderRow(context, entry),
+                                  _buildTitleRow(context, entry),
                             ],
                           ),
                         ),
@@ -648,10 +652,7 @@ class _FixPageState extends State<FixPage> {
     );
   }
 
-  TableRow _buildPlaceholderRow(
-    BuildContext context,
-    ExportPlaceholder placeholder,
-  ) {
+  TableRow _buildPlaceholderRow(BuildContext context, ExportItem placeholder) {
     return TableRow(
       decoration: BoxDecoration(color: Colors.yellow.withValues(alpha: 0.2)),
       children: [

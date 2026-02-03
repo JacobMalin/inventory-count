@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/export_entry.dart';
+import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -78,9 +79,9 @@ class _ExportPageState extends State<ExportPage> {
     return SafeArea(
       child: Stack(
         children: [
-          Consumer2<AreaModel, CountModel>(
-            builder: (context, areaModel, countModel, child) {
-              final exportList = areaModel.exportList;
+          Consumer3<AreaModel, ExportModel, CountModel>(
+            builder: (context, areaModel, exportModel, countModel, child) {
+              final exportList = exportModel.exportList;
 
               // Check if there are any items in the list
               final hasItems = exportList.any((entry) => entry is ExportItem);
@@ -176,11 +177,12 @@ class _ExportPageState extends State<ExportPage> {
                         // Data rows
                         for (final entry in exportList)
                           if (entry is ExportItem)
-                            _buildItemRow(context, entry, countModel)
+                            if (areaModel.getPathsForItem(entry.name).isEmpty)
+                              _buildPlaceholderRow(context, entry)
+                            else
+                              _buildItemRow(context, entry, countModel)
                           else if (entry is ExportTitle)
-                            _buildTitleRow(context, entry)
-                          else if (entry is ExportPlaceholder)
-                            _buildPlaceholderRow(context, entry),
+                            _buildTitleRow(context, entry),
                       ],
                     ),
                   ),
@@ -191,14 +193,14 @@ class _ExportPageState extends State<ExportPage> {
           Positioned(
             bottom: 16,
             left: 16,
-            child: Consumer2<AreaModel, CountModel>(
-              builder: (context, areaModel, countModel, child) {
+            child: Consumer2<ExportModel, CountModel>(
+              builder: (context, exportModel, countModel, child) {
                 return FloatingActionButton.small(
                   onPressed: () async {
                     final messenger = ScaffoldMessenger.of(context);
 
                     try {
-                      final jsonString = areaModel.exportInExportOrder(
+                      final jsonString = exportModel.exportInExportOrder(
                         countModel,
                       );
 
@@ -406,10 +408,7 @@ class _ExportPageState extends State<ExportPage> {
     );
   }
 
-  TableRow _buildPlaceholderRow(
-    BuildContext context,
-    ExportPlaceholder placeholder,
-  ) {
+  TableRow _buildPlaceholderRow(BuildContext context, ExportItem placeholder) {
     return TableRow(
       decoration: BoxDecoration(color: Colors.yellow.withValues(alpha: 0.2)),
       children: [

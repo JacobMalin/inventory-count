@@ -4,7 +4,6 @@ part 'export_entry.g.dart';
 
 void registerExportEntryAdapters() {
   Hive.registerAdapter<ExportItem>(ExportItemAdapter());
-  Hive.registerAdapter<ExportPlaceholder>(ExportPlaceholderAdapter());
   Hive.registerAdapter<ExportTitle>(ExportTitleAdapter());
 }
 
@@ -17,7 +16,7 @@ abstract class ExportEntry {
   static final Map<String, ExportEntry Function(Map<String, dynamic>)>
   _registry = {
     'ExportItem': ExportItem.fromJson,
-    'ExportPlaceholder': ExportPlaceholder.fromJson,
+    'ExportPlaceholder': ExportItem.fromJson, // For backward compatibility
     'ExportTitle': ExportTitle.fromJson,
   };
 
@@ -39,40 +38,15 @@ class ExportItem extends HiveObject implements ExportEntry {
   @HiveField(0)
   String name;
 
-  @HiveField(1)
-  List<String> paths;
-
-  ExportItem(this.name, {List<String>? paths}) : paths = paths ?? [];
+  ExportItem(this.name);
 
   @override
   Map<String, dynamic> toJson() {
-    return {'type': 'ExportItem', 'name': name, 'paths': paths};
+    return {'type': 'ExportItem', 'name': name};
   }
 
   static ExportItem fromJson(Map<String, dynamic> json) {
-    final pathsList = json['paths'];
-    return ExportItem(
-      json['name'] as String? ?? '',
-      paths: pathsList is List ? pathsList.whereType<String>().toList() : [],
-    );
-  }
-}
-
-@HiveType(typeId: 8)
-class ExportPlaceholder extends HiveObject implements ExportEntry {
-  @override
-  @HiveField(0)
-  String name;
-
-  ExportPlaceholder(this.name);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return {'type': 'ExportPlaceholder', 'name': name};
-  }
-
-  static ExportPlaceholder fromJson(Map<String, dynamic> json) {
-    return ExportPlaceholder(json['name'] as String? ?? '');
+    return ExportItem(json['name'] as String? ?? '');
   }
 }
 

@@ -135,6 +135,11 @@ class Item extends HiveObject {
   @HiveField(2)
   int id;
 
+  @HiveField(7)
+  bool isHidden = false;
+
+  bool get isValid => false;
+
   Item(
     this.name, {
     CountStrategy? strategy,
@@ -143,6 +148,7 @@ class Item extends HiveObject {
     CountPhase? countPhase,
     this.personalCountPhase,
     int? id,
+    this.isHidden = false,
   }) : strategy = strategy ?? SingularCountStrategy(),
        countPhase = countPhase ?? CountPhase.back,
        id = id ?? _generateId();
@@ -170,6 +176,7 @@ class Item extends HiveObject {
       'countPhase': countPhase.index,
       'personalCountPhase': personalCountPhase?.index,
       'id': id,
+      'isHidden': isHidden,
     };
   }
 
@@ -222,6 +229,7 @@ class Item extends HiveObject {
             ? CountPhase.values[personalCountPhaseIndex]
             : null,
         id: json['id'] as int?,
+        isHidden: json['isHidden'] as bool? ?? false,
       );
     } catch (e) {
       // If anything fails, return a basic item with the name

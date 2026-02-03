@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/count_strategy.dart';
-import 'package:inventory_count/models/export_entry.dart';
 import 'package:inventory_count/models/hive.dart';
 
 class AreaModel with ChangeNotifier {
@@ -42,7 +41,6 @@ class AreaModel with ChangeNotifier {
 
     currentAreas.removeAt(index);
     _areasBox.put('areas', currentAreas);
-    maintainExportList();
     notifyListeners();
   }
 
@@ -75,7 +73,6 @@ class AreaModel with ChangeNotifier {
     var currentAreas = _areasBox.get('areas');
     currentAreas[areaIndex].shelvesAndItems.add(item);
     _areasBox.put('areas', currentAreas);
-    maintainExportList();
     notifyListeners();
   }
 
@@ -101,7 +98,6 @@ class AreaModel with ChangeNotifier {
 
     currentAreas[areaIndex].shelvesAndItems.removeAt(index);
     _areasBox.put('areas', currentAreas);
-    maintainExportList();
     notifyListeners();
   }
 
@@ -125,7 +121,6 @@ class AreaModel with ChangeNotifier {
     var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
     shelf.items.add(item);
     _areasBox.put('areas', currentAreas);
-    maintainExportList();
     notifyListeners();
   }
 
@@ -154,7 +149,6 @@ class AreaModel with ChangeNotifier {
     countModel.removeFromCountList(itemToRemove);
 
     _areasBox.put('areas', currentAreas);
-    maintainExportList();
     notifyListeners();
   }
 
@@ -195,6 +189,7 @@ class AreaModel with ChangeNotifier {
     CountPhase? newPersonalCountPhase,
     bool? newDoubleChecked,
     CountModel? countModel,
+    bool? newIsHidden,
     bool clearDefaultCount = false,
     bool clearPersonalCountPhase = false,
   }) {
@@ -215,13 +210,11 @@ class AreaModel with ChangeNotifier {
       item = shelf.items[itemIndex] as Item;
     }
 
-    var exportListNeedsUpdate = false;
     var countListNeedsUpdate = false;
 
     if (newName != null) {
       item.name = newName;
 
-      exportListNeedsUpdate = true;
       countListNeedsUpdate = true;
     }
     if (newStrategy != null) {
@@ -231,12 +224,15 @@ class AreaModel with ChangeNotifier {
     if (newCountName != null) {
       item.countName = newCountName.isEmpty ? null : newCountName;
 
-      exportListNeedsUpdate = true;
       countListNeedsUpdate = true;
     }
     if (newDefaultCount != null) {
       item.defaultCount = newDefaultCount;
     }
+    if (clearDefaultCount) {
+      item.defaultCount = null;
+    }
+
     if (newCountPhase != null) {
       item.countPhase = newCountPhase;
       countListNeedsUpdate = true;
@@ -248,145 +244,17 @@ class AreaModel with ChangeNotifier {
       item.personalCountPhase = null;
     }
 
-    if (clearDefaultCount) {
-      item.defaultCount = null;
+    if (newIsHidden != null) {
+      item.isHidden = newIsHidden;
+      countListNeedsUpdate = true;
     }
 
     _areasBox.put('areas', currentAreas);
-    if (exportListNeedsUpdate) {
-      maintainExportList();
-    }
     if (countListNeedsUpdate) {
       countModel!.maintainCountList(item);
     }
 
     notifyListeners();
-  }
-
-  List<ExportEntry> get exportList {
-    try {
-      final dynamic rawList = Hive.box('settings').get('exportList');
-      if (rawList == null) {
-        return <ExportEntry>[];
-      }
-      return List<ExportEntry>.from(rawList);
-    } on TypeError {
-      return <ExportEntry>[];
-    }
-  }
-
-  void addToExportList(ExportEntry value) {
-    var currentExportList = exportList;
-    currentExportList.add(value);
-    Hive.box('settings').put('exportList', currentExportList);
-    notifyListeners();
-  }
-
-  void reorderExportList(int oldIndex, int newIndex) {
-    var currentExportList = exportList;
-    final item = currentExportList.removeAt(oldIndex);
-    currentExportList.insert(newIndex, item);
-    Hive.box('settings').put('exportList', currentExportList);
-    notifyListeners();
-  }
-
-  void editExportListEntry(int index, {String? name}) {
-    var currentExportList = exportList;
-    var entry = currentExportList[index];
-
-    if (name != null) {
-      if (entry is ExportItem) {
-        throw UnsupportedError('Cannot rename ExportItem entries');
-      }
-
-      entry.name = name;
-    }
-
-    Hive.box('settings').put('exportList', currentExportList);
-    notifyListeners();
-  }
-
-  void removeFromExportList(int index) {
-    var currentExportList = exportList;
-    currentExportList.removeAt(index);
-    Hive.box('settings').put('exportList', currentExportList);
-    notifyListeners();
-  }
-
-  void maintainExportList() {
-    var currentExportList = exportList;
-
-    // Gather all current count names
-    Set<String> currentCountNames = <String>{};
-    Map<String, List<String>> paths = {};
-    for (int areaIndex = 0; areaIndex < numAreas; areaIndex++) {
-      var area = getArea(areaIndex);
-      for (var shelfOrItem in area.shelvesAndItems) {
-        if (shelfOrItem is Item) {
-          var realCountName = shelfOrItem.countName ?? shelfOrItem.name;
-          currentCountNames.add(realCountName);
-          if (!paths.containsKey(realCountName)) {
-            paths[realCountName] = [];
-          }
-          paths[realCountName]!.add('${area.name} > ${shelfOrItem.name}');
-        } else if (shelfOrItem is Shelf) {
-          for (var item in shelfOrItem.items) {
-            var realCountName = item.countName ?? item.name;
-
-            currentCountNames.add(realCountName);
-            if (!paths.containsKey(realCountName)) {
-              paths[realCountName] = [];
-            }
-            paths[realCountName]!.add(
-              '${area.name} > ${shelfOrItem.name} > ${item.name}',
-            );
-          }
-        }
-      }
-    }
-
-    // Remove any count names that no longer exist
-    currentExportList.removeWhere(
-      (entry) => entry is ExportItem && !currentCountNames.contains(entry.name),
-    );
-
-    // Add any new count names that are not in the export list
-    for (var countName in currentCountNames) {
-      if (!currentExportList.any(
-        (entry) => entry is ExportItem && entry.name == countName,
-      )) {
-        currentExportList.add(ExportItem(countName));
-      }
-    }
-
-    for (var entry in currentExportList) {
-      if (entry is ExportItem) {
-        entry.paths = paths[entry.name] ?? [];
-      }
-    }
-
-    // Update the export list
-    Hive.box('settings').put('exportList', currentExportList);
-    notifyListeners();
-  }
-
-  String exportInExportOrder(CountModel countModel) {
-    final currentExportList = exportList;
-
-    final data = {};
-
-    var currentTitle = '';
-    for (var entry in currentExportList) {
-      if (entry is ExportItem) {
-        data[currentTitle][entry.name] = countModel.getItemExportJson(
-          entry.name,
-        );
-      } else if (entry is ExportTitle) {
-        currentTitle = entry.name;
-        if (!data.containsKey(currentTitle)) data[currentTitle] = {};
-      }
-    }
-    return jsonEncode(data);
   }
 
   String exportAreasToJson() {
@@ -414,43 +282,13 @@ class AreaModel with ChangeNotifier {
       _areasBox.put('itemIdCounter', data['itemIdCounter']);
     }
 
-    maintainExportList();
-    notifyListeners();
-  }
-
-  String exportExportListToJson() {
-    final currentExportList = exportList;
-
-    final data = {
-      'exportList': currentExportList.map((entry) => entry.toJson()).toList(),
-    };
-
-    return jsonEncode(data);
-  }
-
-  void importExportListFromJson(String jsonString) {
-    final data = jsonDecode(jsonString) as Map<String, dynamic>;
-
-    // Import export list
-    if (data['exportList'] != null) {
-      final exportListData = (data['exportList'] as List<Map<String, dynamic>>)
-          .map(ExportEntry.fromJson)
-          .toList();
-
-      Hive.box('settings').put('exportList', exportListData);
-      maintainExportList();
-    }
-
     notifyListeners();
   }
 
   String exportAllToJson() {
-    final currentExportList = exportList;
-
     final data = {
       'areas': _areasBox.get('areas'),
       'itemIdCounter': _areasBox.get('itemIdCounter', defaultValue: 0),
-      'exportList': currentExportList.map((entry) => entry.toJson()).toList(),
     };
 
     return jsonEncode(
@@ -484,26 +322,6 @@ class AreaModel with ChangeNotifier {
       _areasBox.put('itemIdCounter', data['itemIdCounter']);
     }
 
-    // Import export list
-    if (data['exportList'] != null) {
-      final exportListData = (data['exportList'] as List).map((json) {
-        final type = json['type'] as String?;
-        switch (type) {
-          case 'ExportItem':
-            return ExportItem.fromJson(json as Map<String, dynamic>);
-          case 'ExportTitle':
-            return ExportTitle.fromJson(json as Map<String, dynamic>);
-          case 'ExportPlaceholder':
-            return ExportPlaceholder.fromJson(json as Map<String, dynamic>);
-          default:
-            throw Exception('Unknown export entry type: $type');
-        }
-      }).toList();
-
-      Hive.box('settings').put('exportList', exportListData);
-    }
-
-    maintainExportList();
     notifyListeners();
   }
 
@@ -521,5 +339,27 @@ class AreaModel with ChangeNotifier {
       }
     }
     return false;
+  }
+
+  List<String> getPathsForItem(String itemName) {
+    List<String> paths = [];
+    for (int i = 0; i < numAreas; i++) {
+      final area = getArea(i);
+      String areaName = area.name;
+      for (var shelfOrItem in area.shelvesAndItems) {
+        if (shelfOrItem is Shelf) {
+          String shelfName = shelfOrItem.name;
+          for (var item in shelfOrItem.items) {
+            if (item is Item && (item.countName ?? item.name) == itemName) {
+              paths.add('$areaName > $shelfName > ${item.name}');
+            }
+          }
+        } else if (shelfOrItem is Item &&
+            (shelfOrItem.countName ?? shelfOrItem.name) == itemName) {
+          paths.add('$areaName > ${shelfOrItem.name}');
+        }
+      }
+    }
+    return paths;
   }
 }

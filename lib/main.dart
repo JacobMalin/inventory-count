@@ -5,6 +5,7 @@ import 'package:inventory_count/companion/companion_app.dart';
 import 'package:inventory_count/companion/companion_setup.dart';
 import 'package:inventory_count/fix_page.dart';
 import 'package:inventory_count/models/count_model.dart';
+import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/count_page.dart';
@@ -14,7 +15,7 @@ import 'package:inventory_count/hive_error_page.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main(List<String> args) async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
@@ -22,7 +23,7 @@ void main(List<String> args) async {
     anonKey: 'sb_publishable_6GGLYRmVrTZ5yLI64u1vmQ_jkm5imVL',
   );
 
-  if (['-companion', '-c'].any(args.contains)) {
+  if (const String.fromEnvironment('COMPANION') == 'true') {
     await companionHiveSetup();
 
     await windowSetup();
@@ -58,6 +59,7 @@ class MainApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (context) => AreaModel()),
         ChangeNotifierProvider(create: (context) => CountModel()),
+        ChangeNotifierProvider(create: (context) => ExportModel()),
       ],
       builder: (context, child) => MaterialApp(
         debugShowCheckedModeBanner: false,

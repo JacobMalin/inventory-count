@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
+import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/export_entry.dart';
 import 'package:provider/provider.dart';
 
@@ -71,10 +72,9 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
       initialEntries: [
         OverlayEntry(
           builder: (context) {
-            return Consumer<AreaModel>(
-              builder: (context, areaModel, child) {
-                final exportList = List<ExportEntry>.from(areaModel.exportList);
-
+            return Consumer2<ExportModel, AreaModel>(
+              builder: (context, exportModel, areaModel, child) {
+                final exportList = exportModel.exportList;
                 return Scaffold(
                   appBar: AppBar(
                     title: Text(
@@ -84,6 +84,30 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                     centerTitle: true,
                     scrolledUnderElevation: 0,
                     backgroundColor: Theme.of(context).colorScheme.surface,
+                    actionsPadding: EdgeInsets.only(right: 8),
+                    actions: [
+                      if (!exportModel.isConnected)
+                        IconButton(
+                          icon: const Icon(Icons.wifi_off),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('No Internet Connection'),
+                                content: const Text(
+                                  'Changes to the export order will not be saved without an internet connection.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                    ],
                   ),
                   body: exportList.isEmpty
                       ? const Center(child: Text('No items to export'))
@@ -110,7 +134,7 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                                 autofocus: true,
                                                 onSubmitted: (value) {
                                                   if (value.isNotEmpty) {
-                                                    areaModel.addToExportList(
+                                                    exportModel.add(
                                                       ExportTitle(value),
                                                     );
                                                     Navigator.pop(context);
@@ -129,7 +153,7 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                                     if (controller
                                                         .text
                                                         .isNotEmpty) {
-                                                      areaModel.addToExportList(
+                                                      exportModel.add(
                                                         ExportTitle(
                                                           controller.text,
                                                         ),
@@ -150,7 +174,7 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                   Expanded(
                                     child: ListTile(
                                       leading: const Icon(Icons.add),
-                                      title: const Text('Add Fake Item'),
+                                      title: const Text('Add Item'),
                                       onTap: () {
                                         showDialog(
                                           context: context,
@@ -158,16 +182,14 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                             final controller =
                                                 TextEditingController();
                                             return AlertDialog(
-                                              title: const Text(
-                                                'Enter Placeholder',
-                                              ),
+                                              title: const Text('Enter Name'),
                                               content: TextField(
                                                 controller: controller,
                                                 autofocus: true,
                                                 onSubmitted: (value) {
                                                   if (value.isNotEmpty) {
-                                                    areaModel.addToExportList(
-                                                      ExportPlaceholder(value),
+                                                    exportModel.add(
+                                                      ExportItem(value),
                                                     );
                                                     Navigator.pop(context);
                                                     _scrollToBottom();
@@ -185,8 +207,8 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                                     if (controller
                                                         .text
                                                         .isNotEmpty) {
-                                                      areaModel.addToExportList(
-                                                        ExportPlaceholder(
+                                                      exportModel.add(
+                                                        ExportItem(
                                                           controller.text,
                                                         ),
                                                       );
@@ -214,10 +236,7 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                   if (newIndex > oldIndex) {
                                     newIndex -= 1;
                                   }
-                                  areaModel.reorderExportList(
-                                    oldIndex,
-                                    newIndex,
-                                  );
+                                  exportModel.reorder(oldIndex, newIndex);
                                 },
                                 children: [
                                   for (
@@ -234,17 +253,23 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                           exportList: exportList,
                                           index: index,
                                         ),
-                                        ExportPlaceholder() =>
-                                          ExportPlaceholderTile(
-                                            key: Key('$index'),
-                                            exportPlaceholder: exportEntry,
-                                            exportList: exportList,
-                                            index: index,
-                                          ),
-                                        ExportItem() => ExportItemTile(
-                                          key: Key('$index'),
-                                          exportItem: exportEntry,
-                                        ),
+                                        ExportItem() =>
+                                          areaModel
+                                                  .getPathsForItem(
+                                                    exportEntry.name,
+                                                  )
+                                                  .isEmpty
+                                              ? ExportPlaceholderTile(
+                                                  key: Key('$index'),
+                                                  exportPlaceholder:
+                                                      exportEntry,
+                                                  exportList: exportList,
+                                                  index: index,
+                                                )
+                                              : ExportItemTile(
+                                                  key: Key('$index'),
+                                                  exportItem: exportEntry,
+                                                ),
                                         _ => throw UnimplementedError(),
                                       };
                                     }(),
@@ -289,15 +314,19 @@ class ExportItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.only(left: 32.0, right: 16.0),
-      tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-      trailing: const Icon(Icons.drag_handle),
-      onTap: () {},
-      title: Text(exportItem.name),
-      subtitle: exportItem.paths.isNotEmpty
-          ? Text(exportItem.paths.join('\n'))
-          : null,
+    return Consumer<AreaModel>(
+      builder: (context, areaModel, child) {
+        return ListTile(
+          contentPadding: const EdgeInsets.only(left: 32.0, right: 16.0),
+          tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          trailing: const Icon(Icons.drag_handle),
+          onTap: () {},
+          title: Text(exportItem.name),
+          subtitle: areaModel.getPathsForItem(exportItem.name).isNotEmpty
+              ? Text(areaModel.getPathsForItem(exportItem.name).join('\n'))
+              : null,
+        );
+      },
     );
   }
 }
@@ -310,7 +339,7 @@ class ExportPlaceholderTile extends StatelessWidget {
     required this.index,
   });
 
-  final ExportPlaceholder exportPlaceholder;
+  final ExportItem exportPlaceholder;
   final List<ExportEntry> exportList;
   final int index;
 
@@ -319,8 +348,8 @@ class ExportPlaceholderTile extends StatelessWidget {
     return ListTile(
       contentPadding: const EdgeInsets.only(left: 32.0, right: 16.0),
       tileColor: Colors.yellow.withValues(alpha: 0.3),
-      trailing: Consumer<AreaModel>(
-        builder: (context, areaModel, child) {
+      trailing: Consumer<ExportModel>(
+        builder: (context, exportModel, child) {
           return Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -342,7 +371,7 @@ class ExportPlaceholderTile extends StatelessWidget {
                         controller: controller,
                         autofocus: true,
                         onChanged: (value) {
-                          areaModel.editExportListEntry(index, name: value);
+                          exportModel.editEntry(index, name: value);
                         },
                         onSubmitted: (_) => Navigator.pop(context),
                       ),
@@ -354,7 +383,7 @@ class ExportPlaceholderTile extends StatelessWidget {
                         TextButton(
                           onPressed: () {
                             if (controller.text.isNotEmpty) {
-                              areaModel.editExportListEntry(
+                              exportModel.editEntry(
                                 index,
                                 name: controller.text,
                               );
@@ -385,7 +414,7 @@ class ExportPlaceholderTile extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () {
-                            areaModel.removeFromExportList(index);
+                            exportModel.removeAt(index);
                             Navigator.pop(context);
                           },
                           child: const Text('Delete'),
@@ -422,8 +451,8 @@ class ExportTitleTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
-      trailing: Consumer<AreaModel>(
-        builder: (context, areaModel, child) {
+      trailing: Consumer<ExportModel>(
+        builder: (context, exportModel, child) {
           return Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -445,7 +474,7 @@ class ExportTitleTile extends StatelessWidget {
                         controller: controller,
                         autofocus: true,
                         onChanged: (value) {
-                          areaModel.editExportListEntry(index, name: value);
+                          exportModel.editEntry(index, name: value);
                         },
                         onSubmitted: (_) => Navigator.pop(context),
                       ),
@@ -457,7 +486,7 @@ class ExportTitleTile extends StatelessWidget {
                         TextButton(
                           onPressed: () {
                             if (controller.text.isNotEmpty) {
-                              areaModel.editExportListEntry(
+                              exportModel.editEntry(
                                 index,
                                 name: controller.text,
                               );
@@ -488,7 +517,7 @@ class ExportTitleTile extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () {
-                            areaModel.removeFromExportList(index);
+                            exportModel.removeAt(index);
                             Navigator.pop(context);
                           },
                           child: const Text('Delete'),
