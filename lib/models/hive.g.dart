@@ -100,13 +100,14 @@ class ItemAdapter extends TypeAdapter<Item> {
       countPhase: fields[5] as CountPhase?,
       personalCountPhase: fields[6] as CountPhase?,
       id: fields[2] as int?,
+      isHidden: fields[7] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Item obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -120,7 +121,9 @@ class ItemAdapter extends TypeAdapter<Item> {
       ..writeByte(6)
       ..write(obj.personalCountPhase)
       ..writeByte(2)
-      ..write(obj.id);
+      ..write(obj.id)
+      ..writeByte(7)
+      ..write(obj.isHidden);
   }
 
   @override

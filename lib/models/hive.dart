@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:inventory_count/models/count_strategy.dart';
 import 'package:inventory_count/models/export_entry.dart';
+import 'package:inventory_count/models/export_model.dart';
 
 part 'hive.g.dart';
 
@@ -138,7 +139,8 @@ class Item extends HiveObject {
   @HiveField(7)
   bool isHidden = false;
 
-  bool get isValid => false;
+  bool getIsValid(ExportModel exportModel) =>
+      !isHidden && exportModel.contains(countName ?? name);
 
   Item(
     this.name, {

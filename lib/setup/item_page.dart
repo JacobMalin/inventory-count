@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/count_strategy.dart';
+import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/hive.dart';
+import 'package:inventory_count/models/export_entry.dart';
 import 'package:provider/provider.dart';
 
 class ItemPage extends StatelessWidget {
@@ -145,7 +147,6 @@ class _ItemSettingsState extends State<ItemSettings> {
   late CountPhase? personalCountPhase;
   final TextEditingController strategyIntController = TextEditingController();
   final TextEditingController strategyInt2Controller = TextEditingController();
-  final TextEditingController countNameController = TextEditingController();
   final TextEditingController defaultCountController = TextEditingController();
   final TextEditingController defaultStacksController = TextEditingController();
 
@@ -155,7 +156,6 @@ class _ItemSettingsState extends State<ItemSettings> {
     countStrategy = widget.item.strategy;
     countPhase = widget.item.countPhase;
     personalCountPhase = widget.item.personalCountPhase;
-    countNameController.text = widget.item.countName ?? '';
     countStrategy.populateControllers(
       strategyIntController,
       strategyInt2Controller,
@@ -172,7 +172,6 @@ class _ItemSettingsState extends State<ItemSettings> {
   void dispose() {
     strategyIntController.dispose();
     strategyInt2Controller.dispose();
-    countNameController.dispose();
     defaultCountController.dispose();
     defaultStacksController.dispose();
     super.dispose();
@@ -215,17 +214,38 @@ class _ItemSettingsState extends State<ItemSettings> {
             children: [
               Text('Count Name', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 16),
-              TextField(
-                controller: countNameController,
-                decoration: InputDecoration(
-                  hintText: widget.item.name,
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) {
-                  areaModel.editItem(
-                    widget.selectedOrder,
-                    newCountName: value,
-                    countModel: countModel,
+              Consumer<ExportModel>(
+                builder: (context, exportModel, child) {
+                  final exportItemNames = exportModel.exportList
+                      .whereType<ExportItem>()
+                      .map((entry) => entry.name)
+                      .toList();
+                  final currentCountName =
+                      widget.item.countName ?? widget.item.name;
+                  final dropdownValue = currentCountName;
+
+                  return DropdownButton<String>(
+                    value: dropdownValue,
+                    // decoration: InputDecoration(
+                    //   hintText: widget.item.name,
+                    //   border: OutlineInputBorder(),
+                    // ),
+                    items: exportItemNames
+                        .map(
+                          (name) => DropdownMenuItem<String>(
+                            value: name,
+                            child: Text(name),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      areaModel.editItem(
+                        widget.selectedOrder,
+                        newCountName: value,
+                        countModel: countModel,
+                      );
+                    },
                   );
                 },
               ),
