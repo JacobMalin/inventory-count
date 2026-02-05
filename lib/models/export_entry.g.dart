@@ -18,15 +18,18 @@ class ExportItemAdapter extends TypeAdapter<ExportItem> {
     };
     return ExportItem(
       fields[0] as String,
+      isHidden: fields[1] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ExportItem obj) {
     writer
-      ..writeByte(1)
+      ..writeByte(2)
       ..writeByte(0)
-      ..write(obj.name);
+      ..write(obj.name)
+      ..writeByte(1)
+      ..write(obj.isHidden);
   }
 
   @override
@@ -52,15 +55,18 @@ class ExportTitleAdapter extends TypeAdapter<ExportTitle> {
     };
     return ExportTitle(
       fields[0] as String,
+      isHidden: fields[1] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ExportTitle obj) {
     writer
-      ..writeByte(1)
+      ..writeByte(2)
       ..writeByte(0)
-      ..write(obj.name);
+      ..write(obj.name)
+      ..writeByte(1)
+      ..write(obj.isHidden);
   }
 
   @override

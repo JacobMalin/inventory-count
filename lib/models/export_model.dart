@@ -156,17 +156,12 @@ class ExportModel with ChangeNotifier {
     notifyListeners();
   }
 
-  void editEntry(int index, {String? name}) {
+  void editEntry(int index, {String? name, bool? isHidden}) {
     var currentExportList = exportList;
     var entry = currentExportList[index];
 
-    if (name != null) {
-      if (entry is ExportItem) {
-        throw UnsupportedError('Cannot rename ExportItem entries');
-      }
-
-      entry.name = name;
-    }
+    if (name != null) entry.name = name;
+    if (isHidden != null) entry.isHidden = isHidden;
 
     Hive.box('settings').put('exportList', currentExportList);
     updateSupabase();
@@ -184,9 +179,15 @@ class ExportModel with ChangeNotifier {
   bool contains(String countName) {
     final currentExportList = exportList;
 
+    var titleHidden = false;
     for (var entry in currentExportList) {
-      if (entry is ExportItem && entry.name == countName) {
+      if (entry is ExportItem &&
+          entry.name == countName &&
+          !entry.isHidden &&
+          !titleHidden) {
         return true;
+      } else if (entry is ExportTitle) {
+        titleHidden = entry.isHidden;
       }
     }
     return false;
@@ -198,13 +199,15 @@ class ExportModel with ChangeNotifier {
     final data = {};
 
     var currentTitle = '';
+    var titleHidden = false;
     for (var entry in currentExportList) {
-      if (entry is ExportItem) {
+      if (entry is ExportItem && !entry.isHidden && !titleHidden) {
         data[currentTitle][entry.name] = countModel.getItemExportJson(
           entry.name,
         );
       } else if (entry is ExportTitle) {
         currentTitle = entry.name;
+        titleHidden = entry.isHidden;
         if (!data.containsKey(currentTitle)) data[currentTitle] = {};
       }
     }

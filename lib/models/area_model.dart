@@ -189,7 +189,6 @@ class AreaModel with ChangeNotifier {
     CountPhase? newPersonalCountPhase,
     bool? newDoubleChecked,
     CountModel? countModel,
-    bool? newIsHidden,
     bool clearDefaultCount = false,
     bool clearPersonalCountPhase = false,
   }) {
@@ -242,11 +241,6 @@ class AreaModel with ChangeNotifier {
     }
     if (clearPersonalCountPhase) {
       item.personalCountPhase = null;
-    }
-
-    if (newIsHidden != null) {
-      item.isHidden = newIsHidden;
-      countListNeedsUpdate = true;
     }
 
     _areasBox.put('areas', currentAreas);

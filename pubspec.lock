@@ -241,6 +241,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
+  cupertino_icons:
+    dependency: transitive
+    description:
+      name: cupertino_icons
+      sha256: ba631d1c7f7bef6b729a622b7b752645a2d076dba9976925b8f25725a30e1ee6
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.8"
   dart_jsonwebtoken:
     dependency: transitive
     description:
@@ -289,14 +297,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.1"
-  dropdown_button2:
+  dropdown_search:
     dependency: "direct main"
     description:
-      name: dropdown_button2
-      sha256: b0fe8d49a030315e9eef6c7ac84ca964250155a6224d491c1365061bc974a9e1
+      name: dropdown_search
+      sha256: "9fc92a540af8c02d75c1318241e751cbecdfd515f454bf513eec06fe8439c102"
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.9"
+    version: "7.0.0-pre6"
   ed25519_edwards:
     dependency: transitive
     description:
@@ -379,6 +387,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.33"
+  flutter_slidable:
+    dependency: "direct main"
+    description:
+      name: flutter_slidable
+      sha256: ea369262929d3cc6ebf9d8a00c196127966f117fe433a5e5cb47fb08008ca203
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.3"
   flutter_test:
     dependency: "direct dev"
     description: flutter

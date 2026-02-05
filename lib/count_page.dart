@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/count_strategy.dart';
+import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
@@ -40,7 +41,6 @@ class CountPage extends StatefulWidget {
 
 class _CountPageState extends State<CountPage> {
   void Function()? _expandUncountedCallback;
-  bool _hideCountedItems = false;
   bool _isFullyExpanded = false;
 
   @override
@@ -49,7 +49,7 @@ class _CountPageState extends State<CountPage> {
       builder: (context, countModel, child) {
         return Scaffold(
           body: CountList(
-            hideCountedItems: _hideCountedItems,
+            hideCountedItems: countModel.hideCountedItems,
             onExpandCallbackChanged: (callback, isExpanded) {
               setState(() {
                 _expandUncountedCallback = callback;
@@ -66,14 +66,14 @@ class _CountPageState extends State<CountPage> {
                   children: [
                     IconButton(
                       icon: Icon(
-                        _hideCountedItems
+                        countModel.hideCountedItems
                             ? Icons.visibility_off
                             : Icons.visibility,
                       ),
                       onPressed: () {
-                        setState(() {
-                          _hideCountedItems = !_hideCountedItems;
-                        });
+                        countModel.setHideCountedItems(
+                          !countModel.hideCountedItems,
+                        );
                       },
                       constraints: const BoxConstraints(),
                     ),
@@ -121,26 +121,52 @@ class _CountPageState extends State<CountPage> {
                             style: Theme.of(context).textTheme.titleMedium,
                             textAlign: TextAlign.center,
                           ),
-                          if (!countModel.isToday)
-                            TextButton.icon(
-                              onPressed: countModel.goToToday,
-                              icon: const Icon(Icons.today, size: 16),
-                              label: const Text('Today'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color.fromARGB(
-                                  255,
-                                  221,
-                                  206,
-                                  39,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            spacing: 8.0,
+                            children: [
+                              TextButton.icon(
+                                onPressed: () {},
+                                label: Text('Profile'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color.fromARGB(
+                                    255,
+                                    221,
+                                    206,
+                                    39,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
-                            ),
+                              if (!countModel.isToday)
+                                TextButton.icon(
+                                  onPressed: countModel.goToToday,
+                                  icon: const Icon(Icons.today, size: 16),
+                                  label: const Text('Today'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color.fromARGB(
+                                      255,
+                                      221,
+                                      206,
+                                      39,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -180,7 +206,11 @@ class _CountListState extends State<CountList> {
   bool _isAtBottom = false;
   bool _hasScrollableContent = false;
 
-  TreeNode _buildTree(AreaModel areaModel, CountPhase currentPhase) {
+  TreeNode _buildTree(
+    AreaModel areaModel,
+    ExportModel exportModel,
+    CountPhase currentPhase,
+  ) {
     final root = TreeNode.root();
     final countModel = Provider.of<CountModel>(context, listen: false);
 
@@ -213,7 +243,8 @@ class _CountListState extends State<CountList> {
               final count = countModel.getCount(item);
 
               // Skip counted items if hideCountedItems is true
-              if (widget.hideCountedItems && count != null) {
+              if (widget.hideCountedItems && count != null ||
+                  !item.getIsValid(exportModel)) {
                 continue;
               }
 
@@ -244,19 +275,19 @@ class _CountListState extends State<CountList> {
           final count = countModel.getCount(shelfOrItem);
 
           // Skip counted items if hideCountedItems is true
-          if (!widget.hideCountedItems || count == null) {
-            final data = ItemTreeData(shelfOrItem, area: area);
-            final itemNode = TreeNode(
-              key: 'item_${shelfOrItem.id}',
-              data: data,
-            );
-            areaNode.add(itemNode);
-            isAreaUsed = true;
+          if (widget.hideCountedItems && count != null ||
+              !shelfOrItem.getIsValid(exportModel)) {
+            continue;
+          }
 
-            // Check if item is uncounted
-            if (count == null) {
-              areaUncountedCount++;
-            }
+          final data = ItemTreeData(shelfOrItem, area: area);
+          final itemNode = TreeNode(key: 'item_${shelfOrItem.id}', data: data);
+          areaNode.add(itemNode);
+          isAreaUsed = true;
+
+          // Check if item is uncounted
+          if (count == null) {
+            areaUncountedCount++;
           }
         }
       }
@@ -454,9 +485,13 @@ class _CountListState extends State<CountList> {
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
-        return Consumer<CountModel>(
-          builder: (context, countModel, child) {
-            final tree = _buildTree(areaModel, countModel.countPhase);
+        return Consumer2<CountModel, ExportModel>(
+          builder: (context, countModel, exportModel, child) {
+            final tree = _buildTree(
+              areaModel,
+              exportModel,
+              countModel.countPhase,
+            );
 
             // Check if tree is empty (no items to count)
             final bool treeIsEmpty =

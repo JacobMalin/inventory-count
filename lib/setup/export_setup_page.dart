@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/export_entry.dart';
@@ -113,8 +114,7 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                       ? const Center(child: Text('No items to export'))
                       : Column(
                           children: [
-                            Container(
-                              color: Theme.of(context).colorScheme.surface,
+                            Material(
                               child: Row(
                                 children: [
                                   Expanded(
@@ -228,53 +228,62 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                 ],
                               ),
                             ),
-                            Expanded(
-                              child: ReorderableListView(
-                                scrollController: _scrollController,
-                                key: const PageStorageKey('exportListView'),
-                                onReorder: (int oldIndex, int newIndex) {
-                                  if (newIndex > oldIndex) {
-                                    newIndex -= 1;
-                                  }
-                                  exportModel.reorder(oldIndex, newIndex);
-                                },
-                                children: [
-                                  for (
-                                    int index = 0;
-                                    index < exportList.length;
-                                    index++
-                                  )
-                                    () {
-                                      final exportEntry = exportList[index];
-                                      return switch (exportEntry) {
-                                        ExportTitle() => ExportTitleTile(
-                                          key: Key('$index'),
-                                          exportTitle: exportEntry,
-                                          exportList: exportList,
-                                          index: index,
-                                        ),
-                                        ExportItem() =>
-                                          areaModel
-                                                  .getPathsForItem(
-                                                    exportEntry.name,
-                                                  )
-                                                  .isEmpty
-                                              ? ExportPlaceholderTile(
-                                                  key: Key('$index'),
-                                                  exportPlaceholder:
-                                                      exportEntry,
-                                                  exportList: exportList,
-                                                  index: index,
-                                                )
-                                              : ExportItemTile(
-                                                  key: Key('$index'),
-                                                  exportItem: exportEntry,
-                                                ),
-                                        _ => throw UnimplementedError(),
-                                      };
-                                    }(),
-                                ],
-                              ),
+                            Builder(
+                              builder: (context) {
+                                var titleHidden = false;
+                                return Expanded(
+                                  child: ReorderableListView(
+                                    scrollController: _scrollController,
+                                    key: const PageStorageKey('exportListView'),
+                                    onReorder: (int oldIndex, int newIndex) {
+                                      if (newIndex > oldIndex) {
+                                        newIndex -= 1;
+                                      }
+                                      exportModel.reorder(oldIndex, newIndex);
+                                    },
+                                    children: [
+                                      for (
+                                        int index = 0;
+                                        index < exportList.length;
+                                        index++
+                                      )
+                                        () {
+                                          final exportEntry = exportList[index];
+                                          if (exportEntry is ExportTitle) {
+                                            titleHidden = exportEntry.isHidden;
+                                          }
+                                          return switch (exportEntry) {
+                                            ExportTitle() => ExportTitleTile(
+                                              key: Key('$index'),
+                                              exportTitle: exportEntry,
+                                              index: index,
+                                            ),
+                                            ExportItem() =>
+                                              areaModel
+                                                      .getPathsForItem(
+                                                        exportEntry.name,
+                                                      )
+                                                      .isEmpty
+                                                  ? ExportPlaceholderTile(
+                                                      key: Key('$index'),
+                                                      exportPlaceholder:
+                                                          exportEntry,
+                                                      index: index,
+                                                      titleHidden: titleHidden,
+                                                    )
+                                                  : ExportItemTile(
+                                                      key: Key('$index'),
+                                                      exportItem: exportEntry,
+                                                      index: index,
+                                                      titleHidden: titleHidden,
+                                                    ),
+                                            _ => throw UnimplementedError(),
+                                          };
+                                        }(),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -307,24 +316,179 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
   }
 }
 
+Future<bool> _confirmDelete(
+  BuildContext context, {
+  required String title,
+  required String content,
+}) async {
+  final shouldDelete = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: Text(content),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+
+  return shouldDelete ?? false;
+}
+
+Future<void> _showRenameDialog({
+  required BuildContext context,
+  required String title,
+  required String initialValue,
+  required void Function(String) onChanged,
+  required void Function(String) onSaved,
+}) {
+  final controller = TextEditingController(text: initialValue);
+  controller.selection = TextSelection(
+    baseOffset: 0,
+    extentOffset: controller.text.length,
+  );
+  return showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        onChanged: onChanged,
+        onSubmitted: (_) => Navigator.pop(context),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            if (controller.text.isNotEmpty) {
+              onSaved(controller.text);
+              Navigator.pop(context);
+            }
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+}
+
 class ExportItemTile extends StatelessWidget {
-  const ExportItemTile({super.key, required this.exportItem});
+  const ExportItemTile({
+    super.key,
+    required this.exportItem,
+    required this.index,
+    required this.titleHidden,
+  });
 
   final ExportItem exportItem;
+  final int index;
+  final bool titleHidden;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AreaModel>(
-      builder: (context, areaModel, child) {
-        return ListTile(
-          contentPadding: const EdgeInsets.only(left: 32.0, right: 16.0),
-          tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          trailing: const Icon(Icons.drag_handle),
-          onTap: () {},
-          title: Text(exportItem.name),
-          subtitle: areaModel.getPathsForItem(exportItem.name).isNotEmpty
-              ? Text(areaModel.getPathsForItem(exportItem.name).join('\n'))
-              : null,
+    return Consumer2<AreaModel, ExportModel>(
+      builder: (context, areaModel, exportModel, child) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return Material(
+          child: Slidable(
+            key: ValueKey(exportItem),
+            endActionPane: ActionPane(
+              motion: const DrawerMotion(),
+              children: [
+                SlidableAction(
+                  onPressed: (_) {
+                    exportModel.editEntry(
+                      index,
+                      isHidden: !exportItem.isHidden,
+                    );
+                  },
+                  backgroundColor: colorScheme.secondaryContainer,
+                  foregroundColor: colorScheme.onSecondaryContainer,
+                  icon: exportItem.isHidden
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                  label: exportItem.isHidden ? 'Show' : 'Hide',
+                ),
+                SlidableAction(
+                  onPressed: (_) async {
+                    await _showRenameDialog(
+                      context: context,
+                      title: 'Rename Item',
+                      initialValue: exportItem.name,
+                      onChanged: (value) {
+                        exportModel.editEntry(index, name: value);
+                      },
+                      onSaved: (value) {
+                        exportModel.editEntry(index, name: value);
+                      },
+                    );
+                  },
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  icon: Icons.edit,
+                  label: 'Edit',
+                ),
+                SlidableAction(
+                  onPressed: (_) async {
+                    final shouldDelete = await _confirmDelete(
+                      context,
+                      title: 'Delete Item',
+                      content:
+                          'Are you sure you want to delete "${exportItem.name}"?',
+                    );
+                    if (shouldDelete) {
+                      exportModel.removeAt(index);
+                    }
+                  },
+                  backgroundColor: colorScheme.errorContainer,
+                  foregroundColor: colorScheme.onErrorContainer,
+                  icon: Icons.delete,
+                  label: 'Delete',
+                ),
+              ],
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.only(left: 32.0, right: 16.0),
+              tileColor: colorScheme.surfaceContainerHighest,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (exportItem.isHidden)
+                    Icon(
+                      Icons.visibility_off,
+                      color: Colors.red.withAlpha(160),
+                      size: 20,
+                    ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.drag_handle),
+                ],
+              ),
+              onTap: () {},
+              title: Text(
+                exportItem.name,
+                style: exportItem.isHidden || titleHidden
+                    ? TextStyle(
+                        decoration: TextDecoration.lineThrough,
+                        color: colorScheme.onSurfaceVariant,
+                      )
+                    : null,
+              ),
+              subtitle: areaModel.getPathsForItem(exportItem.name).isNotEmpty
+                  ? Text(areaModel.getPathsForItem(exportItem.name).join('\n'))
+                  : null,
+            ),
+          ),
         );
       },
     );
@@ -335,102 +499,107 @@ class ExportPlaceholderTile extends StatelessWidget {
   const ExportPlaceholderTile({
     super.key,
     required this.exportPlaceholder,
-    required this.exportList,
     required this.index,
+    required this.titleHidden,
   });
 
   final ExportItem exportPlaceholder;
-  final List<ExportEntry> exportList;
   final int index;
+  final bool titleHidden;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.only(left: 32.0, right: 16.0),
-      tileColor: Colors.yellow.withValues(alpha: 0.3),
-      trailing: Consumer<ExportModel>(
-        builder: (context, exportModel, child) {
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: () {
-                  final controller = TextEditingController(
-                    text: exportPlaceholder.name,
-                  );
-                  controller.selection = TextSelection(
-                    baseOffset: 0,
-                    extentOffset: controller.text.length,
-                  );
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Rename Placeholder'),
-                      content: TextField(
-                        controller: controller,
-                        autofocus: true,
-                        onChanged: (value) {
-                          exportModel.editEntry(index, name: value);
-                        },
-                        onSubmitted: (_) => Navigator.pop(context),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            if (controller.text.isNotEmpty) {
-                              exportModel.editEntry(
-                                index,
-                                name: controller.text,
-                              );
-                              Navigator.pop(context);
-                            }
-                          },
-                          child: const Text('Save'),
-                        ),
-                      ],
+    return Consumer<ExportModel>(
+      builder: (context, exportModel, child) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return Material(
+          child: Slidable(
+            key: ValueKey(exportPlaceholder),
+            endActionPane: ActionPane(
+              motion: const DrawerMotion(),
+              children: [
+                SlidableAction(
+                  onPressed: (_) {
+                    exportModel.editEntry(
+                      index,
+                      isHidden: !exportPlaceholder.isHidden,
+                    );
+                  },
+                  backgroundColor: colorScheme.secondaryContainer,
+                  foregroundColor: colorScheme.onSecondaryContainer,
+                  icon: exportPlaceholder.isHidden
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                  label: exportPlaceholder.isHidden ? 'Show' : 'Hide',
+                ),
+                SlidableAction(
+                  onPressed: (_) async {
+                    await _showRenameDialog(
+                      context: context,
+                      title: 'Rename Placeholder',
+                      initialValue: exportPlaceholder.name,
+                      onChanged: (value) {
+                        exportModel.editEntry(index, name: value);
+                      },
+                      onSaved: (value) {
+                        exportModel.editEntry(index, name: value);
+                      },
+                    );
+                  },
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  icon: Icons.edit,
+                  label: 'Edit',
+                ),
+                SlidableAction(
+                  onPressed: (_) async {
+                    final shouldDelete = await _confirmDelete(
+                      context,
+                      title: 'Delete Placeholder',
+                      content:
+                          'Are you sure you want to delete "${exportPlaceholder.name}"?',
+                    );
+                    if (shouldDelete) {
+                      exportModel.removeAt(index);
+                    }
+                  },
+                  backgroundColor: colorScheme.errorContainer,
+                  foregroundColor: colorScheme.onErrorContainer,
+                  icon: Icons.delete,
+                  label: 'Delete',
+                ),
+              ],
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.only(left: 32.0, right: 16.0),
+              tileColor: Colors.yellow.withValues(alpha: 0.3),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (exportPlaceholder.isHidden)
+                    Icon(
+                      Icons.visibility_off,
+                      color: Colors.red.withAlpha(160),
+                      size: 20,
                     ),
-                  );
-                },
+                  const SizedBox(width: 8),
+                  const Icon(Icons.drag_handle),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete Placeholder'),
-                      content: Text(
-                        'Are you sure you want to delete "${exportPlaceholder.name}"?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            exportModel.removeAt(index);
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              onTap: () {},
+              title: Text(
+                exportPlaceholder.name,
+                style: exportPlaceholder.isHidden || titleHidden
+                    ? TextStyle(
+                        decoration: TextDecoration.lineThrough,
+                        color: colorScheme.onSurfaceVariant,
+                      )
+                    : null,
               ),
-              const Icon(Icons.drag_handle),
-            ],
-          );
-        },
-      ),
-      onTap: () {},
-      title: Text(exportPlaceholder.name),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -439,101 +608,104 @@ class ExportTitleTile extends StatelessWidget {
   const ExportTitleTile({
     super.key,
     required this.exportTitle,
-    required this.exportList,
     required this.index,
   });
 
   final ExportTitle exportTitle;
-  final List<ExportEntry> exportList;
   final int index;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
-      trailing: Consumer<ExportModel>(
-        builder: (context, exportModel, child) {
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: () {
-                  final controller = TextEditingController(
-                    text: exportTitle.name,
-                  );
-                  controller.selection = TextSelection(
-                    baseOffset: 0,
-                    extentOffset: controller.text.length,
-                  );
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Rename Title'),
-                      content: TextField(
-                        controller: controller,
-                        autofocus: true,
-                        onChanged: (value) {
-                          exportModel.editEntry(index, name: value);
-                        },
-                        onSubmitted: (_) => Navigator.pop(context),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            if (controller.text.isNotEmpty) {
-                              exportModel.editEntry(
-                                index,
-                                name: controller.text,
-                              );
-                              Navigator.pop(context);
-                            }
-                          },
-                          child: const Text('Save'),
-                        ),
-                      ],
+    return Consumer<ExportModel>(
+      builder: (context, exportModel, child) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return Material(
+          child: Slidable(
+            key: ValueKey(exportTitle),
+            endActionPane: ActionPane(
+              motion: const DrawerMotion(),
+              children: [
+                SlidableAction(
+                  onPressed: (_) {
+                    exportModel.editEntry(
+                      index,
+                      isHidden: !exportTitle.isHidden,
+                    );
+                  },
+                  backgroundColor: colorScheme.secondaryContainer,
+                  foregroundColor: colorScheme.onSecondaryContainer,
+                  icon: exportTitle.isHidden
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                  label: exportTitle.isHidden ? 'Show' : 'Hide',
+                ),
+                SlidableAction(
+                  onPressed: (_) async {
+                    await _showRenameDialog(
+                      context: context,
+                      title: 'Rename Title',
+                      initialValue: exportTitle.name,
+                      onChanged: (value) {
+                        exportModel.editEntry(index, name: value);
+                      },
+                      onSaved: (value) {
+                        exportModel.editEntry(index, name: value);
+                      },
+                    );
+                  },
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  icon: Icons.edit,
+                  label: 'Edit',
+                ),
+                SlidableAction(
+                  onPressed: (_) async {
+                    final shouldDelete = await _confirmDelete(
+                      context,
+                      title: 'Delete Title',
+                      content:
+                          'Are you sure you want to delete "${exportTitle.name}"?',
+                    );
+                    if (shouldDelete) {
+                      exportModel.removeAt(index);
+                    }
+                  },
+                  backgroundColor: colorScheme.errorContainer,
+                  foregroundColor: colorScheme.onErrorContainer,
+                  icon: Icons.delete,
+                  label: 'Delete',
+                ),
+              ],
+            ),
+            child: ListTile(
+              contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (exportTitle.isHidden)
+                    Icon(
+                      Icons.visibility_off,
+                      color: Colors.red.withAlpha(160),
+                      size: 20,
                     ),
-                  );
-                },
+                  const SizedBox(width: 8),
+                  const Icon(Icons.drag_handle),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete Title'),
-                      content: Text(
-                        'Are you sure you want to delete "${exportTitle.name}"?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            exportModel.removeAt(index);
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              onTap: () {},
+              title: Text(
+                exportTitle.name,
+                style: exportTitle.isHidden
+                    ? TextStyle(
+                        decoration: TextDecoration.lineThrough,
+                        color: colorScheme.onSurfaceVariant,
+                      )
+                    : null,
               ),
-              const Icon(Icons.drag_handle),
-            ],
-          );
-        },
-      ),
-      onTap: () {},
-      title: Text(exportTitle.name),
+            ),
+          ),
+        );
+      },
     );
   }
 }

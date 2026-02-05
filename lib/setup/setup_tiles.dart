@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
+import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
@@ -178,10 +179,12 @@ class ItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AreaModel>(
-      builder: (context, areaModel, child) {
+    return Consumer2<AreaModel, ExportModel>(
+      builder: (context, areaModel, exportModel, child) {
         final item =
             areaModel.getShelfOrItem([...selectedOrder, index]) as Item;
+        final isValid = item.getIsValid(exportModel);
+
         return ListTile(
           key: Key('$index'),
           leading: Icon(Icons.inventory, color: Colors.blue),
@@ -195,6 +198,14 @@ class ItemTile extends StatelessWidget {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (!isValid) ...[
+                Icon(
+                  Icons.visibility_off,
+                  size: 20,
+                  color: Colors.red.withAlpha(160),
+                ),
+                const SizedBox(width: 8),
+              ],
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

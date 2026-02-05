@@ -1,3 +1,4 @@
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_model.dart';
@@ -212,7 +213,36 @@ class _ItemSettingsState extends State<ItemSettings> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Count Name', style: Theme.of(context).textTheme.titleLarge),
+              Consumer<ExportModel>(
+                builder: (context, exportModel, child) {
+                  final isValid = widget.item.getIsValid(exportModel);
+
+                  return Row(
+                    children: [
+                      Text(
+                        'Count Name',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      if (!isValid) ...[
+                        const SizedBox(width: 16),
+                        Icon(
+                          Icons.visibility_off,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Export "${widget.item.countName}" is hidden',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
               const SizedBox(height: 16),
               Consumer<ExportModel>(
                 builder: (context, exportModel, child) {
@@ -220,31 +250,32 @@ class _ItemSettingsState extends State<ItemSettings> {
                       .whereType<ExportItem>()
                       .map((entry) => entry.name)
                       .toList();
-                  final currentCountName =
-                      widget.item.countName ?? widget.item.name;
+                  final currentCountName = widget.item.countName;
                   final dropdownValue = currentCountName;
 
-                  return DropdownButton<String>(
-                    value: dropdownValue,
-                    // decoration: InputDecoration(
-                    //   hintText: widget.item.name,
-                    //   border: OutlineInputBorder(),
-                    // ),
-                    items: exportItemNames
-                        .map(
-                          (name) => DropdownMenuItem<String>(
-                            value: name,
-                            child: Text(name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      areaModel.editItem(
-                        widget.selectedOrder,
-                        newCountName: value,
-                        countModel: countModel,
-                      );
+                  return DropdownSearch<String>(
+                    selectedItem: dropdownValue,
+                    items: (f, cs) => exportItemNames,
+                    popupProps: PopupProps.autocomplete(
+                      autoCompleteProps: AutocompleteProps(
+                        groupId: UniqueKey(),
+                      ),
+                    ),
+
+                    onSelected: (value) {
+                      if (value == null) {
+                        areaModel.editItem(
+                          widget.selectedOrder,
+                          newCountName: "",
+                          countModel: countModel,
+                        );
+                      } else {
+                        areaModel.editItem(
+                          widget.selectedOrder,
+                          newCountName: value,
+                          countModel: countModel,
+                        );
+                      }
                     },
                   );
                 },

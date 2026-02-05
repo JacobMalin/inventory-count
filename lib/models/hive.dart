@@ -136,11 +136,8 @@ class Item extends HiveObject {
   @HiveField(2)
   int id;
 
-  @HiveField(7)
-  bool isHidden = false;
-
   bool getIsValid(ExportModel exportModel) =>
-      !isHidden && exportModel.contains(countName ?? name);
+      exportModel.contains(countName ?? name);
 
   Item(
     this.name, {
@@ -150,11 +147,9 @@ class Item extends HiveObject {
     CountPhase? countPhase,
     this.personalCountPhase,
     int? id,
-    bool? isHidden,
   }) : strategy = strategy ?? SingularCountStrategy(),
        countPhase = countPhase ?? CountPhase.back,
-       id = id ?? _generateId(),
-       isHidden = isHidden ?? false;
+       id = id ?? _generateId();
 
   static int _generateId() {
     try {
@@ -179,7 +174,6 @@ class Item extends HiveObject {
       'countPhase': countPhase.index,
       'personalCountPhase': personalCountPhase?.index,
       'id': id,
-      'isHidden': isHidden,
     };
   }
 
@@ -232,7 +226,6 @@ class Item extends HiveObject {
             ? CountPhase.values[personalCountPhaseIndex]
             : null,
         id: json['id'] as int?,
-        isHidden: json['isHidden'] as bool? ?? false,
       );
     } catch (e) {
       // If anything fails, return a basic item with the name

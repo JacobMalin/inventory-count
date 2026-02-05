@@ -18,7 +18,8 @@ dependencies:
   win32: ^5.15.0
   ffi: ^2.1.5
   internet_connection_checker: ^3.0.1
-  dropdown_button2: ^2.3.9
+  dropdown_search: ^7.0.0-pre
+  flutter_slidable: ^4.0.3
 dev_dependencies:
   flutter_test:
     sdk: flutter

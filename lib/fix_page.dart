@@ -363,22 +363,42 @@ class _FixPageState extends State<FixPage> {
                                 ],
                               ),
                               // Data rows
-                              for (final entry in displayList)
-                                if (entry is ExportItem)
-                                  if (areaModel
-                                      .getPathsForItem(entry.name)
-                                      .isEmpty)
-                                    _buildPlaceholderRow(context, entry)
-                                  else
-                                    _buildItemRow(
-                                      context,
-                                      entry,
-                                      countModel,
-                                      areaModel,
-                                      _showAllItems,
-                                    )
-                                else if (entry is ExportTitle)
-                                  _buildTitleRow(context, entry),
+                              ...(() {
+                                bool currentTitleHidden = false;
+                                final rows = <TableRow>[];
+
+                                for (final entry in displayList) {
+                                  if (entry is ExportTitle) {
+                                    currentTitleHidden = entry.isHidden;
+                                    if (!entry.isHidden) {
+                                      rows.add(_buildTitleRow(context, entry));
+                                    }
+                                  } else if (entry is ExportItem) {
+                                    if (!entry.isHidden &&
+                                        !currentTitleHidden) {
+                                      if (areaModel
+                                          .getPathsForItem(entry.name)
+                                          .isEmpty) {
+                                        rows.add(
+                                          _buildPlaceholderRow(context, entry),
+                                        );
+                                      } else {
+                                        rows.add(
+                                          _buildItemRow(
+                                            context,
+                                            entry,
+                                            countModel,
+                                            areaModel,
+                                            _showAllItems,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  }
+                                }
+
+                                return rows;
+                              }()),
                             ],
                           ),
                         ),

@@ -11,6 +11,9 @@ abstract class ExportEntry {
   String get name;
   set name(String value);
 
+  bool get isHidden;
+  set isHidden(bool value);
+
   Map<String, dynamic> toJson();
 
   static final Map<String, ExportEntry Function(Map<String, dynamic>)>
@@ -38,15 +41,22 @@ class ExportItem extends HiveObject implements ExportEntry {
   @HiveField(0)
   String name;
 
-  ExportItem(this.name);
+  @override
+  @HiveField(1)
+  bool isHidden = false;
+
+  ExportItem(this.name, {bool? isHidden}) : isHidden = isHidden ?? false;
 
   @override
   Map<String, dynamic> toJson() {
-    return {'type': 'ExportItem', 'name': name};
+    return {'type': 'ExportItem', 'name': name, 'isHidden': isHidden};
   }
 
   static ExportItem fromJson(Map<String, dynamic> json) {
-    return ExportItem(json['name'] as String? ?? '');
+    return ExportItem(
+      json['name'] as String? ?? '',
+      isHidden: json['isHidden'] as bool? ?? false,
+    );
   }
 }
 
@@ -56,14 +66,21 @@ class ExportTitle extends HiveObject implements ExportEntry {
   @HiveField(0)
   String name;
 
-  ExportTitle(this.name);
+  @override
+  @HiveField(1)
+  bool isHidden = false;
+
+  ExportTitle(this.name, {bool? isHidden}) : isHidden = isHidden ?? false;
 
   @override
   Map<String, dynamic> toJson() {
-    return {'type': 'ExportTitle', 'name': name};
+    return {'type': 'ExportTitle', 'name': name, 'isHidden': isHidden};
   }
 
   static ExportTitle fromJson(Map<String, dynamic> json) {
-    return ExportTitle(json['name'] as String? ?? '');
+    return ExportTitle(
+      json['name'] as String? ?? '',
+      isHidden: json['isHidden'] as bool? ?? false,
+    );
   }
 }
