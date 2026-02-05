@@ -150,10 +150,11 @@ class Item extends HiveObject {
     CountPhase? countPhase,
     this.personalCountPhase,
     int? id,
-    this.isHidden = false,
+    bool? isHidden,
   }) : strategy = strategy ?? SingularCountStrategy(),
        countPhase = countPhase ?? CountPhase.back,
-       id = id ?? _generateId();
+       id = id ?? _generateId(),
+       isHidden = isHidden ?? false;
 
   static int _generateId() {
     try {

@@ -60,8 +60,10 @@ class ExportModel with ChangeNotifier {
 
     // Listen for connectivity changes
     try {
-      _connectionSubscription = InternetConnectionChecker().onStatusChange
-          .listen((status) {
+      _connectionSubscription = InternetConnectionChecker
+          .instance
+          .onStatusChange
+          .listen((InternetConnectionStatus status) {
             _isConnected = status == InternetConnectionStatus.connected;
             notifyListeners();
             if (_isConnected) {
@@ -75,7 +77,7 @@ class ExportModel with ChangeNotifier {
 
   Future<void> _updateInternetConnected() async {
     try {
-      _isConnected = await InternetConnectionChecker().hasConnection;
+      _isConnected = await InternetConnectionChecker.instance.hasConnection;
       notifyListeners();
     } catch (_) {
       // On fail, do nothing

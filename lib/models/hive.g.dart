@@ -100,7 +100,7 @@ class ItemAdapter extends TypeAdapter<Item> {
       countPhase: fields[5] as CountPhase?,
       personalCountPhase: fields[6] as CountPhase?,
       id: fields[2] as int?,
-      isHidden: fields[7] as bool,
+      isHidden: fields[7] as bool?,
     );
   }
 

@@ -17,7 +17,7 @@ dependencies:
   window_manager: ^0.5.1
   win32: ^5.15.0
   ffi: ^2.1.5
-  internet_connection_checker: ^1.0.0+1
+  internet_connection_checker: ^3.0.1
   dropdown_button2: ^2.3.9
 dev_dependencies:
   flutter_test:
