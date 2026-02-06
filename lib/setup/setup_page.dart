@@ -80,7 +80,7 @@ class BackupButton extends StatelessWidget {
                   Navigator.of(dialogCtx).pop();
 
                   try {
-                    final jsonString = areaModel.exportAllToJson();
+                    final jsonString = areaModel.exportAreasToJson();
 
                     final now = DateTime.now();
                     final timestamp =
@@ -328,7 +328,7 @@ class RestoreButton extends StatelessWidget {
                       if (choice == null) return;
 
                       try {
-                        areaModel.importAllFromJson(choice);
+                        areaModel.importAreasFromJson(choice);
 
                         if (!hostContext.mounted) return;
                         ScaffoldMessenger.of(hostContext).showSnackBar(
@@ -364,7 +364,7 @@ class RestoreButton extends StatelessWidget {
                   final file = File(result.files.single.path!);
                   final jsonString = await file.readAsString();
 
-                  areaModel.importAllFromJson(jsonString);
+                  areaModel.importAreasFromJson(jsonString);
 
                   messengerHost.showSnackBar(
                     SnackBar(

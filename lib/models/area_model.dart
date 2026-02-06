@@ -9,20 +9,26 @@ import 'package:inventory_count/models/hive.dart';
 class AreaModel with ChangeNotifier {
   final _areasBox = Hive.box('areas');
 
-  int get numAreas {
-    var currentAreas = _areasBox.get('areas');
-    return currentAreas?.length ?? 0;
-  }
-
-  void addArea(Area area) {
-    var currentAreas = _areasBox.get('areas', defaultValue: []);
-    currentAreas.add(area);
-    _areasBox.put('areas', currentAreas);
+  List<Area> get _areas =>
+      _areasBox.get('areas', defaultValue: <Area>[]).cast<Area>();
+  set _areas(List<Area> areas) {
+    _areasBox.put('areas', areas);
     notifyListeners();
   }
 
+  int get _itemIdCounter => _areasBox.get('itemIdCounter', defaultValue: 0);
+  set _itemIdCounter(int value) => _areasBox.put('itemIdCounter', value);
+
+  int get numAreas => _areas.length;
+
+  void addArea(Area area) {
+    var currentAreas = _areas;
+    currentAreas.add(area);
+    _areas = currentAreas;
+  }
+
   void removeArea(int index, CountModel countModel) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     var area = currentAreas[index];
 
     // Remove all items in the area from count list
@@ -40,40 +46,33 @@ class AreaModel with ChangeNotifier {
     }
 
     currentAreas.removeAt(index);
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
-  Area getArea(int index) {
-    return _areasBox.get('areas')[index];
-  }
+  Area getArea(int index) => _areas[index];
 
   void moveArea(int oldIndex, int newIndex) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     currentAreas.insert(newIndex, currentAreas.removeAt(oldIndex));
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   void renameArea(int index, String newName) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     currentAreas[index].name = newName;
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   void addShelfToArea(int areaIndex, Shelf shelf) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     currentAreas[areaIndex].shelvesAndItems.add(shelf);
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   void addItemToArea(int areaIndex, Item item) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     currentAreas[areaIndex].shelvesAndItems.add(item);
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   void removeShelfOrItemFromArea(
@@ -81,7 +80,7 @@ class AreaModel with ChangeNotifier {
     int index,
     CountModel countModel,
   ) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     var shelfOrItem = currentAreas[areaIndex].shelvesAndItems[index];
 
     // Remove from count list if it's an Item
@@ -97,35 +96,31 @@ class AreaModel with ChangeNotifier {
     }
 
     currentAreas[areaIndex].shelvesAndItems.removeAt(index);
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   void moveShelfOrItemInArea(int areaIndex, int oldIndex, int newIndex) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     var shelvesAndItems = currentAreas[areaIndex].shelvesAndItems;
     shelvesAndItems.insert(newIndex, shelvesAndItems.removeAt(oldIndex));
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   void renameShelfInArea(int areaIndex, int index, String newName) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     currentAreas[areaIndex].shelvesAndItems[index].name = newName;
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   void addItemToShelf(int areaIndex, int shelfIndex, Item item) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
     shelf.items.add(item);
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   void removeItem(List<int> selectedOrder, CountModel countModel) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
 
     Item? itemToRemove;
 
@@ -148,8 +143,7 @@ class AreaModel with ChangeNotifier {
     // Remove from count list
     countModel.removeFromCountList(itemToRemove);
 
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   void moveItemInShelf(
@@ -158,11 +152,10 @@ class AreaModel with ChangeNotifier {
     int oldIndex,
     int newIndex,
   ) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
     shelf.items.insert(newIndex, shelf.items.removeAt(oldIndex));
-    _areasBox.put('areas', currentAreas);
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   dynamic getShelfOrItem(List<int> selectedOrder) {
@@ -170,13 +163,11 @@ class AreaModel with ChangeNotifier {
     int index = selectedOrder[1];
     int? index2 = selectedOrder.elementAtOrNull(2);
 
-    var currentAreas = _areasBox.get('areas');
-
     if (index2 != null) {
-      var shelf = currentAreas[areaIndex].shelvesAndItems[index] as Shelf;
+      var shelf = _areas[areaIndex].shelvesAndItems[index] as Shelf;
       return shelf.items[index2];
     }
-    return currentAreas[areaIndex].shelvesAndItems[index];
+    return _areas[areaIndex].shelvesAndItems[index];
   }
 
   void editItem(
@@ -192,7 +183,7 @@ class AreaModel with ChangeNotifier {
     bool clearDefaultCount = false,
     bool clearPersonalCountPhase = false,
   }) {
-    var currentAreas = _areasBox.get('areas');
+    var currentAreas = _areas;
     Item? item;
 
     if (selectedOrder.length == 2) {
@@ -243,18 +234,17 @@ class AreaModel with ChangeNotifier {
       item.personalCountPhase = null;
     }
 
-    _areasBox.put('areas', currentAreas);
     if (countListNeedsUpdate) {
       countModel!.maintainCountList(item);
     }
 
-    notifyListeners();
+    _areas = currentAreas;
   }
 
   String exportAreasToJson() {
     final data = {
-      'areas': _areasBox.get('areas').map((item) => item.toJson()).toList(),
-      'itemIdCounter': _areasBox.get('itemIdCounter', defaultValue: 0),
+      'areas': _areas.map((item) => item.toJson()).toList(),
+      'itemIdCounter': _itemIdCounter,
     };
 
     return jsonEncode(data);
@@ -268,52 +258,16 @@ class AreaModel with ChangeNotifier {
       final areasList = (data['areas'] as List)
           .map((json) => Area.fromJson(json as Map<String, dynamic>))
           .toList();
-      _areasBox.put('areas', areasList);
-    }
-
-    // Import itemIdCounter
-    if (data['itemIdCounter'] != null) {
-      _areasBox.put('itemIdCounter', data['itemIdCounter']);
-    }
-
-    notifyListeners();
-  }
-
-  String exportAllToJson() {
-    final data = {
-      'areas': _areasBox.get('areas'),
-      'itemIdCounter': _areasBox.get('itemIdCounter', defaultValue: 0),
-    };
-
-    return jsonEncode(
-      data.map((key, value) {
-        if (value is List && key == 'areas') {
-          return MapEntry(key, value.map((item) => item.toJson()).toList());
-        }
-        return MapEntry(key, value);
-      }),
-    );
-  }
-
-  void importAllFromJson(String jsonString) {
-    final data = jsonDecode(jsonString) as Map<String, dynamic>;
-
-    // Import areas
-    if (data['areas'] != null) {
-      final areasList = (data['areas'] as List)
-          .map((json) => Area.fromJson(json as Map<String, dynamic>))
-          .toList();
 
       // Clear existing areas first
       _areasBox.delete('areas');
 
-      // Save the new areas list
-      _areasBox.put('areas', areasList);
+      _areas = areasList;
     }
 
     // Import itemIdCounter
     if (data['itemIdCounter'] != null) {
-      _areasBox.put('itemIdCounter', data['itemIdCounter']);
+      _itemIdCounter = data['itemIdCounter'];
     }
 
     notifyListeners();

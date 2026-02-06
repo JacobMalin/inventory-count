@@ -7,21 +7,20 @@ import 'package:inventory_count/models/count_strategy.dart';
 import 'package:inventory_count/models/hive.dart';
 
 class CountModel with ChangeNotifier {
+  final Box _settingsBox = Hive.box('settings');
+  final Box<Count> _countBox = Hive.box<Count>('counts');
+
   final DateFormat _dateFormat = DateFormat('EEEE, MMMM d, yyyy');
   static const int _lastCountLookbackDays = 14;
 
   String get date => _dateFormat.format(_selectedDate);
 
-  DateTime _selectedDate = Hive.box(
-    'settings',
-  ).get('selectedDate', defaultValue: DateTime.now());
-
-  DateTime get selectedDate => _selectedDate;
+  DateTime _selectedDate = DateTime.now();
 
   bool get hideCountedItems =>
-      Hive.box('settings').get('hideCountedItems', defaultValue: false);
+      _settingsBox.get('hideCountedItems', defaultValue: false);
   void setHideCountedItems(bool value) {
-    Hive.box('settings').put('hideCountedItems', value);
+    _settingsBox.put('hideCountedItems', value);
   }
 
   void setSelectedDate(DateTime date) {
@@ -51,9 +50,9 @@ class CountModel with ChangeNotifier {
     notifyListeners();
   }
 
-  Count get _thisCount => Hive.box<Count>('counts').get(date) ?? Count();
+  Count get _thisCount => _countBox.get(date) ?? Count();
   set _thisCount(Count count) {
-    Hive.box<Count>('counts').put(date, count);
+    _countBox.put(date, count);
     notifyListeners();
   }
 
