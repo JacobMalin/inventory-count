@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:inventory_count/models/count_strategy.dart';
 import 'package:inventory_count/models/export_entry.dart';
 import 'package:inventory_count/models/export_model.dart';
+import 'package:inventory_count/models/material_default_icons.dart';
 
 part 'hive.g.dart';
 
@@ -30,13 +31,15 @@ class Area extends HiveObject {
   String name;
 
   @HiveField(1)
-  int get colorInt =>
-      Colors.primaries[name.hashCode % Colors.primaries.length].toARGB32();
+  // @Deprecated('Used to be colorInt, but was not used')
+  bool get _deprecated => false;
 
   @HiveField(2)
   List shelvesAndItems;
 
-  Color get color => Color(colorInt);
+  Color get color => Color(
+    Colors.primaries[name.hashCode % Colors.primaries.length].toARGB32(),
+  );
 
   Area(this.name, {List? shelvesAndItems})
     : shelvesAndItems = shelvesAndItems ?? [];
@@ -302,10 +305,14 @@ class Count extends HiveObject {
   @HiveField(2)
   Map<String, bool> itemsToFix = {};
 
+  @HiveField(3)
+  Profile? profile;
+
   Count({
     Map<int, CountEntry>? itemCounts,
     CountPhase? countPhase,
     Map<String, bool>? itemsToFix,
+    this.profile,
   }) : itemCounts = itemCounts ?? <int, CountEntry>{},
        countPhase = countPhase ?? CountPhase.back,
        itemsToFix = itemsToFix ?? <String, bool>{};
@@ -491,4 +498,22 @@ class Count extends HiveObject {
       itemsToFix: itemsToFix,
     );
   }
+}
+
+@HiveType(typeId: 16)
+class Profile extends HiveObject {
+  @HiveField(0)
+  String name;
+
+  Color get color => Color(
+    Colors.primaries[name.hashCode % Colors.primaries.length].toARGB32(),
+  );
+
+  IconData get icon {
+    return defaultIcons.values
+        .elementAt(name.hashCode % defaultIcons.length)
+        .data;
+  }
+
+  Profile(this.name);
 }
