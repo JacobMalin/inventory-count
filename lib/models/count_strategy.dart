@@ -60,6 +60,7 @@ abstract class CountStrategy {
     required TextEditingController controller1,
     required TextEditingController controller2,
     required List<int> selectedOrder,
+    required Profile selectedProfile,
     required AreaModel areaModel,
     required CountModel countModel,
   }) => [];
@@ -336,6 +337,7 @@ class NegativeCountStrategy extends CountStrategy {
     required TextEditingController controller1,
     required TextEditingController controller2,
     required List<int> selectedOrder,
+    required Profile selectedProfile,
     required AreaModel areaModel,
     required CountModel countModel,
   }) {
@@ -353,6 +355,7 @@ class NegativeCountStrategy extends CountStrategy {
           from = intValue;
           areaModel.editItem(
             selectedOrder,
+            selectedProfile,
             newStrategy: this,
             countModel: countModel,
           );
@@ -572,6 +575,7 @@ class StacksCountStrategy extends CountStrategy {
     required TextEditingController controller1,
     required TextEditingController controller2,
     required List<int> selectedOrder,
+    required Profile selectedProfile,
     required AreaModel areaModel,
     required CountModel countModel,
   }) {
@@ -589,6 +593,7 @@ class StacksCountStrategy extends CountStrategy {
             perStack = 1;
             areaModel.editItem(
               selectedOrder,
+              selectedProfile,
               newStrategy: this,
               countModel: countModel,
             );
@@ -597,6 +602,7 @@ class StacksCountStrategy extends CountStrategy {
             perStack = intValue ?? 1;
             areaModel.editItem(
               selectedOrder,
+              selectedProfile,
               newStrategy: this,
               countModel: countModel,
             );
@@ -814,6 +820,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
     required TextEditingController controller1,
     required TextEditingController controller2,
     required List<int> selectedOrder,
+    required Profile selectedProfile,
     required AreaModel areaModel,
     required CountModel countModel,
   }) {
@@ -834,6 +841,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
                   perBox = 1;
                   areaModel.editItem(
                     selectedOrder,
+                    selectedProfile,
                     newStrategy: this,
                     countModel: countModel,
                   );
@@ -842,6 +850,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
                   perBox = intValue ?? 1;
                   areaModel.editItem(
                     selectedOrder,
+                    selectedProfile,
                     newStrategy: this,
                     countModel: countModel,
                   );
@@ -863,6 +872,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
                   perStack = 1;
                   areaModel.editItem(
                     selectedOrder,
+                    selectedProfile,
                     newStrategy: this,
                     countModel: countModel,
                   );
@@ -871,6 +881,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
                   perStack = intValue ?? 1;
                   areaModel.editItem(
                     selectedOrder,
+                    selectedProfile,
                     newStrategy: this,
                     countModel: countModel,
                   );

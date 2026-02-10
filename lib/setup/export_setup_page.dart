@@ -3,10 +3,13 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/export_entry.dart';
+import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
 class ExportSetupPage extends StatefulWidget {
-  const ExportSetupPage({super.key});
+  final Profile selectedProfile;
+
+  const ExportSetupPage(this.selectedProfile, {super.key});
 
   @override
   State<ExportSetupPage> createState() => _ExportSetupPageState();
@@ -262,6 +265,7 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                               areaModel
                                                       .getPathsForItem(
                                                         exportEntry.name,
+                                                        widget.selectedProfile,
                                                       )
                                                       .isEmpty
                                                   ? ExportPlaceholderTile(
@@ -275,6 +279,8 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                                       key: Key('$index'),
                                                       exportItem: exportEntry,
                                                       index: index,
+                                                      selectedProfile: widget
+                                                          .selectedProfile,
                                                       titleHidden: titleHidden,
                                                     ),
                                             _ => throw UnimplementedError(),
@@ -388,11 +394,13 @@ class ExportItemTile extends StatelessWidget {
     super.key,
     required this.exportItem,
     required this.index,
+    required this.selectedProfile,
     required this.titleHidden,
   });
 
   final ExportItem exportItem;
   final int index;
+  final Profile selectedProfile;
   final bool titleHidden;
 
   @override
@@ -484,8 +492,15 @@ class ExportItemTile extends StatelessWidget {
                       )
                     : null,
               ),
-              subtitle: areaModel.getPathsForItem(exportItem.name).isNotEmpty
-                  ? Text(areaModel.getPathsForItem(exportItem.name).join('\n'))
+              subtitle:
+                  areaModel
+                      .getPathsForItem(exportItem.name, selectedProfile)
+                      .isNotEmpty
+                  ? Text(
+                      areaModel
+                          .getPathsForItem(exportItem.name, selectedProfile)
+                          .join('\n'),
+                    )
                   : null,
             ),
           ),

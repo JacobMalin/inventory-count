@@ -56,6 +56,13 @@ class CountModel with ChangeNotifier {
     notifyListeners();
   }
 
+  Profile? get selectedProfile => _thisCount.profile;
+  set selectedProfile(Profile? profile) {
+    final Count currentCount = _thisCount;
+    currentCount.profile = profile;
+    _thisCount = currentCount;
+  }
+
   CountPhase get countPhase => _thisCount.countPhase;
 
   Map<String, bool> get itemsToFix => _thisCount.itemsToFix;
@@ -197,6 +204,8 @@ class CountModel with ChangeNotifier {
     List<int> itemIds = [];
     List<ItemTreeData> items = [];
 
+    if (selectedProfile == null) return [];
+
     for (final MapEntry<int, CountEntry> entry
         in _thisCount.itemCounts.entries) {
       if (entry.value.name == name && entry.value.phase == phase) {
@@ -204,8 +213,8 @@ class CountModel with ChangeNotifier {
       }
     }
 
-    for (int i = 0; i < areaModel.numAreas; i++) {
-      final area = areaModel.getArea(i);
+    for (int i = 0; i < areaModel.getNumAreas(selectedProfile!); i++) {
+      final area = areaModel.getArea(i, selectedProfile!);
       for (var shelfOrItem in area.shelvesAndItems) {
         if (shelfOrItem is Item) {
           if (itemIds.contains(shelfOrItem.id)) {

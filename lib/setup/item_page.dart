@@ -14,11 +14,13 @@ class ItemPage extends StatelessWidget {
     required this.deselect,
     required this.item,
     required this.selectedOrder,
+    required this.selectedProfile,
   });
 
   final Function() deselect;
   final Item item;
   final List<int> selectedOrder;
+  final Profile selectedProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +61,7 @@ class ItemPage extends StatelessWidget {
                               if (value.isNotEmpty) {
                                 areaModel.editItem(
                                   selectedOrder,
+                                  selectedProfile,
                                   newName: value,
                                   countModel: countModel,
                                 );
@@ -97,7 +100,11 @@ class ItemPage extends StatelessWidget {
                           builder: (context, countModel, child) {
                             return TextButton(
                               onPressed: () {
-                                areaModel.removeItem(selectedOrder, countModel);
+                                areaModel.removeItem(
+                                  selectedOrder,
+                                  selectedProfile,
+                                  countModel,
+                                );
                                 Navigator.pop(context);
                                 deselect();
                               },
@@ -120,7 +127,11 @@ class ItemPage extends StatelessWidget {
                 deselect();
               }
             },
-            child: ItemSettings(item: item, selectedOrder: selectedOrder),
+            child: ItemSettings(
+              item: item,
+              selectedOrder: selectedOrder,
+              selectedProfile: selectedProfile,
+            ),
           ),
         );
       },
@@ -133,10 +144,12 @@ class ItemSettings extends StatefulWidget {
     super.key,
     required this.item,
     required this.selectedOrder,
+    required this.selectedProfile,
   });
 
   final Item item;
   final List<int> selectedOrder;
+  final Profile selectedProfile;
 
   @override
   State<ItemSettings> createState() => _ItemSettingsState();
@@ -199,6 +212,7 @@ class _ItemSettingsState extends State<ItemSettings> {
             if (defaultCountField1 != null || defaultCountField2 != null) {
               areaModel.editItem(
                 widget.selectedOrder,
+                widget.selectedProfile,
                 newDefaultCount: ItemCount(
                   countStrategy,
                   field1: defaultCountField1,
@@ -206,7 +220,11 @@ class _ItemSettingsState extends State<ItemSettings> {
                 ),
               );
             } else {
-              areaModel.editItem(widget.selectedOrder, clearDefaultCount: true);
+              areaModel.editItem(
+                widget.selectedOrder,
+                widget.selectedProfile,
+                clearDefaultCount: true,
+              );
             }
           }
 
@@ -266,12 +284,14 @@ class _ItemSettingsState extends State<ItemSettings> {
                       if (value == null) {
                         areaModel.editItem(
                           widget.selectedOrder,
+                          widget.selectedProfile,
                           newCountName: "",
                           countModel: countModel,
                         );
                       } else {
                         areaModel.editItem(
                           widget.selectedOrder,
+                          widget.selectedProfile,
                           newCountName: value,
                           countModel: countModel,
                         );
@@ -307,6 +327,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                     });
                     areaModel.editItem(
                       widget.selectedOrder,
+                      widget.selectedProfile,
                       newStrategy: countStrategy,
                       countModel: countModel,
                     );
@@ -318,6 +339,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                 controller1: strategyIntController,
                 controller2: strategyInt2Controller,
                 selectedOrder: widget.selectedOrder,
+                selectedProfile: widget.selectedProfile,
                 areaModel: areaModel,
                 countModel: countModel,
               ),
@@ -416,6 +438,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                     });
                     areaModel.editItem(
                       widget.selectedOrder,
+                      widget.selectedProfile,
                       newCountPhase: countPhase,
                       countModel: countModel,
                     );
@@ -455,6 +478,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                     });
                     areaModel.editItem(
                       widget.selectedOrder,
+                      widget.selectedProfile,
                       newPersonalCountPhase: personalCountPhase,
                       clearPersonalCountPhase: personalCountPhase == null,
                       countModel: countModel,

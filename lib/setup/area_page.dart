@@ -11,11 +11,13 @@ class AreaPage extends StatelessWidget {
     required this.select,
     required this.deselect,
     required this.selectedOrder,
+    required this.selectedProfile,
   });
 
   final void Function(int) select;
   final void Function() deselect;
   final List<int> selectedOrder;
+  final Profile selectedProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +26,11 @@ class AreaPage extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              areaModel.getArea(selectedOrder.last).name,
+              areaModel.getArea(selectedOrder.last, selectedProfile).name,
               style: Theme.of(context).textTheme.headlineLarge!.copyWith(
-                color: areaModel.getArea(selectedOrder.last).color,
+                color: areaModel
+                    .getArea(selectedOrder.last, selectedProfile)
+                    .color,
               ),
             ),
             centerTitle: true,
@@ -39,7 +43,9 @@ class AreaPage extends StatelessWidget {
                 icon: const Icon(Icons.edit),
                 onPressed: () {
                   final controller = TextEditingController(
-                    text: areaModel.getArea(selectedOrder.last).name,
+                    text: areaModel
+                        .getArea(selectedOrder.last, selectedProfile)
+                        .name,
                   );
                   controller.selection = TextSelection(
                     baseOffset: 0,
@@ -64,7 +70,11 @@ class AreaPage extends StatelessWidget {
                     ),
                   ).then((_) {
                     if (controller.text.isNotEmpty) {
-                      areaModel.renameArea(selectedOrder.last, controller.text);
+                      areaModel.renameArea(
+                        selectedOrder.last,
+                        controller.text,
+                        selectedProfile,
+                      );
                     }
                   });
                 },
@@ -91,6 +101,7 @@ class AreaPage extends StatelessWidget {
                                 areaModel.removeArea(
                                   selectedOrder.last,
                                   countModel,
+                                  selectedProfile,
                                 );
                                 Navigator.pop(context);
                                 deselect();
@@ -114,7 +125,11 @@ class AreaPage extends StatelessWidget {
                 deselect();
               }
             },
-            child: ShelfList(select: select, selectedOrder: selectedOrder),
+            child: ShelfList(
+              select: select,
+              selectedOrder: selectedOrder,
+              selectedProfile: selectedProfile,
+            ),
           ),
         );
       },
@@ -127,10 +142,12 @@ class ShelfList extends StatefulWidget {
     super.key,
     required this.select,
     required this.selectedOrder,
+    required this.selectedProfile,
   });
 
   final void Function(int) select;
   final List<int> selectedOrder;
+  final Profile selectedProfile;
 
   @override
   State<ShelfList> createState() => _ShelfListState();
@@ -164,7 +181,10 @@ class _ShelfListState extends State<ShelfList> {
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
-        Area area = areaModel.getArea(widget.selectedOrder.last);
+        Area area = areaModel.getArea(
+          widget.selectedOrder.last,
+          widget.selectedProfile,
+        );
 
         return Column(
           children: [
@@ -187,6 +207,7 @@ class _ShelfListState extends State<ShelfList> {
                                 areaModel.addShelfToArea(
                                   widget.selectedOrder.last,
                                   Shelf(value),
+                                  widget.selectedProfile,
                                 );
 
                                 Navigator.pop(context);
@@ -222,6 +243,7 @@ class _ShelfListState extends State<ShelfList> {
                                 areaModel.addItemToArea(
                                   widget.selectedOrder.last,
                                   Item(value),
+                                  widget.selectedProfile,
                                 );
 
                                 Navigator.pop(context);
@@ -262,12 +284,14 @@ class _ShelfListState extends State<ShelfList> {
                                     index: index,
                                     selectedOrder: widget.selectedOrder,
                                     select: widget.select,
+                                    selectedProfile: widget.selectedProfile,
                                   )
                                 : ItemTile(
                                     key: Key('$index'),
                                     index: index,
                                     selectedOrder: widget.selectedOrder,
                                     select: widget.select,
+                                    selectedProfile: widget.selectedProfile,
                                   ),
                         ],
                         onReorder: (int oldIndex, int newIndex) {
@@ -279,6 +303,7 @@ class _ShelfListState extends State<ShelfList> {
                             widget.selectedOrder.last,
                             oldIndex,
                             newIndex,
+                            widget.selectedProfile,
                           );
                         },
                       ),

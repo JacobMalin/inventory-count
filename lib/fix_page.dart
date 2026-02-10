@@ -7,7 +7,9 @@ import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
 class FixPage extends StatefulWidget {
-  const FixPage({super.key});
+  final Profile selectedProfile;
+
+  const FixPage(this.selectedProfile, {super.key});
 
   @override
   State<FixPage> createState() => _FixPageState();
@@ -261,7 +263,7 @@ class _FixPageState extends State<FixPage> {
 
                     // Show message if no items
                     if (!hasItems) {
-                      if (areaModel.hasAnyItems()) {
+                      if (areaModel.hasAnyItems(widget.selectedProfile)) {
                         // There are items, but none are selected (all hidden)
                         return Center(
                           child: Padding(
@@ -377,7 +379,10 @@ class _FixPageState extends State<FixPage> {
                                     if (!entry.isHidden &&
                                         !currentTitleHidden) {
                                       if (areaModel
-                                          .getPathsForItem(entry.name)
+                                          .getPathsForItem(
+                                            entry.name,
+                                            widget.selectedProfile,
+                                          )
                                           .isEmpty) {
                                         rows.add(
                                           _buildPlaceholderRow(context, entry),

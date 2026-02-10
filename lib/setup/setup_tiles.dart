@@ -59,16 +59,22 @@ Widget _buildPhaseIndicators(Set<CountPhase> phases) {
 }
 
 class AreaTile extends StatelessWidget {
-  const AreaTile({super.key, required this.index, required this.select});
+  const AreaTile({
+    super.key,
+    required this.index,
+    required this.select,
+    required this.selectedProfile,
+  });
 
   final int index;
   final void Function(int) select;
+  final Profile selectedProfile;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
-        final area = areaModel.getArea(index);
+        final area = areaModel.getArea(index, selectedProfile);
         final numShelves = area.shelvesAndItems.whereType<Shelf>().length;
         final numItems = area.shelvesAndItems.whereType<Item>().length;
 
@@ -123,18 +129,21 @@ class ShelfTile extends StatelessWidget {
     required this.index,
     required this.selectedOrder,
     required this.select,
+    required this.selectedProfile,
   });
 
   final int index;
   final List<int> selectedOrder;
   final void Function(int) select;
+  final Profile selectedProfile;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
         final shelf =
-            areaModel.getShelfOrItem([...selectedOrder, index]) as Shelf;
+            areaModel.getShelfOrItem([...selectedOrder, index], selectedProfile)
+                as Shelf;
 
         // Collect all phases from items in shelf
         final phases = <CountPhase>{};
@@ -171,18 +180,21 @@ class ItemTile extends StatelessWidget {
     required this.index,
     required this.selectedOrder,
     required this.select,
+    required this.selectedProfile,
   });
 
   final int index;
   final List<int> selectedOrder;
   final void Function(int) select;
+  final Profile selectedProfile;
 
   @override
   Widget build(BuildContext context) {
     return Consumer2<AreaModel, ExportModel>(
       builder: (context, areaModel, exportModel, child) {
         final item =
-            areaModel.getShelfOrItem([...selectedOrder, index]) as Item;
+            areaModel.getShelfOrItem([...selectedOrder, index], selectedProfile)
+                as Item;
         final isValid = item.getIsValid(exportModel);
 
         return ListTile(

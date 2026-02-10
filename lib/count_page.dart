@@ -33,7 +33,9 @@ class ShelfTreeData {
 }
 
 class CountPage extends StatefulWidget {
-  const CountPage({super.key});
+  final Profile selectedProfile;
+
+  const CountPage(this.selectedProfile, {super.key});
 
   @override
   State<CountPage> createState() => _CountPageState();
@@ -50,6 +52,7 @@ class _CountPageState extends State<CountPage> {
         return Scaffold(
           body: CountList(
             hideCountedItems: countModel.hideCountedItems,
+            selectedProfile: countModel.selectedProfile!,
             onExpandCallbackChanged: (callback, isExpanded) {
               setState(() {
                 _expandUncountedCallback = callback;
@@ -58,123 +61,45 @@ class _CountPageState extends State<CountPage> {
             },
           ),
           bottomNavigationBar: BottomAppBar(
-            height: 124,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            height: 68,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        countModel.hideCountedItems
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                      ),
-                      onPressed: () {
-                        countModel.setHideCountedItems(
-                          !countModel.hideCountedItems,
-                        );
-                      },
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 16),
-                    const Text('Back'),
-                    Expanded(
-                      child: Slider(
-                        value: countModel.countPhase.index.toDouble(),
-                        min: 0,
-                        max: 2,
-                        divisions: 2,
-                        onChanged: (value) {
-                          countModel.setCountPhase(
-                            CountPhase.values[value.toInt()],
-                          );
-                        },
-                      ),
-                    ),
-                    const Text('Out'),
-                    const SizedBox(width: 16),
-                    IconButton(
-                      icon: Icon(
-                        _isFullyExpanded
-                            ? Icons.unfold_less
-                            : Icons.unfold_more,
-                      ),
-                      onPressed: _expandUncountedCallback,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
+                IconButton(
+                  icon: Icon(
+                    countModel.hideCountedItems
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    countModel.setHideCountedItems(
+                      !countModel.hideCountedItems,
+                    );
+                  },
+                  constraints: const BoxConstraints(),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: countModel.decrementDate,
-                    ),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            countModel.date,
-                            style: Theme.of(context).textTheme.titleMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            spacing: 8.0,
-                            children: [
-                              TextButton.icon(
-                                onPressed: () {},
-                                label: Text('Profile'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: const Color.fromARGB(
-                                    255,
-                                    221,
-                                    206,
-                                    39,
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                              ),
-                              if (!countModel.isToday)
-                                TextButton.icon(
-                                  onPressed: countModel.goToToday,
-                                  icon: const Icon(Icons.today, size: 16),
-                                  label: const Text('Today'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: const Color.fromARGB(
-                                      255,
-                                      221,
-                                      206,
-                                      39,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: countModel.incrementDate,
-                    ),
-                  ],
+                const SizedBox(width: 16),
+                const Text('Back'),
+                Expanded(
+                  child: Slider(
+                    value: countModel.countPhase.index.toDouble(),
+                    min: 0,
+                    max: 2,
+                    divisions: 2,
+                    onChanged: (value) {
+                      countModel.setCountPhase(
+                        CountPhase.values[value.toInt()],
+                      );
+                    },
+                  ),
+                ),
+                const Text('Out'),
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: Icon(
+                    _isFullyExpanded ? Icons.unfold_less : Icons.unfold_more,
+                  ),
+                  onPressed: _expandUncountedCallback,
+                  constraints: const BoxConstraints(),
                 ),
               ],
             ),
@@ -190,10 +115,12 @@ class CountList extends StatefulWidget {
     super.key,
     required this.onExpandCallbackChanged,
     required this.hideCountedItems,
+    required this.selectedProfile,
   });
 
   final void Function(void Function()?, bool) onExpandCallbackChanged;
   final bool hideCountedItems;
+  final Profile selectedProfile;
 
   @override
   State<CountList> createState() => _CountListState();
@@ -208,14 +135,14 @@ class _CountListState extends State<CountList> {
 
   TreeNode _buildTree(
     AreaModel areaModel,
+    CountModel countModel,
     ExportModel exportModel,
-    CountPhase currentPhase,
   ) {
     final root = TreeNode.root();
-    final countModel = Provider.of<CountModel>(context, listen: false);
+    final currentPhase = countModel.countPhase;
 
-    for (int i = 0; i < areaModel.numAreas; i++) {
-      final area = areaModel.getArea(i);
+    for (int i = 0; i < areaModel.getNumAreas(widget.selectedProfile); i++) {
+      final area = areaModel.getArea(i, widget.selectedProfile);
       final areaNode = TreeNode(
         key: 'area_${area.name}',
         data: AreaTreeData(area),
@@ -487,11 +414,7 @@ class _CountListState extends State<CountList> {
       builder: (context, areaModel, child) {
         return Consumer2<CountModel, ExportModel>(
           builder: (context, countModel, exportModel, child) {
-            final tree = _buildTree(
-              areaModel,
-              exportModel,
-              countModel.countPhase,
-            );
+            final tree = _buildTree(areaModel, countModel, exportModel);
 
             // Check if tree is empty (no items to count)
             final bool treeIsEmpty =
@@ -502,31 +425,7 @@ class _CountListState extends State<CountList> {
 
             if (treeIsEmpty) {
               // Check if there are any items at all for the current phase
-              bool hasAnyItems = false;
-              for (int i = 0; i < areaModel.numAreas; i++) {
-                final area = areaModel.getArea(i);
-                for (var shelfOrItem in area.shelvesAndItems) {
-                  if (shelfOrItem is Shelf) {
-                    for (var item in shelfOrItem.items) {
-                      if (item is Item &&
-                          (item.personalCountPhase?.index ??
-                                  item.countPhase.index) <=
-                              countModel.countPhase.index) {
-                        hasAnyItems = true;
-                        break;
-                      }
-                    }
-                  } else if (shelfOrItem is Item &&
-                      (shelfOrItem.personalCountPhase?.index ??
-                              shelfOrItem.countPhase.index) <=
-                          countModel.countPhase.index) {
-                    hasAnyItems = true;
-                    break;
-                  }
-                  if (hasAnyItems) break;
-                }
-                if (hasAnyItems) break;
-              }
+              bool hasAnyItems = areaModel.hasAnyItems(widget.selectedProfile);
 
               final message = hasAnyItems
                   ? 'All items counted!'

@@ -8,7 +8,9 @@ import 'package:inventory_count/setup/shelf_page.dart';
 import 'package:provider/provider.dart';
 
 class ShelfSetupPage extends StatefulWidget {
-  const ShelfSetupPage({super.key});
+  final Profile selectedProfile;
+
+  const ShelfSetupPage(this.selectedProfile, {super.key});
 
   @override
   State<ShelfSetupPage> createState() => _ShelfSetupPageState();
@@ -35,15 +37,22 @@ class _ShelfSetupPageState extends State<ShelfSetupPage> {
       builder: (context, areaModel, child) {
         switch (selectedOrder.length) {
           case 0:
-            return AreasPage(select: select);
+            return AreasPage(
+              select: select,
+              selectedProfile: widget.selectedProfile,
+            );
           case 1:
             return AreaPage(
               select: select,
               deselect: deselect,
               selectedOrder: selectedOrder,
+              selectedProfile: widget.selectedProfile,
             );
           default:
-            dynamic shelfOrItem = areaModel.getShelfOrItem(selectedOrder);
+            dynamic shelfOrItem = areaModel.getShelfOrItem(
+              selectedOrder,
+              widget.selectedProfile,
+            );
 
             if (shelfOrItem is Shelf) {
               return ShelfPage(
@@ -51,12 +60,14 @@ class _ShelfSetupPageState extends State<ShelfSetupPage> {
                 deselect: deselect,
                 shelf: shelfOrItem,
                 selectedOrder: selectedOrder,
+                selectedProfile: widget.selectedProfile,
               );
             } else {
               return ItemPage(
                 deselect: deselect,
                 item: shelfOrItem,
                 selectedOrder: selectedOrder,
+                selectedProfile: widget.selectedProfile,
               );
             }
         }
@@ -66,9 +77,14 @@ class _ShelfSetupPageState extends State<ShelfSetupPage> {
 }
 
 class AreasPage extends StatelessWidget {
-  const AreasPage({super.key, required this.select});
+  const AreasPage({
+    super.key,
+    required this.select,
+    required this.selectedProfile,
+  });
 
   final void Function(int) select;
+  final Profile selectedProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +100,7 @@ class AreasPage extends StatelessWidget {
             scrolledUnderElevation: 0,
             backgroundColor: Theme.of(context).colorScheme.surface,
           ),
-          body: AreaList(select: select),
+          body: AreaList(select: select, selectedProfile: selectedProfile),
         );
       },
     );
@@ -92,9 +108,14 @@ class AreasPage extends StatelessWidget {
 }
 
 class AreaList extends StatefulWidget {
-  const AreaList({super.key, required this.select});
+  const AreaList({
+    super.key,
+    required this.select,
+    required this.selectedProfile,
+  });
 
   final void Function(int) select;
+  final Profile selectedProfile;
 
   @override
   State<AreaList> createState() => _AreaListState();
@@ -143,7 +164,10 @@ class _AreaListState extends State<AreaList> {
                       autofocus: true,
                       onSubmitted: (value) {
                         if (value.isNotEmpty) {
-                          areaModel.addArea(Area(value));
+                          areaModel.addArea(
+                            Area(value),
+                            widget.selectedProfile,
+                          );
                           Navigator.pop(context);
                           _scrollToBottom();
                         }
@@ -170,13 +194,15 @@ class _AreaListState extends State<AreaList> {
                         children: <AreaTile>[
                           for (
                             int index = 0;
-                            index < areaModel.numAreas;
+                            index <
+                                areaModel.getNumAreas(widget.selectedProfile);
                             index += 1
                           )
                             AreaTile(
                               key: Key('$index'),
                               index: index,
                               select: widget.select,
+                              selectedProfile: widget.selectedProfile,
                             ),
                         ],
                         onReorder: (int oldIndex, int newIndex) {
@@ -184,7 +210,11 @@ class _AreaListState extends State<AreaList> {
                             newIndex -= 1;
                           }
 
-                          areaModel.moveArea(oldIndex, newIndex);
+                          areaModel.moveArea(
+                            oldIndex,
+                            newIndex,
+                            widget.selectedProfile,
+                          );
                         },
                       ),
                     ),

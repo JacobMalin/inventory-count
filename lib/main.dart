@@ -12,6 +12,8 @@ import 'package:inventory_count/count_page.dart';
 import 'package:inventory_count/export_page.dart';
 import 'package:inventory_count/setup/setup_page.dart';
 import 'package:inventory_count/hive_error_page.dart';
+import 'package:inventory_count/widgets/date_picker.dart';
+import 'package:inventory_count/widgets/profile_selection.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -90,44 +92,66 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      bottomNavigationBar: NavigationBar(
-        onDestinationSelected: (int index) {
-          setState(() {
-            currentPageIndex = index;
-          });
-        },
-        selectedIndex: currentPageIndex,
-        destinations: const <Widget>[
-          NavigationDestination(
-            icon: Icon(Icons.list),
-            label: 'Count',
-            tooltip: '',
+    return Consumer<CountModel>(
+      builder: (context, countModel, child) {
+        final currentProfile = countModel.selectedProfile;
+
+        return Scaffold(
+          bottomNavigationBar: BottomAppBar(
+            height: currentProfile != null ? 136 : 64, // TODO: Check height
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (currentProfile != null) ...[
+                  NavigationBar(
+                    height: 60,
+                    onDestinationSelected: (int index) {
+                      setState(() {
+                        currentPageIndex = index;
+                      });
+                    },
+                    selectedIndex: currentPageIndex,
+                    destinations: const <Widget>[
+                      NavigationDestination(
+                        icon: Icon(Icons.list),
+                        label: 'Count',
+                        tooltip: '',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.bug_report),
+                        label: 'Fix',
+                        tooltip: '',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.print),
+                        label: 'Export',
+                        tooltip: '',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.settings),
+                        label: 'Setup',
+                        tooltip: '',
+                      ),
+                    ],
+                    labelBehavior: null,
+                  ),
+                  SizedBox(height: 12),
+                ],
+                DatePicker(),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.bug_report),
-            label: 'Fix',
-            tooltip: '',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.print),
-            label: 'Export',
-            tooltip: '',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings),
-            label: 'Setup',
-            tooltip: '',
-          ),
-        ],
-        labelBehavior: null,
-      ),
-      body: [
-        const CountPage(),
-        const FixPage(),
-        const ExportPage(),
-        const SetupPage(),
-      ][currentPageIndex],
+          body: currentProfile != null
+              ? [
+                  CountPage(currentProfile),
+                  FixPage(currentProfile),
+                  ExportPage(currentProfile),
+                  SetupPage(currentProfile),
+                ][currentPageIndex]
+              : SelectProfile(),
+        );
+      },
     );
   }
 }

@@ -16,6 +16,7 @@ Future<void> hiveSetup() async {
   Hive.registerAdapter<CountPhase>(CountPhaseAdapter());
   Hive.registerAdapter<Count>(CountAdapter());
   Hive.registerAdapter<CountEntry>(CountEntryAdapter());
+  Hive.registerAdapter<Profile>(ProfileAdapter());
 
   registerCountStrategyAdapters();
   registerExportEntryAdapters();
@@ -514,6 +515,15 @@ class Profile extends HiveObject {
         .elementAt(name.hashCode % defaultIcons.length)
         .data;
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Profile && other.name == name;
+  }
+
+  @override
+  int get hashCode => name.hashCode;
 
   Profile(this.name);
 }

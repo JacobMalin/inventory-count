@@ -8,7 +8,9 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ExportPage extends StatefulWidget {
-  const ExportPage({super.key});
+  final Profile selectedProfile;
+
+  const ExportPage(this.selectedProfile, {super.key});
 
   @override
   State<ExportPage> createState() => _ExportPageState();
@@ -188,7 +190,10 @@ class _ExportPageState extends State<ExportPage> {
                             } else if (entry is ExportItem) {
                               if (!entry.isHidden && !currentTitleHidden) {
                                 if (areaModel
-                                    .getPathsForItem(entry.name)
+                                    .getPathsForItem(
+                                      entry.name,
+                                      widget.selectedProfile,
+                                    )
                                     .isEmpty) {
                                   rows.add(
                                     _buildPlaceholderRow(context, entry),
