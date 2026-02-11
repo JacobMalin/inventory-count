@@ -12,9 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class ExportModel with ChangeNotifier {
   StreamSubscription<List<Map<String, dynamic>>>? _setupsSubscription;
   StreamSubscription<InternetConnectionStatus>? _connectionSubscription;
-  // ignore: unused_field
   DateTime? _lastTimestamp;
-  bool _isConnected = true;
 
   ExportModel() {
     final box = Hive.box('settings');
@@ -24,7 +22,6 @@ class ExportModel with ChangeNotifier {
 
     _fetch();
     _listenForChanges();
-    _updateInternetConnected();
   }
 
   Future<void> _fetch() async {
@@ -63,22 +60,11 @@ class ExportModel with ChangeNotifier {
       _connectionSubscription = InternetConnectionChecker
           .instance
           .onStatusChange
-          .listen((InternetConnectionStatus status) {
-            _isConnected = status == InternetConnectionStatus.connected;
-            notifyListeners();
-            if (_isConnected) {
-              _fetch();
-            }
-          });
-    } catch (_) {
-      // On fail, do nothing
-    }
-  }
+          .listen((InternetConnectionStatus status) async {
+            if (status != InternetConnectionStatus.connected) return;
 
-  Future<void> _updateInternetConnected() async {
-    try {
-      _isConnected = await InternetConnectionChecker.instance.hasConnection;
-      notifyListeners();
+            await _fetch();
+          });
     } catch (_) {
       // On fail, do nothing
     }
@@ -88,20 +74,27 @@ class ExportModel with ChangeNotifier {
     if (response.isEmpty) return;
 
     final setup = response.first;
+
+    DateTime? updatedTimestamp;
+    if (setup['updated_at'] != null) {
+      updatedTimestamp = DateTime.tryParse(
+        setup['updated_at'].toString(),
+      )?.toLocal();
+    }
+
+    if (_lastTimestamp != null &&
+        updatedTimestamp != null &&
+        _lastTimestamp!.isAfter(updatedTimestamp)) {
+      _updateSupabase();
+      return;
+    }
+
     final jsonData = setup['json'] is String
         ? setup['json'] as String
         : jsonEncode(setup['json']);
     importFromJson(jsonData);
 
-    if (setup['updated_at'] != null) {
-      if (setup['updated_at'] is DateTime) {
-        _lastTimestamp = setup['updated_at'] as DateTime;
-      } else {
-        _lastTimestamp = DateTime.tryParse(
-          setup['updated_at'].toString(),
-        )?.toLocal();
-      }
-    }
+    _lastTimestamp = updatedTimestamp;
   }
 
   @override
@@ -111,20 +104,20 @@ class ExportModel with ChangeNotifier {
     super.dispose();
   }
 
-  void updateSupabase() async {
+  void _updateSupabase() async {
     try {
       final jsonString = exportToJson();
 
       final DateTime now = DateTime.now().toUtc();
       final id = '${DateFormat('yyyy-MM-dd HH').format(now)}h';
 
+      _lastTimestamp = now;
+
       await Supabase.instance.client.from('setups').upsert({
         'id': id,
         'updated_at': now.toIso8601String(),
         'json': jsonString,
       });
-
-      _lastTimestamp = DateTime.now();
     } catch (_) {
       // On fail, do nothing
     }
@@ -137,13 +130,11 @@ class ExportModel with ChangeNotifier {
     return (rawList as List).cast<ExportEntry>().toList();
   }
 
-  bool get isConnected => _isConnected;
-
   void add(ExportEntry value) {
     var currentExportList = exportList;
     currentExportList.add(value);
     Hive.box('settings').put('exportList', currentExportList);
-    updateSupabase();
+    _updateSupabase();
     notifyListeners();
   }
 
@@ -152,7 +143,7 @@ class ExportModel with ChangeNotifier {
     final item = currentExportList.removeAt(oldIndex);
     currentExportList.insert(newIndex, item);
     Hive.box('settings').put('exportList', currentExportList);
-    updateSupabase();
+    _updateSupabase();
     notifyListeners();
   }
 
@@ -164,7 +155,7 @@ class ExportModel with ChangeNotifier {
     if (isHidden != null) entry.isHidden = isHidden;
 
     Hive.box('settings').put('exportList', currentExportList);
-    updateSupabase();
+    _updateSupabase();
     notifyListeners();
   }
 
@@ -172,7 +163,7 @@ class ExportModel with ChangeNotifier {
     var currentExportList = exportList;
     currentExportList.removeAt(index);
     Hive.box('settings').put('exportList', currentExportList);
-    updateSupabase();
+    _updateSupabase();
     notifyListeners();
   }
 

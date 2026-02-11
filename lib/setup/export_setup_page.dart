@@ -3,13 +3,10 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/export_entry.dart';
-import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
 class ExportSetupPage extends StatefulWidget {
-  final Profile selectedProfile;
-
-  const ExportSetupPage(this.selectedProfile, {super.key});
+  const ExportSetupPage({super.key});
 
   @override
   State<ExportSetupPage> createState() => _ExportSetupPageState();
@@ -88,30 +85,6 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                     centerTitle: true,
                     scrolledUnderElevation: 0,
                     backgroundColor: Theme.of(context).colorScheme.surface,
-                    actionsPadding: EdgeInsets.only(right: 8),
-                    actions: [
-                      if (!exportModel.isConnected)
-                        IconButton(
-                          icon: const Icon(Icons.wifi_off),
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('No Internet Connection'),
-                                content: const Text(
-                                  'Changes to the export order will not be saved without an internet connection.',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('OK'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                    ],
                   ),
                   body: exportList.isEmpty
                       ? const Center(child: Text('No items to export'))
@@ -265,7 +238,6 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                               areaModel
                                                       .getPathsForItem(
                                                         exportEntry.name,
-                                                        widget.selectedProfile,
                                                       )
                                                       .isEmpty
                                                   ? ExportPlaceholderTile(
@@ -279,8 +251,6 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                                       key: Key('$index'),
                                                       exportItem: exportEntry,
                                                       index: index,
-                                                      selectedProfile: widget
-                                                          .selectedProfile,
                                                       titleHidden: titleHidden,
                                                     ),
                                             _ => throw UnimplementedError(),
@@ -394,13 +364,11 @@ class ExportItemTile extends StatelessWidget {
     super.key,
     required this.exportItem,
     required this.index,
-    required this.selectedProfile,
     required this.titleHidden,
   });
 
   final ExportItem exportItem;
   final int index;
-  final Profile selectedProfile;
   final bool titleHidden;
 
   @override
@@ -492,15 +460,8 @@ class ExportItemTile extends StatelessWidget {
                       )
                     : null,
               ),
-              subtitle:
-                  areaModel
-                      .getPathsForItem(exportItem.name, selectedProfile)
-                      .isNotEmpty
-                  ? Text(
-                      areaModel
-                          .getPathsForItem(exportItem.name, selectedProfile)
-                          .join('\n'),
-                    )
+              subtitle: areaModel.getPathsForItem(exportItem.name).isNotEmpty
+                  ? Text(areaModel.getPathsForItem(exportItem.name).join('\n'))
                   : null,
             ),
           ),

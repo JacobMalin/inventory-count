@@ -33,9 +33,7 @@ class ShelfTreeData {
 }
 
 class CountPage extends StatefulWidget {
-  final Profile selectedProfile;
-
-  const CountPage(this.selectedProfile, {super.key});
+  const CountPage({super.key});
 
   @override
   State<CountPage> createState() => _CountPageState();
@@ -52,7 +50,6 @@ class _CountPageState extends State<CountPage> {
         return Scaffold(
           body: CountList(
             hideCountedItems: countModel.hideCountedItems,
-            selectedProfile: countModel.selectedProfile!,
             onExpandCallbackChanged: (callback, isExpanded) {
               setState(() {
                 _expandUncountedCallback = callback;
@@ -115,12 +112,10 @@ class CountList extends StatefulWidget {
     super.key,
     required this.onExpandCallbackChanged,
     required this.hideCountedItems,
-    required this.selectedProfile,
   });
 
   final void Function(void Function()?, bool) onExpandCallbackChanged;
   final bool hideCountedItems;
-  final Profile selectedProfile;
 
   @override
   State<CountList> createState() => _CountListState();
@@ -141,8 +136,8 @@ class _CountListState extends State<CountList> {
     final root = TreeNode.root();
     final currentPhase = countModel.countPhase;
 
-    for (int i = 0; i < areaModel.getNumAreas(widget.selectedProfile); i++) {
-      final area = areaModel.getArea(i, widget.selectedProfile);
+    for (int i = 0; i < areaModel.numAreas; i++) {
+      final area = areaModel.getArea(i);
       final areaNode = TreeNode(
         key: 'area_${area.name}',
         data: AreaTreeData(area),
@@ -425,7 +420,7 @@ class _CountListState extends State<CountList> {
 
             if (treeIsEmpty) {
               // Check if there are any items at all for the current phase
-              bool hasAnyItems = areaModel.hasAnyItems(widget.selectedProfile);
+              bool hasAnyItems = areaModel.hasAnyItems();
 
               final message = hasAnyItems
                   ? 'All items counted!'

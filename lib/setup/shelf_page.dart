@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/hive.dart';
 import 'package:inventory_count/setup/setup_tiles.dart';
 import 'package:provider/provider.dart';
@@ -12,14 +11,12 @@ class ShelfPage extends StatelessWidget {
     required this.deselect,
     required this.shelf,
     required this.selectedOrder,
-    required this.selectedProfile,
   });
 
   final void Function(int) select;
   final void Function() deselect;
   final Shelf shelf;
   final List<int> selectedOrder;
-  final Profile selectedProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +55,6 @@ class ShelfPage extends StatelessWidget {
                             selectedOrder[0],
                             selectedOrder[1],
                             value,
-                            selectedProfile,
                           );
                         },
                         onSubmitted: (_) => Navigator.pop(context),
@@ -88,22 +84,16 @@ class ShelfPage extends StatelessWidget {
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Cancel'),
                         ),
-                        Consumer<CountModel>(
-                          builder: (context, countModel, child) {
-                            return TextButton(
-                              onPressed: () {
-                                areaModel.removeShelfOrItemFromArea(
-                                  selectedOrder[0],
-                                  selectedOrder[1],
-                                  selectedProfile,
-                                  countModel,
-                                );
-                                Navigator.pop(context);
-                                deselect();
-                              },
-                              child: const Text('Delete'),
+                        TextButton(
+                          onPressed: () {
+                            areaModel.removeShelfOrItemFromArea(
+                              selectedOrder[0],
+                              selectedOrder[1],
                             );
+                            Navigator.pop(context);
+                            deselect();
                           },
+                          child: const Text('Delete'),
                         ),
                       ],
                     ),
@@ -120,11 +110,7 @@ class ShelfPage extends StatelessWidget {
                 deselect();
               }
             },
-            child: ItemList(
-              select: select,
-              selectedOrder: selectedOrder,
-              selectedProfile: selectedProfile,
-            ),
+            child: ItemList(select: select, selectedOrder: selectedOrder),
           ),
         );
       },
@@ -137,12 +123,10 @@ class ItemList extends StatefulWidget {
     super.key,
     required this.select,
     required this.selectedOrder,
-    required this.selectedProfile,
   });
 
   final void Function(int) select;
   final List<int> selectedOrder;
-  final Profile selectedProfile;
 
   @override
   State<ItemList> createState() => _ItemListState();
@@ -195,7 +179,6 @@ class _ItemListState extends State<ItemList> {
                             widget.selectedOrder[0],
                             widget.selectedOrder[1],
                             Item(value),
-                            widget.selectedProfile,
                           );
 
                           Navigator.pop(context);
@@ -225,10 +208,7 @@ class _ItemListState extends State<ItemList> {
                           for (
                             int index = 0;
                             index <
-                                (areaModel.getShelfOrItem(
-                                          widget.selectedOrder,
-                                          widget.selectedProfile,
-                                        )
+                                (areaModel.getShelfOrItem(widget.selectedOrder)
                                         as Shelf)
                                     .items
                                     .length;
@@ -239,7 +219,6 @@ class _ItemListState extends State<ItemList> {
                               index: index,
                               selectedOrder: widget.selectedOrder,
                               select: widget.select,
-                              selectedProfile: widget.selectedProfile,
                             ),
                         ],
                         onReorder: (int oldIndex, int newIndex) {
@@ -252,7 +231,6 @@ class _ItemListState extends State<ItemList> {
                             widget.selectedOrder[1],
                             oldIndex,
                             newIndex,
-                            widget.selectedProfile,
                           );
                         },
                       ),

@@ -59,9 +59,14 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => AreaModel()),
-        ChangeNotifierProvider(create: (context) => CountModel()),
-        ChangeNotifierProvider(create: (context) => ExportModel()),
+        ChangeNotifierProvider<CountModel>(create: (context) => CountModel()),
+        ChangeNotifierProvider<ExportModel>(create: (context) => ExportModel()),
+        ChangeNotifierProxyProvider<CountModel, AreaModel>(
+          create: (context) => AreaModel(context.read<CountModel>()),
+          update: (context, countModel, areaModel) {
+            return areaModel ?? AreaModel(countModel);
+          },
+        ),
       ],
       builder: (context, child) => MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -98,7 +103,7 @@ class _HomePageState extends State<HomePage> {
 
         return Scaffold(
           bottomNavigationBar: BottomAppBar(
-            height: currentProfile != null ? 136 : 64, // TODO: Check height
+            height: currentProfile != null ? 136 : 64,
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -144,10 +149,10 @@ class _HomePageState extends State<HomePage> {
           ),
           body: currentProfile != null
               ? [
-                  CountPage(currentProfile),
-                  FixPage(currentProfile),
-                  ExportPage(currentProfile),
-                  SetupPage(currentProfile),
+                  CountPage(),
+                  FixPage(),
+                  ExportPage(),
+                  SetupPage(),
                 ][currentPageIndex]
               : SelectProfile(),
         );

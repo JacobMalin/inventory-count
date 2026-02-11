@@ -7,9 +7,7 @@ import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
 class FixPage extends StatefulWidget {
-  final Profile selectedProfile;
-
-  const FixPage(this.selectedProfile, {super.key});
+  const FixPage({super.key});
 
   @override
   State<FixPage> createState() => _FixPageState();
@@ -107,10 +105,9 @@ class _FixPageState extends State<FixPage> {
     String itemName,
     CountPhase phase,
     bool isNotCounted,
-    CountModel countModel,
     AreaModel areaModel,
   ) {
-    final items = countModel.findItemsByName(itemName, phase, areaModel);
+    final items = areaModel.findItemsByName(itemName, phase);
     if (items.isEmpty) return;
 
     showDialog(
@@ -263,7 +260,7 @@ class _FixPageState extends State<FixPage> {
 
                     // Show message if no items
                     if (!hasItems) {
-                      if (areaModel.hasAnyItems(widget.selectedProfile)) {
+                      if (areaModel.hasAnyItems()) {
                         // There are items, but none are selected (all hidden)
                         return Center(
                           child: Padding(
@@ -379,10 +376,7 @@ class _FixPageState extends State<FixPage> {
                                     if (!entry.isHidden &&
                                         !currentTitleHidden) {
                                       if (areaModel
-                                          .getPathsForItem(
-                                            entry.name,
-                                            widget.selectedProfile,
-                                          )
+                                          .getPathsForItem(entry.name)
                                           .isEmpty) {
                                         rows.add(
                                           _buildPlaceholderRow(context, entry),
@@ -605,7 +599,6 @@ class _FixPageState extends State<FixPage> {
           CountPhase.back,
           backIsNotCounted,
           backCount != null || backIsNotCounted,
-          countModel,
           areaModel,
           backgroundColor: backIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
@@ -618,7 +611,6 @@ class _FixPageState extends State<FixPage> {
           CountPhase.cabinet,
           cabinetIsNotCounted,
           cabinetCount != null || cabinetIsNotCounted,
-          countModel,
           areaModel,
           backgroundColor: cabinetIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
@@ -633,7 +625,6 @@ class _FixPageState extends State<FixPage> {
           CountPhase.out,
           outIsNotCounted,
           outCount != null || outIsNotCounted,
-          countModel,
           areaModel,
           backgroundColor: outIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
@@ -717,7 +708,6 @@ class _FixPageState extends State<FixPage> {
     CountPhase phase,
     bool isNotCounted,
     bool hasCounted,
-    CountModel countModel,
     AreaModel areaModel, {
     Color? backgroundColor,
   }) {
@@ -730,7 +720,6 @@ class _FixPageState extends State<FixPage> {
                 itemName,
                 phase,
                 isNotCounted,
-                countModel,
                 areaModel,
               )
             : null,

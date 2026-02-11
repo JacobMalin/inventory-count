@@ -60,9 +60,7 @@ abstract class CountStrategy {
     required TextEditingController controller1,
     required TextEditingController controller2,
     required List<int> selectedOrder,
-    required Profile selectedProfile,
     required AreaModel areaModel,
-    required CountModel countModel,
   }) => [];
 
   Widget buildCountFields({
@@ -337,9 +335,7 @@ class NegativeCountStrategy extends CountStrategy {
     required TextEditingController controller1,
     required TextEditingController controller2,
     required List<int> selectedOrder,
-    required Profile selectedProfile,
     required AreaModel areaModel,
-    required CountModel countModel,
   }) {
     return [
       const SizedBox(height: 24),
@@ -353,12 +349,7 @@ class NegativeCountStrategy extends CountStrategy {
         onChanged: (value) {
           final intValue = value.isEmpty ? 0 : (int.tryParse(value) ?? 0);
           from = intValue;
-          areaModel.editItem(
-            selectedOrder,
-            selectedProfile,
-            newStrategy: this,
-            countModel: countModel,
-          );
+          areaModel.editItem(selectedOrder, newStrategy: this);
         },
       ),
     ];
@@ -575,9 +566,7 @@ class StacksCountStrategy extends CountStrategy {
     required TextEditingController controller1,
     required TextEditingController controller2,
     required List<int> selectedOrder,
-    required Profile selectedProfile,
     required AreaModel areaModel,
-    required CountModel countModel,
   }) {
     return [
       const SizedBox(height: 24),
@@ -591,21 +580,11 @@ class StacksCountStrategy extends CountStrategy {
         onChanged: (value) {
           if (value.isEmpty) {
             perStack = 1;
-            areaModel.editItem(
-              selectedOrder,
-              selectedProfile,
-              newStrategy: this,
-              countModel: countModel,
-            );
+            areaModel.editItem(selectedOrder, newStrategy: this);
           } else {
             final intValue = int.tryParse(value);
             perStack = intValue ?? 1;
-            areaModel.editItem(
-              selectedOrder,
-              selectedProfile,
-              newStrategy: this,
-              countModel: countModel,
-            );
+            areaModel.editItem(selectedOrder, newStrategy: this);
           }
         },
       ),
@@ -820,9 +799,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
     required TextEditingController controller1,
     required TextEditingController controller2,
     required List<int> selectedOrder,
-    required Profile selectedProfile,
     required AreaModel areaModel,
-    required CountModel countModel,
   }) {
     return [
       const SizedBox(height: 24),
@@ -839,21 +816,11 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
               onChanged: (value) {
                 if (value.isEmpty) {
                   perBox = 1;
-                  areaModel.editItem(
-                    selectedOrder,
-                    selectedProfile,
-                    newStrategy: this,
-                    countModel: countModel,
-                  );
+                  areaModel.editItem(selectedOrder, newStrategy: this);
                 } else {
                   final intValue = int.tryParse(value);
                   perBox = intValue ?? 1;
-                  areaModel.editItem(
-                    selectedOrder,
-                    selectedProfile,
-                    newStrategy: this,
-                    countModel: countModel,
-                  );
+                  areaModel.editItem(selectedOrder, newStrategy: this);
                 }
               },
             ),
@@ -870,21 +837,11 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
               onChanged: (value) {
                 if (value.isEmpty) {
                   perStack = 1;
-                  areaModel.editItem(
-                    selectedOrder,
-                    selectedProfile,
-                    newStrategy: this,
-                    countModel: countModel,
-                  );
+                  areaModel.editItem(selectedOrder, newStrategy: this);
                 } else {
                   final intValue = int.tryParse(value);
                   perStack = intValue ?? 1;
-                  areaModel.editItem(
-                    selectedOrder,
-                    selectedProfile,
-                    newStrategy: this,
-                    countModel: countModel,
-                  );
+                  areaModel.editItem(selectedOrder, newStrategy: this);
                 }
               },
             ),

@@ -69,6 +69,13 @@ class _SelectProfileState extends State<SelectProfile> {
         currentProfiles[newProfile] = <Area>[];
       }
       areaModel.profiles = currentProfiles;
+
+      final currentUpdatedAtMap = areaModel.updatedAtMap;
+      currentUpdatedAtMap[newProfile] = DateTime.now().toUtc();
+      areaModel.updatedAtMap = currentUpdatedAtMap;
+
+      // Sync to Supabase
+      areaModel.updateSupabase(newProfile);
     }
 
     countModel.selectedProfile = newProfile;
@@ -320,17 +327,26 @@ class _SelectProfileState extends State<SelectProfile> {
       );
       return;
     }
-
     // Create new profile with new name and transfer data
     final areas = currentProfiles.remove(profile) ?? <Area>[];
     final newProfile = Profile(trimmedName);
     currentProfiles[newProfile] = areas;
     areaModel.profiles = currentProfiles;
 
+    // Update updatedAtMap with new profile key
+    final currentUpdatedAtMap = areaModel.updatedAtMap;
+    currentUpdatedAtMap[profile] = DateTime.now().toUtc();
+    currentUpdatedAtMap[newProfile] = DateTime.now().toUtc();
+    areaModel.updatedAtMap = currentUpdatedAtMap;
+
     // Update selected profile if it was the one being renamed
     if (countModel.selectedProfile == profile) {
       countModel.selectedProfile = newProfile;
     }
+
+    // Sync to Supabase: delete old profile name and push new one
+    areaModel.deleteProfileFromSupabase(profile);
+    areaModel.updateSupabase(newProfile);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -456,6 +472,13 @@ class _SelectProfileState extends State<SelectProfile> {
     currentProfiles[targetProfile] = List<Area>.from(sourceAreas);
     areaModel.profiles = currentProfiles;
 
+    final currentUpdatedAtMap = areaModel.updatedAtMap;
+    currentUpdatedAtMap[targetProfile] = DateTime.now().toUtc();
+    areaModel.updatedAtMap = currentUpdatedAtMap;
+
+    // Sync to Supabase
+    areaModel.updateSupabase(targetProfile);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -500,9 +523,16 @@ class _SelectProfileState extends State<SelectProfile> {
       currentProfiles.remove(profile);
       areaModel.profiles = currentProfiles;
 
+      final currentUpdatedAtMap = areaModel.updatedAtMap;
+      currentUpdatedAtMap[profile] = DateTime.now().toUtc();
+      areaModel.updatedAtMap = currentUpdatedAtMap;
+
       if (countModel.selectedProfile == profile) {
         countModel.selectedProfile = null;
       }
+
+      // Sync to Supabase: delete the profile
+      areaModel.deleteProfileFromSupabase(profile);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

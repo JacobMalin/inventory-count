@@ -152,14 +152,10 @@ class SupabaseCountsPage extends StatelessWidget {
 
               var title = '';
               if (count['created_at'] != null) {
-                DateTime? dt;
-                if (count['created_at'] is DateTime) {
-                  dt = count['created_at'] as DateTime;
-                } else {
-                  dt = DateTime.tryParse(
-                    count['created_at'].toString(),
-                  )?.toLocal();
-                }
+                DateTime? dt = DateTime.tryParse(
+                  count['created_at'].toString(),
+                )?.toLocal();
+
                 if (dt != null) {
                   title = DateFormat.yMMMd().add_jm().format(dt);
                 } else {

@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:inventory_count/count_page.dart';
-import 'package:inventory_count/models/area_model.dart';
 import 'package:inventory_count/models/count_strategy.dart';
 import 'package:inventory_count/models/hive.dart';
 
@@ -56,6 +54,7 @@ class CountModel with ChangeNotifier {
     notifyListeners();
   }
 
+  // TODO: Add profile lock
   Profile? get selectedProfile => _thisCount.profile;
   set selectedProfile(Profile? profile) {
     final Count currentCount = _thisCount;
@@ -196,43 +195,6 @@ class CountModel with ChangeNotifier {
     return _thisCount.getItemExportJson(name);
   }
 
-  List<ItemTreeData> findItemsByName(
-    String name,
-    CountPhase phase,
-    AreaModel areaModel,
-  ) {
-    List<int> itemIds = [];
-    List<ItemTreeData> items = [];
-
-    if (selectedProfile == null) return [];
-
-    for (final MapEntry<int, CountEntry> entry
-        in _thisCount.itemCounts.entries) {
-      if (entry.value.name == name && entry.value.phase == phase) {
-        itemIds.add(entry.key);
-      }
-    }
-
-    for (int i = 0; i < areaModel.getNumAreas(selectedProfile!); i++) {
-      final area = areaModel.getArea(i, selectedProfile!);
-      for (var shelfOrItem in area.shelvesAndItems) {
-        if (shelfOrItem is Item) {
-          if (itemIds.contains(shelfOrItem.id)) {
-            items.add(ItemTreeData(shelfOrItem, area: area));
-          }
-        } else if (shelfOrItem is Shelf) {
-          for (var item in shelfOrItem.items) {
-            if (itemIds.contains(item.id)) {
-              items.add(ItemTreeData(item, area: area, shelf: shelfOrItem));
-            }
-          }
-        }
-      }
-    }
-
-    return items;
-  }
-
   void removeFromCountList(Item data) {
     final Count currentCount = _thisCount;
     currentCount.itemCounts.remove(data.id);
@@ -244,4 +206,6 @@ class CountModel with ChangeNotifier {
     currentCount.updateCountForItem(data);
     _thisCount = currentCount;
   }
+
+  Map<int, CountEntry> get itemCounts => _thisCount.itemCounts;
 }

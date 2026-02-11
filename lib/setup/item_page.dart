@@ -1,7 +1,6 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/count_model.dart';
 import 'package:inventory_count/models/count_strategy.dart';
 import 'package:inventory_count/models/export_model.dart';
 import 'package:inventory_count/models/hive.dart';
@@ -14,13 +13,11 @@ class ItemPage extends StatelessWidget {
     required this.deselect,
     required this.item,
     required this.selectedOrder,
-    required this.selectedProfile,
   });
 
   final Function() deselect;
   final Item item;
   final List<int> selectedOrder;
-  final Profile selectedProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -52,24 +49,15 @@ class ItemPage extends StatelessWidget {
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Rename Item'),
-                      content: Consumer<CountModel>(
-                        builder: (context, countModel, child) {
-                          return TextField(
-                            controller: controller,
-                            autofocus: true,
-                            onChanged: (value) {
-                              if (value.isNotEmpty) {
-                                areaModel.editItem(
-                                  selectedOrder,
-                                  selectedProfile,
-                                  newName: value,
-                                  countModel: countModel,
-                                );
-                              }
-                            },
-                            onSubmitted: (_) => Navigator.pop(context),
-                          );
+                      content: TextField(
+                        controller: controller,
+                        autofocus: true,
+                        onChanged: (value) {
+                          if (value.isNotEmpty) {
+                            areaModel.editItem(selectedOrder, newName: value);
+                          }
                         },
+                        onSubmitted: (_) => Navigator.pop(context),
                       ),
                       actions: [
                         TextButton(
@@ -96,21 +84,13 @@ class ItemPage extends StatelessWidget {
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Cancel'),
                         ),
-                        Consumer<CountModel>(
-                          builder: (context, countModel, child) {
-                            return TextButton(
-                              onPressed: () {
-                                areaModel.removeItem(
-                                  selectedOrder,
-                                  selectedProfile,
-                                  countModel,
-                                );
-                                Navigator.pop(context);
-                                deselect();
-                              },
-                              child: const Text('Delete'),
-                            );
+                        TextButton(
+                          onPressed: () {
+                            areaModel.removeItem(selectedOrder);
+                            Navigator.pop(context);
+                            deselect();
                           },
+                          child: const Text('Delete'),
                         ),
                       ],
                     ),
@@ -127,11 +107,7 @@ class ItemPage extends StatelessWidget {
                 deselect();
               }
             },
-            child: ItemSettings(
-              item: item,
-              selectedOrder: selectedOrder,
-              selectedProfile: selectedProfile,
-            ),
+            child: ItemSettings(item: item, selectedOrder: selectedOrder),
           ),
         );
       },
@@ -144,12 +120,10 @@ class ItemSettings extends StatefulWidget {
     super.key,
     required this.item,
     required this.selectedOrder,
-    required this.selectedProfile,
   });
 
   final Item item;
   final List<int> selectedOrder;
-  final Profile selectedProfile;
 
   @override
   State<ItemSettings> createState() => _ItemSettingsState();
@@ -195,8 +169,8 @@ class _ItemSettingsState extends State<ItemSettings> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
-      child: Consumer2<AreaModel, CountModel>(
-        builder: (context, areaModel, countModel, child) {
+      child: Consumer<AreaModel>(
+        builder: (context, areaModel, child) {
           void updateDefaultCount() {
             int? defaultCountField1;
             int? defaultCountField2;
@@ -212,7 +186,6 @@ class _ItemSettingsState extends State<ItemSettings> {
             if (defaultCountField1 != null || defaultCountField2 != null) {
               areaModel.editItem(
                 widget.selectedOrder,
-                widget.selectedProfile,
                 newDefaultCount: ItemCount(
                   countStrategy,
                   field1: defaultCountField1,
@@ -220,11 +193,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                 ),
               );
             } else {
-              areaModel.editItem(
-                widget.selectedOrder,
-                widget.selectedProfile,
-                clearDefaultCount: true,
-              );
+              areaModel.editItem(widget.selectedOrder, clearDefaultCount: true);
             }
           }
 
@@ -234,6 +203,7 @@ class _ItemSettingsState extends State<ItemSettings> {
               Consumer<ExportModel>(
                 builder: (context, exportModel, child) {
                   final isValid = widget.item.getIsValid(exportModel);
+                  final countName = widget.item.countName;
 
                   return Row(
                     children: [
@@ -250,7 +220,9 @@ class _ItemSettingsState extends State<ItemSettings> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Export "${widget.item.countName}" is hidden',
+                          countName == null
+                              ? 'No export selected'
+                              : 'Export "$countName" is hidden',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.error,
                             fontSize: 14,
@@ -284,16 +256,12 @@ class _ItemSettingsState extends State<ItemSettings> {
                       if (value == null) {
                         areaModel.editItem(
                           widget.selectedOrder,
-                          widget.selectedProfile,
                           newCountName: "",
-                          countModel: countModel,
                         );
                       } else {
                         areaModel.editItem(
                           widget.selectedOrder,
-                          widget.selectedProfile,
                           newCountName: value,
-                          countModel: countModel,
                         );
                       }
                     },
@@ -327,9 +295,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                     });
                     areaModel.editItem(
                       widget.selectedOrder,
-                      widget.selectedProfile,
                       newStrategy: countStrategy,
-                      countModel: countModel,
                     );
                     updateDefaultCount();
                   },
@@ -339,9 +305,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                 controller1: strategyIntController,
                 controller2: strategyInt2Controller,
                 selectedOrder: widget.selectedOrder,
-                selectedProfile: widget.selectedProfile,
                 areaModel: areaModel,
-                countModel: countModel,
               ),
               const SizedBox(height: 24),
               if (countStrategy is! NegativeCountStrategy) ...[
@@ -438,9 +402,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                     });
                     areaModel.editItem(
                       widget.selectedOrder,
-                      widget.selectedProfile,
                       newCountPhase: countPhase,
-                      countModel: countModel,
                     );
                   },
                 ),
@@ -478,10 +440,8 @@ class _ItemSettingsState extends State<ItemSettings> {
                     });
                     areaModel.editItem(
                       widget.selectedOrder,
-                      widget.selectedProfile,
                       newPersonalCountPhase: personalCountPhase,
                       clearPersonalCountPhase: personalCountPhase == null,
-                      countModel: countModel,
                     );
                   },
                 ),
