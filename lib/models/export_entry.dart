@@ -3,11 +3,24 @@ import 'package:hive_flutter/hive_flutter.dart';
 part 'export_entry.g.dart';
 
 void registerExportEntryAdapters() {
-  Hive.registerAdapter<ExportItem>(ExportItemAdapter());
-  Hive.registerAdapter<ExportTitle>(ExportTitleAdapter());
+  Hive
+    ..registerAdapter<ExportItem>(ExportItemAdapter())
+    ..registerAdapter<ExportTitle>(ExportTitleAdapter());
 }
 
 abstract class ExportEntry {
+  factory ExportEntry.fromJson(Map<String, dynamic> json) {
+    final type = json['type'] as String?;
+    final ExportEntry Function(Map<String, dynamic>)? constructor =
+        _registry[type];
+
+    if (constructor == null) {
+      throw Exception('Unknown ExportEntry type: $type');
+    }
+
+    return constructor(json);
+  }
+
   String get name;
   set name(String value);
 
@@ -22,46 +35,19 @@ abstract class ExportEntry {
     'ExportPlaceholder': ExportItem.fromJson, // For backward compatibility
     'ExportTitle': ExportTitle.fromJson,
   };
-
-  factory ExportEntry.fromJson(Map<String, dynamic> json) {
-    final type = json['type'] as String?;
-    final constructor = _registry[type];
-
-    if (constructor == null) {
-      throw Exception('Unknown ExportEntry type: $type');
-    }
-
-    return constructor(json);
-  }
 }
 
 @HiveType(typeId: 7)
 class ExportItem extends HiveObject implements ExportEntry {
-  @override
-  @HiveField(0)
-  String name;
-
-  @override
-  @HiveField(1)
-  bool isHidden = false;
-
   ExportItem(this.name, {bool? isHidden}) : isHidden = isHidden ?? false;
 
-  @override
-  Map<String, dynamic> toJson() {
-    return {'type': 'ExportItem', 'name': name, 'isHidden': isHidden};
-  }
-
-  static ExportItem fromJson(Map<String, dynamic> json) {
+  factory ExportItem.fromJson(Map<String, dynamic> json) {
     return ExportItem(
       json['name'] as String? ?? '',
       isHidden: json['isHidden'] as bool? ?? false,
     );
   }
-}
 
-@HiveType(typeId: 9)
-class ExportTitle extends HiveObject implements ExportEntry {
   @override
   @HiveField(0)
   String name;
@@ -70,17 +56,33 @@ class ExportTitle extends HiveObject implements ExportEntry {
   @HiveField(1)
   bool isHidden = false;
 
-  ExportTitle(this.name, {bool? isHidden}) : isHidden = isHidden ?? false;
-
   @override
   Map<String, dynamic> toJson() {
-    return {'type': 'ExportTitle', 'name': name, 'isHidden': isHidden};
+    return {'type': 'ExportItem', 'name': name, 'isHidden': isHidden};
   }
+}
 
-  static ExportTitle fromJson(Map<String, dynamic> json) {
+@HiveType(typeId: 9)
+class ExportTitle extends HiveObject implements ExportEntry {
+  ExportTitle(this.name, {bool? isHidden}) : isHidden = isHidden ?? false;
+
+  factory ExportTitle.fromJson(Map<String, dynamic> json) {
     return ExportTitle(
       json['name'] as String? ?? '',
       isHidden: json['isHidden'] as bool? ?? false,
     );
+  }
+
+  @override
+  @HiveField(0)
+  String name;
+
+  @override
+  @HiveField(1)
+  bool isHidden = false;
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {'type': 'ExportTitle', 'name': name, 'isHidden': isHidden};
   }
 }

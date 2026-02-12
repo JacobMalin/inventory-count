@@ -1,35 +1,45 @@
 import 'package:animated_tree_view/animated_tree_view.dart';
 import 'package:flutter/material.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/count_model.dart';
-import 'package:inventory_count/models/count_strategy.dart';
-import 'package:inventory_count/models/export_model.dart';
-import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 
-class ItemTreeData {
+import 'models/area_model.dart';
+import 'models/count_model.dart';
+import 'models/count_strategy.dart';
+import 'models/export_model.dart';
+import 'models/hive.dart';
+
+abstract class StorageObjectTreeData {
+  int get uncountedItems;
+}
+
+class ItemTreeData extends StorageObjectTreeData {
+  ItemTreeData(this.item, {this.area, this.shelf});
+
   final Item item;
 
   final Area? area;
   final Shelf? shelf;
 
-  ItemTreeData(this.item, {this.area, this.shelf});
+  @override
+  int get uncountedItems => 0;
 }
 
-class AreaTreeData {
+class AreaTreeData extends StorageObjectTreeData {
+  AreaTreeData(this.area, {this.isAreaUsed = false, this.uncountedItems = 0});
+
   final Area area;
 
   final bool isAreaUsed;
+  @override
   final int uncountedItems;
-
-  AreaTreeData(this.area, {this.isAreaUsed = false, this.uncountedItems = 0});
 }
 
-class ShelfTreeData {
-  final Shelf shelf;
-  final int uncountedItems;
-
+class ShelfTreeData extends StorageObjectTreeData {
   ShelfTreeData(this.shelf, {this.uncountedItems = 0});
+
+  final Shelf shelf;
+  @override
+  final int uncountedItems;
 }
 
 class CountPage extends StatefulWidget {
@@ -50,7 +60,7 @@ class _CountPageState extends State<CountPage> {
         return Scaffold(
           body: CountList(
             hideCountedItems: countModel.hideCountedItems,
-            onExpandCallbackChanged: (callback, isExpanded) {
+            onExpandCallbackChanged: (callback, {required isExpanded}) {
               setState(() {
                 _expandUncountedCallback = callback;
                 _isFullyExpanded = isExpanded;
@@ -68,9 +78,7 @@ class _CountPageState extends State<CountPage> {
                         : Icons.visibility,
                   ),
                   onPressed: () {
-                    countModel.setHideCountedItems(
-                      !countModel.hideCountedItems,
-                    );
+                    countModel.hideCountedItems = !countModel.hideCountedItems;
                   },
                   constraints: const BoxConstraints(),
                 ),
@@ -79,7 +87,6 @@ class _CountPageState extends State<CountPage> {
                 Expanded(
                   child: Slider(
                     value: countModel.countPhase.index.toDouble(),
-                    min: 0,
                     max: 2,
                     divisions: 2,
                     onChanged: (value) {
@@ -109,13 +116,16 @@ class _CountPageState extends State<CountPage> {
 
 class CountList extends StatefulWidget {
   const CountList({
+    required void Function(void Function()?, {required bool isExpanded})
+    onExpandCallbackChanged,
+    required bool hideCountedItems,
     super.key,
-    required this.onExpandCallbackChanged,
-    required this.hideCountedItems,
-  });
+  }) : _onExpandCallbackChanged = onExpandCallbackChanged,
+       _hideCountedItems = hideCountedItems;
 
-  final void Function(void Function()?, bool) onExpandCallbackChanged;
-  final bool hideCountedItems;
+  final void Function(void Function()?, {required bool isExpanded})
+  _onExpandCallbackChanged;
+  final bool _hideCountedItems;
 
   @override
   State<CountList> createState() => _CountListState();
@@ -133,12 +143,12 @@ class _CountListState extends State<CountList> {
     CountModel countModel,
     ExportModel exportModel,
   ) {
-    final root = TreeNode.root();
-    final currentPhase = countModel.countPhase;
+    final TreeNode<StorageObjectTreeData> root = TreeNode.root();
+    final CountPhase currentPhase = countModel.countPhase;
 
-    for (int i = 0; i < areaModel.numAreas; i++) {
-      final area = areaModel.getArea(i);
-      final areaNode = TreeNode(
+    for (var i = 0; i < areaModel.numAreas; i++) {
+      final Area area = areaModel.getArea(i);
+      final TreeNode<AreaTreeData> areaNode = TreeNode(
         key: 'area_${area.name}',
         data: AreaTreeData(area),
       );
@@ -146,11 +156,11 @@ class _CountListState extends State<CountList> {
       var isAreaUsed = false;
       var areaUncountedCount = 0;
 
-      for (int j = 0; j < area.shelvesAndItems.length; j++) {
-        final shelfOrItem = area.shelvesAndItems[j];
+      for (var j = 0; j < area.shelvesAndItems.length; j++) {
+        final Object shelfOrItem = area.shelvesAndItems[j];
 
         if (shelfOrItem is Shelf) {
-          final shelfNode = TreeNode(
+          final TreeNode<ShelfTreeData> shelfNode = TreeNode(
             key: 'shelf_${area.name}_${shelfOrItem.name}',
             data: ShelfTreeData(shelfOrItem),
           );
@@ -158,20 +168,23 @@ class _CountListState extends State<CountList> {
           var isShelfUsed = false;
           var shelfUncountedCount = 0;
 
-          for (int k = 0; k < shelfOrItem.items.length; k++) {
-            final item = shelfOrItem.items[k] as Item;
+          for (var k = 0; k < shelfOrItem.items.length; k++) {
+            final Item item = shelfOrItem.items[k];
             if ((item.personalCountPhase?.index ?? item.countPhase.index) <=
                 currentPhase.index) {
-              final count = countModel.getCount(item);
+              final ItemCountType? count = countModel.getCount(item);
 
               // Skip counted items if hideCountedItems is true
-              if (widget.hideCountedItems && count != null ||
+              if (widget._hideCountedItems && count != null ||
                   !item.getIsValid(exportModel)) {
                 continue;
               }
 
               final data = ItemTreeData(item, shelf: shelfOrItem, area: area);
-              final itemNode = TreeNode(key: 'item_${item.id}', data: data);
+              final TreeNode<ItemTreeData> itemNode = TreeNode(
+                key: 'item_${item.id}',
+                data: data,
+              );
               shelfNode.add(itemNode);
               isShelfUsed = true;
 
@@ -194,16 +207,19 @@ class _CountListState extends State<CountList> {
             (shelfOrItem.personalCountPhase?.index ??
                     shelfOrItem.countPhase.index) <=
                 currentPhase.index) {
-          final count = countModel.getCount(shelfOrItem);
+          final ItemCountType? count = countModel.getCount(shelfOrItem);
 
           // Skip counted items if hideCountedItems is true
-          if (widget.hideCountedItems && count != null ||
+          if (widget._hideCountedItems && count != null ||
               !shelfOrItem.getIsValid(exportModel)) {
             continue;
           }
 
           final data = ItemTreeData(shelfOrItem, area: area);
-          final itemNode = TreeNode(key: 'item_${shelfOrItem.id}', data: data);
+          final TreeNode<ItemTreeData> itemNode = TreeNode(
+            key: 'item_${shelfOrItem.id}',
+            data: data,
+          );
           areaNode.add(itemNode);
           isAreaUsed = true;
 
@@ -230,7 +246,7 @@ class _CountListState extends State<CountList> {
     super.initState();
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      widget.onExpandCallbackChanged(_toggleUncountedItems, false);
+      widget._onExpandCallbackChanged(_toggleUncountedItems, isExpanded: false);
       await Future.delayed(const Duration(milliseconds: 300));
       _onScroll();
     });
@@ -238,16 +254,18 @@ class _CountListState extends State<CountList> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
   }
 
   void _onScroll() {
     if (_scrollController.hasClients) {
-      final maxExtent = _scrollController.position.maxScrollExtent;
-      final isAtBottom = _scrollController.position.pixels >= maxExtent - 50;
-      final hasScrollableContent = maxExtent > 0;
+      final double maxExtent = _scrollController.position.maxScrollExtent;
+      final bool isAtBottom =
+          _scrollController.position.pixels >= maxExtent - 50;
+      final bool hasScrollableContent = maxExtent > 0;
 
       if (isAtBottom != _isAtBottom ||
           hasScrollableContent != _hasScrollableContent) {
@@ -259,7 +277,7 @@ class _CountListState extends State<CountList> {
     }
   }
 
-  void _scrollToBottom() async {
+  Future<void> _scrollToBottom() async {
     await Future.delayed(const Duration(milliseconds: 100));
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
@@ -274,7 +292,7 @@ class _CountListState extends State<CountList> {
     }
   }
 
-  void _scrollToTop() async {
+  Future<void> _scrollToTop() async {
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
         0,
@@ -287,9 +305,9 @@ class _CountListState extends State<CountList> {
   bool _areAllUncountedExpanded() {
     if (_treeController == null) return false;
 
-    bool checkExpanded(dynamic node) {
-      final data = node.data;
-      bool hasUncounted = false;
+    bool checkExpanded(ITreeNode<StorageObjectTreeData> node) {
+      final StorageObjectTreeData? data = node.data;
+      var hasUncounted = false;
 
       if (data is AreaTreeData && data.uncountedItems > 0) {
         hasUncounted = true;
@@ -301,8 +319,8 @@ class _CountListState extends State<CountList> {
         if (!_expandedKeys.contains(node.key)) {
           return false;
         }
-        for (var child in node.childrenAsList) {
-          if (!checkExpanded(child)) {
+        for (final INode child in node.childrenAsList) {
+          if (!checkExpanded(child as ITreeNode<StorageObjectTreeData>)) {
             return false;
           }
         }
@@ -310,9 +328,9 @@ class _CountListState extends State<CountList> {
       return true;
     }
 
-    final tree = _treeController!.tree;
-    for (var child in tree.childrenAsList) {
-      if (!checkExpanded(child)) {
+    final tree = _treeController!.tree as ITreeNode<StorageObjectTreeData>;
+    for (final INode child in tree.childrenAsList) {
+      if (!checkExpanded(child as ITreeNode<StorageObjectTreeData>)) {
         return false;
       }
     }
@@ -334,21 +352,21 @@ class _CountListState extends State<CountList> {
   void _collapseUncountedItems() {
     if (_treeController == null) return;
 
-    void collapseAll(dynamic node) {
+    void collapseAll(ITreeNode<StorageObjectTreeData> node) {
       if (node is TreeNode) {
         _treeController!.collapseNode(node);
         setState(() {
           _expandedKeys.remove(node.key);
         });
-        for (var child in node.childrenAsList) {
-          collapseAll(child);
+        for (final INode child in node.childrenAsList) {
+          collapseAll(child as ITreeNode<StorageObjectTreeData>);
         }
       }
     }
 
-    final tree = _treeController!.tree;
-    for (var child in tree.childrenAsList) {
-      collapseAll(child);
+    final tree = _treeController!.tree as ITreeNode<StorageObjectTreeData>;
+    for (final INode child in tree.childrenAsList) {
+      collapseAll(child as ITreeNode<StorageObjectTreeData>);
     }
 
     _updateExpandedState();
@@ -363,9 +381,9 @@ class _CountListState extends State<CountList> {
   void _expandUncountedItems() {
     if (_treeController == null) return;
 
-    void expandIfHasUncounted(dynamic node) {
-      final data = node.data;
-      bool hasUncounted = false;
+    void expandIfHasUncounted(ITreeNode<StorageObjectTreeData> node) {
+      final StorageObjectTreeData? data = node.data;
+      var hasUncounted = false;
 
       if (data is AreaTreeData && data.uncountedItems > 0) {
         hasUncounted = true;
@@ -378,15 +396,15 @@ class _CountListState extends State<CountList> {
         setState(() {
           _expandedKeys.add(node.key);
         });
-        for (var child in node.childrenAsList) {
-          expandIfHasUncounted(child);
+        for (final INode child in node.childrenAsList) {
+          expandIfHasUncounted(child as ITreeNode<StorageObjectTreeData>);
         }
       }
     }
 
-    final tree = _treeController!.tree;
-    for (var child in tree.childrenAsList) {
-      expandIfHasUncounted(child);
+    final tree = _treeController!.tree as ITreeNode<StorageObjectTreeData>;
+    for (final INode child in tree.childrenAsList) {
+      expandIfHasUncounted(child as ITreeNode<StorageObjectTreeData>);
     }
 
     _updateExpandedState();
@@ -399,8 +417,11 @@ class _CountListState extends State<CountList> {
   }
 
   void _updateExpandedState() {
-    final isExpanded = _areAllUncountedExpanded();
-    widget.onExpandCallbackChanged(_toggleUncountedItems, isExpanded);
+    final bool isExpanded = _areAllUncountedExpanded();
+    widget._onExpandCallbackChanged(
+      _toggleUncountedItems,
+      isExpanded: isExpanded,
+    );
   }
 
   @override
@@ -409,7 +430,11 @@ class _CountListState extends State<CountList> {
       builder: (context, areaModel, child) {
         return Consumer2<CountModel, ExportModel>(
           builder: (context, countModel, exportModel, child) {
-            final tree = _buildTree(areaModel, countModel, exportModel);
+            final TreeNode<dynamic> tree = _buildTree(
+              areaModel,
+              countModel,
+              exportModel,
+            );
 
             // Check if tree is empty (no items to count)
             final bool treeIsEmpty =
@@ -420,7 +445,7 @@ class _CountListState extends State<CountList> {
 
             if (treeIsEmpty) {
               // Check if there are any items at all for the current phase
-              bool hasAnyItems = areaModel.hasAnyItems();
+              final bool hasAnyItems = areaModel.hasAnyItems();
 
               final message = hasAnyItems
                   ? 'All items counted!'
@@ -428,7 +453,7 @@ class _CountListState extends State<CountList> {
 
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16),
                   child: Text(
                     message,
                     textAlign: TextAlign.center,
@@ -450,25 +475,26 @@ class _CountListState extends State<CountList> {
             });
 
             // Build flat list of all items for navigation
-            List<ItemTreeData> allItems = [];
-            void collectItems(dynamic node) {
+            final List<ItemTreeData> allItems = [];
+            void collectItems(ITreeNode<StorageObjectTreeData> node) {
               if (node.data is ItemTreeData) {
-                allItems.add(node.data);
+                allItems.add(node.data! as ItemTreeData);
               }
-              for (var child in node.childrenAsList) {
-                collectItems(child);
+              for (final INode child in node.childrenAsList) {
+                collectItems(child as ITreeNode<StorageObjectTreeData>);
               }
             }
 
-            for (var child in tree.childrenAsList) {
-              collectItems(child);
+            for (final INode child in tree.childrenAsList) {
+              collectItems(child as ITreeNode<StorageObjectTreeData>);
             }
 
             return Stack(
               children: [
                 TreeView.simple(
                   key: ValueKey(
-                    '${countModel.countPhase.index}_${widget.hideCountedItems}',
+                    '${countModel.countPhase.index}_'
+                    '${widget._hideCountedItems}',
                   ),
                   tree: tree,
                   showRootNode: false,
@@ -483,19 +509,29 @@ class _CountListState extends State<CountList> {
                   onTreeReady: (controller) {
                     _treeController = controller;
                     // Restore expansion state by traversing tree
-                    void restoreExpansion(dynamic node) {
+                    void restoreExpansion(
+                      ITreeNode<StorageObjectTreeData> node,
+                    ) {
                       if (_expandedKeys.contains(node.key) &&
                           node is TreeNode) {
-                        controller.expandNode(node);
-                        for (var child in node.childrenAsList) {
-                          restoreExpansion(child);
+                        controller.expandNode(
+                          node as TreeNode<StorageObjectTreeData>,
+                        );
+                        for (final INode child in node.childrenAsList) {
+                          restoreExpansion(
+                            child as ITreeNode<StorageObjectTreeData>,
+                          );
                         }
                       } else {
                         // Remove all children keys, recursively
-                        void removeDescendants(dynamic node) {
-                          for (var child in node.childrenAsList) {
+                        void removeDescendants(
+                          ITreeNode<StorageObjectTreeData> node,
+                        ) {
+                          for (final INode child in node.childrenAsList) {
                             _expandedKeys.remove(child.key);
-                            removeDescendants(child);
+                            removeDescendants(
+                              child as ITreeNode<StorageObjectTreeData>,
+                            );
                           }
                         }
 
@@ -503,8 +539,10 @@ class _CountListState extends State<CountList> {
                       }
                     }
 
-                    for (var child in tree.childrenAsList) {
-                      restoreExpansion(child);
+                    for (final INode child in tree.childrenAsList) {
+                      restoreExpansion(
+                        child as ITreeNode<StorageObjectTreeData>,
+                      );
                     }
                   },
                   onItemTap: (item) {
@@ -529,7 +567,7 @@ class _CountListState extends State<CountList> {
                     });
                   },
                   builder: (context, node) {
-                    final data = node.data;
+                    final dynamic data = node.data;
 
                     if (data is ItemTreeData) {
                       return Consumer<CountModel>(
@@ -548,8 +586,8 @@ class _CountListState extends State<CountList> {
                               _ => Colors.red.withValues(alpha: 0.2),
                             },
                             child: InkWell(
-                              onTap: () {
-                                showDialog(
+                              onTap: () async {
+                                await showDialog(
                                   context: context,
                                   builder: (context) => CountDialog(
                                     initialData: data,
@@ -601,9 +639,9 @@ class _CountListState extends State<CountList> {
                       return Container(
                         width: double.infinity,
                         padding: const EdgeInsets.only(
-                          left: 28.0,
-                          top: 4.0,
-                          bottom: 4.0,
+                          left: 28,
+                          top: 4,
+                          bottom: 4,
                         ),
                         child: Row(
                           children: [
@@ -629,7 +667,7 @@ class _CountListState extends State<CountList> {
                                 child: Text(
                                   '$uncountedCount',
                                   style: TextStyle(
-                                    color: Colors.red.withValues(alpha: 1.0),
+                                    color: Colors.red.withValues(alpha: 1),
                                     fontSize: 11,
                                     fontWeight: FontWeight.normal,
                                   ),
@@ -673,52 +711,56 @@ class _CountListState extends State<CountList> {
 
 class CountDialog extends StatefulWidget {
   const CountDialog({
+    required ItemTreeData initialData,
+    required List<ItemTreeData> allItems,
     super.key,
-    required this.initialData,
-    required this.allItems,
-  });
+  }) : _allItems = allItems,
+       _initialData = initialData;
 
-  final ItemTreeData initialData;
-  final List<ItemTreeData> allItems;
+  final ItemTreeData _initialData;
+  final List<ItemTreeData> _allItems;
 
   @override
   State<CountDialog> createState() => _CountDialogState();
 }
 
 class _CountDialogState extends State<CountDialog> {
-  late ItemTreeData currentData;
-  late TextEditingController controller;
-  late TextEditingController secondaryController;
-  late FocusNode focusNode;
+  late ItemTreeData _currentData;
+  late TextEditingController _controller;
+  late TextEditingController _secondaryController;
+  late FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
-    currentData = widget.initialData;
-    focusNode = FocusNode();
-    _initializeControllers(selectAll: false);
+    _currentData = widget._initialData;
+    _focusNode = FocusNode();
+    _initializeControllers();
   }
 
   void _initializeControllers({bool selectAll = false}) {
-    final countModel = Provider.of<CountModel>(context, listen: false);
-    final count = countModel.getCount(currentData.item);
+    final CountModel countModel = Provider.of<CountModel>(
+      context,
+      listen: false,
+    );
+    final ItemCountType? count = countModel.getCount(_currentData.item);
 
-    final primaryText = switch (count) {
+    final String primaryText = switch (count) {
       ItemCount() => count.field1?.toString() ?? '',
       ItemNotCounted() => '-',
       _ => '',
     };
 
-    controller = TextEditingController(text: primaryText);
+    _controller = TextEditingController(text: primaryText);
 
     if (selectAll && primaryText.isNotEmpty) {
-      controller.selection = TextSelection(
+      _controller.selection = TextSelection(
         baseOffset: 0,
         extentOffset: primaryText.length,
       );
     }
 
-    secondaryController = TextEditingController(
+    _secondaryController = TextEditingController(
       text: switch (count) {
         ItemCount() => count.field2?.toString() ?? '',
         ItemNotCounted() => '-',
@@ -728,17 +770,17 @@ class _CountDialogState extends State<CountDialog> {
   }
 
   void _navigate(int direction) {
-    final currentIndex = widget.allItems.indexWhere(
-      (item) => item.item.id == currentData.item.id,
+    final int currentIndex = widget._allItems.indexWhere(
+      (item) => item.item.id == _currentData.item.id,
     );
-    final newIndex = currentIndex + direction;
+    final int newIndex = currentIndex + direction;
 
-    if (newIndex >= 0 && newIndex < widget.allItems.length) {
-      final oldController = controller;
-      final oldSecondaryController = secondaryController;
+    if (newIndex >= 0 && newIndex < widget._allItems.length) {
+      final TextEditingController oldController = _controller;
+      final TextEditingController oldSecondaryController = _secondaryController;
 
       setState(() {
-        currentData = widget.allItems[newIndex];
+        _currentData = widget._allItems[newIndex];
         _initializeControllers(selectAll: true);
       });
 
@@ -748,29 +790,29 @@ class _CountDialogState extends State<CountDialog> {
         oldSecondaryController.dispose();
       });
 
-      focusNode.requestFocus();
+      _focusNode.requestFocus();
     }
   }
 
   @override
   void dispose() {
-    controller.dispose();
-    secondaryController.dispose();
-    focusNode.dispose();
+    _controller.dispose();
+    _secondaryController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentIndex = widget.allItems.indexWhere(
-      (item) => item.item.id == currentData.item.id,
+    final int currentIndex = widget._allItems.indexWhere(
+      (item) => item.item.id == _currentData.item.id,
     );
-    final hasNext = currentIndex < widget.allItems.length - 1;
-    final hasPrevious = currentIndex > 0;
+    final bool hasNext = currentIndex < widget._allItems.length - 1;
+    final bool hasPrevious = currentIndex > 0;
 
     return Consumer<CountModel>(
-      builder: (context, CountModel countModel, child) {
-        final ItemCountType? count = countModel.getCount(currentData.item);
+      builder: (context, countModel, child) {
+        final ItemCountType? count = countModel.getCount(_currentData.item);
         final String displayCount = switch (count) {
           ItemCount() => count.count.toString(),
           ItemNotCounted() => 'Not Counted',
@@ -789,7 +831,8 @@ class _CountDialogState extends State<CountDialog> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (currentData.area != null || currentData.shelf != null)
+                      if (_currentData.area != null ||
+                          _currentData.shelf != null)
                         RichText(
                           text: TextSpan(
                             style: DefaultTextStyle.of(context).style.copyWith(
@@ -797,23 +840,23 @@ class _CountDialogState extends State<CountDialog> {
                               fontWeight: FontWeight.normal,
                             ),
                             children: [
-                              if (currentData.area != null)
+                              if (_currentData.area != null)
                                 TextSpan(
-                                  text: currentData.area!.name,
+                                  text: _currentData.area!.name,
                                   style: TextStyle(
-                                    color: currentData.area!.color,
+                                    color: _currentData.area!.color,
                                   ),
                                 ),
-                              if (currentData.area != null &&
-                                  currentData.shelf != null)
+                              if (_currentData.area != null &&
+                                  _currentData.shelf != null)
                                 const TextSpan(text: ' > '),
-                              if (currentData.shelf != null)
-                                TextSpan(text: currentData.shelf!.name),
+                              if (_currentData.shelf != null)
+                                TextSpan(text: _currentData.shelf!.name),
                             ],
                           ),
                         ),
                       Text(
-                        currentData.item.name,
+                        _currentData.item.name,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -851,12 +894,12 @@ class _CountDialogState extends State<CountDialog> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      currentData.item.strategy.buildCountFields(
-                        controller1: controller,
-                        controller2: secondaryController,
-                        focusNode: focusNode,
+                      _currentData.item.strategy.buildCountFields(
+                        controller1: _controller,
+                        controller2: _secondaryController,
+                        focusNode: _focusNode,
                         countModel: countModel,
-                        item: currentData.item,
+                        item: _currentData.item,
                         onSubmitted: (value) => Navigator.pop(context),
                       ),
                     ],
@@ -867,7 +910,7 @@ class _CountDialogState extends State<CountDialog> {
               Card(
                 elevation: 4,
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -878,13 +921,13 @@ class _CountDialogState extends State<CountDialog> {
                           Builder(
                             builder: (context) {
                               final ItemCountType? lastCount = countModel
-                                  .getLastCount(currentData.item);
+                                  .getLastCount(_currentData.item);
 
                               return TextButton(
                                 onPressed: lastCount != null
                                     ? () {
                                         countModel.setLastCount(
-                                          currentData.item,
+                                          _currentData.item,
                                         );
                                         if (hasNext) {
                                           _navigate(1);
@@ -913,39 +956,48 @@ class _CountDialogState extends State<CountDialog> {
                             },
                           ),
                           const SizedBox(width: 12),
-                          TextButton(
-                            onPressed:
-                                currentData.item.defaultCount != null ||
-                                    currentData.item.strategy
-                                        is NegativeCountStrategy
-                                ? () {
-                                    countModel.setDefaultCount(
-                                      currentData.item,
-                                    );
-                                    if (hasNext) {
-                                      _navigate(1);
-                                    } else {
-                                      Navigator.pop(context);
-                                    }
-                                  }
-                                : null,
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(100, 56),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              currentData.item.strategy is NegativeCountStrategy
-                                  ? 'Default: 0'
-                                  : currentData.item.defaultCount != null
-                                  ? 'Default: ${currentData.item.defaultCount!.count}'
-                                  : 'Default',
-                            ),
+                          Builder(
+                            builder: (context) {
+                              final ItemCount? defaultCount =
+                                  _currentData.item.defaultCount;
+
+                              return TextButton(
+                                onPressed:
+                                    defaultCount != null ||
+                                        _currentData.item.strategy
+                                            is NegativeCountStrategy
+                                    ? () {
+                                        countModel.setDefaultCount(
+                                          _currentData.item,
+                                        );
+                                        if (hasNext) {
+                                          _navigate(1);
+                                        } else {
+                                          Navigator.pop(context);
+                                        }
+                                      }
+                                    : null,
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(100, 56),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  _currentData.item.strategy
+                                          is NegativeCountStrategy
+                                      ? 'Default: 0'
+                                      : defaultCount != null
+                                      ? 'Default: '
+                                            '${defaultCount.count}'
+                                      : 'Default',
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -967,16 +1019,16 @@ class _CountDialogState extends State<CountDialog> {
                           const SizedBox(width: 12),
                           TextButton(
                             onPressed: () {
-                              if (currentData.item.strategy
+                              if (_currentData.item.strategy
                                   is NegativeCountStrategy) {
                                 countModel.setField1(
-                                  currentData.item,
-                                  (currentData.item.strategy
+                                  _currentData.item,
+                                  (_currentData.item.strategy
                                           as NegativeCountStrategy)
                                       .from,
                                 );
                               } else {
-                                countModel.setField1(currentData.item, 0);
+                                countModel.setField1(_currentData.item, 0);
                               }
                               if (hasNext) {
                                 _navigate(1);
@@ -999,7 +1051,7 @@ class _CountDialogState extends State<CountDialog> {
                           const SizedBox(width: 12),
                           TextButton(
                             onPressed: () {
-                              countModel.setNotCounted(currentData.item);
+                              countModel.setNotCounted(_currentData.item);
                               if (hasNext) {
                                 _navigate(1);
                               } else {

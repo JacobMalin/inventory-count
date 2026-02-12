@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:inventory_count/models/count_strategy.dart';
-import 'package:inventory_count/models/hive.dart';
+
+import 'count_strategy.dart';
+import 'hive.dart';
 
 class CountModel with ChangeNotifier {
   final Box _settingsBox = Hive.box('settings');
@@ -17,8 +20,8 @@ class CountModel with ChangeNotifier {
 
   bool get hideCountedItems =>
       _settingsBox.get('hideCountedItems', defaultValue: false);
-  void setHideCountedItems(bool value) {
-    _settingsBox.put('hideCountedItems', value);
+  set hideCountedItems(bool value) {
+    unawaited(_settingsBox.put('hideCountedItems', value));
   }
 
   void setSelectedDate(DateTime date) {
@@ -50,15 +53,14 @@ class CountModel with ChangeNotifier {
 
   Count get _thisCount => _countBox.get(date) ?? Count();
   set _thisCount(Count count) {
-    _countBox.put(date, count);
+    unawaited(_countBox.put(date, count));
     notifyListeners();
   }
 
   // TODO: Add profile lock
   Profile? get selectedProfile => _thisCount.profile;
   set selectedProfile(Profile? profile) {
-    final Count currentCount = _thisCount;
-    currentCount.profile = profile;
+    final Count currentCount = _thisCount..profile = profile;
     _thisCount = currentCount;
   }
 
@@ -67,14 +69,12 @@ class CountModel with ChangeNotifier {
   Map<String, bool> get itemsToFix => _thisCount.itemsToFix;
 
   void setItemsToFix(Map<String, bool> items) {
-    final Count currentCount = _thisCount;
-    currentCount.itemsToFix = items;
+    final Count currentCount = _thisCount..itemsToFix = items;
     _thisCount = currentCount;
   }
 
   void setCountPhase(CountPhase phase) {
-    final Count currentCount = _thisCount;
-    currentCount.countPhase = phase;
+    final Count currentCount = _thisCount..countPhase = phase;
     _thisCount = currentCount;
   }
 
@@ -84,40 +84,37 @@ class CountModel with ChangeNotifier {
 
   void setField1(Item data, int? count) {
     final Count currentCount = _thisCount;
-    ItemCountType? existingCount = currentCount.getCount(data);
+    final ItemCountType? existingCount = currentCount.getCount(data);
 
-    ItemCount itemCount = (existingCount is ItemCount)
-        ? existingCount
-        : ItemCount(data.strategy);
-    itemCount.field1 = count;
+    final ItemCount itemCount =
+        (existingCount is ItemCount) ? existingCount : ItemCount(data.strategy)
+          ..field1 = count;
     currentCount.setCount(data, itemCount);
     _thisCount = currentCount;
   }
 
   void setField2(Item data, int? count) {
     final Count currentCount = _thisCount;
-    ItemCountType? existingCount = currentCount.getCount(data);
+    final ItemCountType? existingCount = currentCount.getCount(data);
 
-    ItemCount itemCount = (existingCount is ItemCount)
-        ? existingCount
-        : ItemCount(data.strategy);
-    itemCount.field2 = count;
+    final ItemCount itemCount =
+        (existingCount is ItemCount) ? existingCount : ItemCount(data.strategy)
+          ..field2 = count;
     currentCount.setCount(data, itemCount);
     _thisCount = currentCount;
   }
 
   void setNotCounted(Item data) {
-    final Count currentCount = _thisCount;
-    currentCount.setNotCounted(data);
+    final Count currentCount = _thisCount..setNotCounted(data);
     _thisCount = currentCount;
   }
 
-  void setDoubleChecked(Item data, bool value) {
+  void setDoubleChecked(Item data, {required bool doubleChecked}) {
     final Count currentCount = _thisCount;
-    ItemCountType? existingCount = currentCount.getCount(data);
+    final ItemCountType? existingCount = currentCount.getCount(data);
 
     if (existingCount != null) {
-      existingCount.doubleChecked = value;
+      existingCount.doubleChecked = doubleChecked;
       currentCount.setCount(data, existingCount);
       _thisCount = currentCount;
     }
@@ -150,9 +147,9 @@ class CountModel with ChangeNotifier {
     final Box<Count> countBox = Hive.box<Count>('counts');
 
     // Look back through the last 'days' days to find a count
-    for (int i = 1; i <= _lastCountLookbackDays; i++) {
-      final pastDate = _selectedDate.subtract(Duration(days: i));
-      final dateKey = _dateFormat.format(pastDate);
+    for (var i = 1; i <= _lastCountLookbackDays; i++) {
+      final DateTime pastDate = _selectedDate.subtract(Duration(days: i));
+      final String dateKey = _dateFormat.format(pastDate);
 
       final Count? pastCount = countBox.get(dateKey);
       if (pastCount == null) continue;
@@ -178,8 +175,7 @@ class CountModel with ChangeNotifier {
     final ItemCountType? lastCount = getLastCount(item);
     if (lastCount == null) return;
 
-    final Count currentCount = _thisCount;
-    currentCount.setCount(item, lastCount);
+    final Count currentCount = _thisCount..setCount(item, lastCount);
     _thisCount = currentCount;
   }
 
@@ -202,8 +198,7 @@ class CountModel with ChangeNotifier {
   }
 
   void maintainCountList(Item data) {
-    final Count currentCount = _thisCount;
-    currentCount.updateCountForItem(data);
+    final Count currentCount = _thisCount..updateCountForItem(data);
     _thisCount = currentCount;
   }
 

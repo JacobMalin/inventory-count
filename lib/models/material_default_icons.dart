@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 
 class IconPickerIcon {
-  final String name;
-
-  final IconData data;
-
-  final String pack;
-
   const IconPickerIcon({
     required this.name,
     required this.data,
     required this.pack,
   });
+
+  final String name;
+  final IconData data;
+  final String pack;
 }
 
 const Map<String, IconPickerIcon> defaultIcons = {

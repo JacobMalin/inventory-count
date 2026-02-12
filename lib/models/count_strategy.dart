@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/count_model.dart';
-import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
+
+import 'area_model.dart';
+import 'count_model.dart';
+import 'hive.dart';
 
 part 'count_strategy.g.dart';
 
 void registerCountStrategyAdapters() {
-  Hive.registerAdapter<SingularCountStrategy>(SingularCountStrategyAdapter());
-  Hive.registerAdapter<NegativeCountStrategy>(NegativeCountStrategyAdapter());
-  Hive.registerAdapter<StacksCountStrategy>(StacksCountStrategyAdapter());
-  Hive.registerAdapter<BoxesAndStacksCountStrategy>(
-    BoxesAndStacksCountStrategyAdapter(),
-  );
-  Hive.registerAdapter<ItemCount>(ItemCountAdapter());
-  Hive.registerAdapter<ItemNotCounted>(ItemNotCountedAdapter());
+  Hive
+    ..registerAdapter<SingularCountStrategy>(SingularCountStrategyAdapter())
+    ..registerAdapter<NegativeCountStrategy>(NegativeCountStrategyAdapter())
+    ..registerAdapter<StacksCountStrategy>(StacksCountStrategyAdapter())
+    ..registerAdapter<BoxesAndStacksCountStrategy>(
+      BoxesAndStacksCountStrategyAdapter(),
+    )
+    ..registerAdapter<ItemCount>(ItemCountAdapter())
+    ..registerAdapter<ItemNotCounted>(ItemNotCountedAdapter());
 }
 
 enum CountStrategyType {
@@ -33,6 +35,37 @@ enum CountStrategyType {
 }
 
 abstract class CountStrategy {
+  const CountStrategy();
+
+  factory CountStrategy.fromJson(Map<String, dynamic> json) {
+    final type = json['type'] as String?;
+    final CountStrategy Function(Map<String, dynamic>)? constructor =
+        _registry[type];
+
+    if (constructor == null) {
+      throw Exception('Unknown CountStrategy type: $type');
+    }
+
+    return constructor(json);
+  }
+
+  factory CountStrategy.fromIndex(
+    CountStrategyType index, {
+    int? modifier1,
+    int? modifier2,
+  }) {
+    switch (index) {
+      case CountStrategyType.singular:
+        return SingularCountStrategy();
+      case CountStrategyType.negative:
+        return NegativeCountStrategy(modifier1 ?? 0);
+      case CountStrategyType.stacks:
+        return StacksCountStrategy(modifier1 ?? 1);
+      case CountStrategyType.boxesAndStacks:
+        return BoxesAndStacksCountStrategy(modifier1 ?? 1, modifier2 ?? 1);
+    }
+  }
+
   CountStrategyType get index => switch (this) {
     SingularCountStrategy() => CountStrategyType.singular,
     NegativeCountStrategy() => CountStrategyType.negative,
@@ -74,25 +107,6 @@ abstract class CountStrategy {
 
   Widget buildBumpDisplay(BuildContext context, Item item);
 
-  const CountStrategy();
-
-  factory CountStrategy.fromIndex(
-    CountStrategyType index, {
-    int? modifier1,
-    int? modifier2,
-  }) {
-    switch (index) {
-      case CountStrategyType.singular:
-        return SingularCountStrategy();
-      case CountStrategyType.negative:
-        return NegativeCountStrategy(modifier1 ?? 0);
-      case CountStrategyType.stacks:
-        return StacksCountStrategy(modifier1 ?? 1);
-      case CountStrategyType.boxesAndStacks:
-        return BoxesAndStacksCountStrategy(modifier1 ?? 1, modifier2 ?? 1);
-    }
-  }
-
   static final Map<String, CountStrategy Function(Map<String, dynamic>)>
   _registry = {
     'SingularCountStrategy': SingularCountStrategy.fromJson,
@@ -100,21 +114,16 @@ abstract class CountStrategy {
     'BoxesAndStacksCountStrategy': BoxesAndStacksCountStrategy.fromJson,
     'NegativeCountStrategy': NegativeCountStrategy.fromJson,
   };
-
-  factory CountStrategy.fromJson(Map<String, dynamic> json) {
-    final type = json['type'] as String?;
-    final constructor = _registry[type];
-
-    if (constructor == null) {
-      throw Exception('Unknown CountStrategy type: $type');
-    }
-
-    return constructor(json);
-  }
 }
 
 @HiveType(typeId: 12)
 class SingularCountStrategy extends CountStrategy {
+  SingularCountStrategy({this.placeholder});
+
+  // Must match pattern
+  // ignore: avoid_unused_constructor_parameters
+  SingularCountStrategy.fromJson(Map<String, dynamic> json);
+
   // Hive requires at least one field for subtypes
   @HiveField(0)
   bool? placeholder = true;
@@ -134,7 +143,7 @@ class SingularCountStrategy extends CountStrategy {
   }
 
   @override
-  get strategyText => 'Singular';
+  String get strategyText => 'Singular';
 
   @override
   Widget buildCountFields({
@@ -155,7 +164,7 @@ class SingularCountStrategy extends CountStrategy {
         border: OutlineInputBorder(),
       ),
       onChanged: (value) {
-        final intValue = int.tryParse(value);
+        final int? intValue = int.tryParse(value);
         countModel.setField1(item, intValue);
       },
       onSubmitted: onSubmitted,
@@ -166,16 +175,12 @@ class SingularCountStrategy extends CountStrategy {
   Widget buildBumpDisplay(BuildContext context, Item item) {
     return _SingularBumpDisplay(item: item);
   }
-
-  SingularCountStrategy({this.placeholder});
-
-  SingularCountStrategy.fromJson(Map<String, dynamic> json);
 }
 
 class _SingularBumpDisplay extends StatefulWidget {
-  final Item item;
+  const _SingularBumpDisplay({required Item item}) : _item = item;
 
-  const _SingularBumpDisplay({required this.item});
+  final Item _item;
 
   @override
   State<_SingularBumpDisplay> createState() => _SingularBumpDisplayState();
@@ -200,12 +205,14 @@ class _SingularBumpDisplayState extends State<_SingularBumpDisplay> {
   Widget build(BuildContext context) {
     return Consumer<CountModel>(
       builder: (context, countModel, child) {
-        final itemCountType = countModel.getCount(widget.item);
+        final ItemCountType? itemCountType = countModel.getCount(widget._item);
         final isNotCounted = itemCountType is ItemNotCounted;
-        final itemCount = itemCountType is ItemCount ? itemCountType : null;
-        final count = isNotCounted ? '-' : itemCount?.count;
-        final currentValue = itemCount?.field1;
-        final expectedText = isNotCounted
+        final ItemCount? itemCount = itemCountType is ItemCount
+            ? itemCountType
+            : null;
+        final Object? count = isNotCounted ? '-' : itemCount?.count;
+        final int? currentValue = itemCount?.field1;
+        final String expectedText = isNotCounted
             ? '-'
             : (currentValue?.toString() ?? '');
 
@@ -218,35 +225,35 @@ class _SingularBumpDisplayState extends State<_SingularBumpDisplay> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.remove),
+              icon: const Icon(Icons.remove),
               onPressed: isNotCounted
                   ? null
                   : () {
-                      final value = currentValue ?? 0;
+                      final int value = currentValue ?? 0;
                       if (value <= 0) {
-                        countModel.setNotCounted(widget.item);
+                        countModel.setNotCounted(widget._item);
                         _controller.text = '-';
                       } else {
-                        final newValue = value - 1;
-                        countModel.setField1(widget.item, newValue);
+                        final int newValue = value - 1;
+                        countModel.setField1(widget._item, newValue);
                         _controller.text = newValue.toString();
                       }
                     },
               style: IconButton.styleFrom(
-                padding: EdgeInsets.all(8),
-                minimumSize: Size(40, 40),
+                padding: const EdgeInsets.all(8),
+                minimumSize: const Size(40, 40),
               ),
             ),
             const SizedBox(width: 8),
             ConstrainedBox(
-              constraints: BoxConstraints(minWidth: 80),
+              constraints: const BoxConstraints(minWidth: 80),
               child: IntrinsicWidth(
                 child: TextField(
                   controller: _controller,
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(horizontal: 8),
                   ),
@@ -257,28 +264,28 @@ class _SingularBumpDisplayState extends State<_SingularBumpDisplay> {
                     );
                   },
                   onChanged: (value) {
-                    final intValue = int.tryParse(value);
-                    countModel.setField1(widget.item, intValue);
+                    final int? intValue = int.tryParse(value);
+                    countModel.setField1(widget._item, intValue);
                   },
                 ),
               ),
             ),
             const SizedBox(width: 8),
             IconButton(
-              icon: Icon(Icons.add),
+              icon: const Icon(Icons.add),
               onPressed: () {
                 if (currentValue == null) {
-                  countModel.setField1(widget.item, 0);
+                  countModel.setField1(widget._item, 0);
                   _controller.text = '0';
                 } else {
-                  final newValue = currentValue + 1;
-                  countModel.setField1(widget.item, newValue);
+                  final int newValue = currentValue + 1;
+                  countModel.setField1(widget._item, newValue);
                   _controller.text = newValue.toString();
                 }
               },
               style: IconButton.styleFrom(
-                padding: EdgeInsets.all(8),
-                minimumSize: Size(40, 40),
+                padding: const EdgeInsets.all(8),
+                minimumSize: const Size(40, 40),
               ),
             ),
             Text(
@@ -294,6 +301,10 @@ class _SingularBumpDisplayState extends State<_SingularBumpDisplay> {
 
 @HiveType(typeId: 13)
 class NegativeCountStrategy extends CountStrategy {
+  NegativeCountStrategy(this.from);
+
+  NegativeCountStrategy.fromJson(Map<String, dynamic> json)
+    : from = json['from'] as int? ?? 0;
   @HiveField(0)
   int from;
 
@@ -306,7 +317,7 @@ class NegativeCountStrategy extends CountStrategy {
   @override
   int? calculateCount(int? field1, int? field2) {
     if (field1 == null) return null;
-    final result = from - field1;
+    final int result = from - field1;
     return result < 0 ? 0 : result;
   }
 
@@ -320,7 +331,7 @@ class NegativeCountStrategy extends CountStrategy {
   }
 
   @override
-  get strategyText => 'Negative (from $from)';
+  String get strategyText => 'Negative (from $from)';
 
   @override
   void populateControllers(
@@ -347,7 +358,7 @@ class NegativeCountStrategy extends CountStrategy {
           border: OutlineInputBorder(),
         ),
         onChanged: (value) {
-          final intValue = value.isEmpty ? 0 : (int.tryParse(value) ?? 0);
+          final int intValue = value.isEmpty ? 0 : (int.tryParse(value) ?? 0);
           from = intValue;
           areaModel.editItem(selectedOrder, newStrategy: this);
         },
@@ -374,7 +385,7 @@ class NegativeCountStrategy extends CountStrategy {
         border: const OutlineInputBorder(),
       ),
       onChanged: (value) {
-        final intValue = int.tryParse(value);
+        final int? intValue = int.tryParse(value);
         countModel.setField1(item, intValue);
       },
       onSubmitted: onSubmitted,
@@ -385,18 +396,15 @@ class NegativeCountStrategy extends CountStrategy {
   Widget buildBumpDisplay(BuildContext context, Item item) {
     return _NegativeBumpDisplay(item: item, from: from);
   }
-
-  NegativeCountStrategy(this.from);
-
-  NegativeCountStrategy.fromJson(Map<String, dynamic> json)
-    : from = json['from'] as int? ?? 0;
 }
 
 class _NegativeBumpDisplay extends StatefulWidget {
-  final Item item;
-  final int from;
+  const _NegativeBumpDisplay({required Item item, required int from})
+    : _from = from,
+      _item = item;
 
-  const _NegativeBumpDisplay({required this.item, required this.from});
+  final Item _item;
+  final int _from;
 
   @override
   State<_NegativeBumpDisplay> createState() => _NegativeBumpDisplayState();
@@ -421,12 +429,16 @@ class _NegativeBumpDisplayState extends State<_NegativeBumpDisplay> {
   Widget build(BuildContext context) {
     return Consumer<CountModel>(
       builder: (context, countModel, child) {
-        final itemCountType = countModel.getCount(widget.item);
+        final ItemCountType? itemCountType = countModel.getCount(widget._item);
         final isNotCounted = itemCountType is ItemNotCounted;
-        final itemCount = itemCountType is ItemCount ? itemCountType : null;
-        final count = isNotCounted ? '-' : itemCount?.count;
-        final field1 = itemCount?.field1;
-        final expectedText = isNotCounted ? '-' : (field1?.toString() ?? '');
+        final ItemCount? itemCount = itemCountType is ItemCount
+            ? itemCountType
+            : null;
+        final Object? count = isNotCounted ? '-' : itemCount?.count;
+        final int? field1 = itemCount?.field1;
+        final String expectedText = isNotCounted
+            ? '-'
+            : (field1?.toString() ?? '');
 
         if (_controller.text != expectedText &&
             !_controller.selection.isValid) {
@@ -440,39 +452,39 @@ class _NegativeBumpDisplayState extends State<_NegativeBumpDisplay> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${widget.from} - ',
+                  '${widget._from} - ',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 IconButton(
-                  icon: Icon(Icons.remove),
+                  icon: const Icon(Icons.remove),
                   onPressed: isNotCounted
                       ? null
                       : () {
-                          final currentValue = field1 ?? 0;
+                          final int currentValue = field1 ?? 0;
                           if (currentValue <= 0) {
-                            countModel.setNotCounted(widget.item);
+                            countModel.setNotCounted(widget._item);
                             _controller.text = '-';
                           } else {
-                            final newValue = currentValue - 1;
-                            countModel.setField1(widget.item, newValue);
+                            final int newValue = currentValue - 1;
+                            countModel.setField1(widget._item, newValue);
                             _controller.text = newValue.toString();
                           }
                         },
                   style: IconButton.styleFrom(
-                    padding: EdgeInsets.all(8),
-                    minimumSize: Size(40, 40),
+                    padding: const EdgeInsets.all(8),
+                    minimumSize: const Size(40, 40),
                   ),
                 ),
                 const SizedBox(width: 8),
                 ConstrainedBox(
-                  constraints: BoxConstraints(minWidth: 50),
+                  constraints: const BoxConstraints(minWidth: 50),
                   child: IntrinsicWidth(
                     child: TextField(
                       controller: _controller,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineSmall,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 4),
                       ),
@@ -483,32 +495,34 @@ class _NegativeBumpDisplayState extends State<_NegativeBumpDisplay> {
                         );
                       },
                       onChanged: (value) {
-                        final intValue = int.tryParse(value);
-                        countModel.setField1(widget.item, intValue);
+                        final int? intValue = int.tryParse(value);
+                        countModel.setField1(widget._item, intValue);
                       },
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: Icon(Icons.add),
+                  icon: const Icon(Icons.add),
                   onPressed:
-                      (!isNotCounted && field1 != null && field1 >= widget.from)
+                      (!isNotCounted &&
+                          field1 != null &&
+                          field1 >= widget._from)
                       ? null
                       : () {
                           final currentValue = field1;
                           if (currentValue == null) {
-                            countModel.setField1(widget.item, 0);
+                            countModel.setField1(widget._item, 0);
                             _controller.text = '0';
                           } else {
-                            final newValue = currentValue + 1;
-                            countModel.setField1(widget.item, newValue);
+                            final int newValue = currentValue + 1;
+                            countModel.setField1(widget._item, newValue);
                             _controller.text = newValue.toString();
                           }
                         },
                   style: IconButton.styleFrom(
-                    padding: EdgeInsets.all(8),
-                    minimumSize: Size(40, 40),
+                    padding: const EdgeInsets.all(8),
+                    minimumSize: const Size(40, 40),
                   ),
                 ),
                 Text(
@@ -526,6 +540,10 @@ class _NegativeBumpDisplayState extends State<_NegativeBumpDisplay> {
 
 @HiveType(typeId: 14)
 class StacksCountStrategy extends CountStrategy {
+  StacksCountStrategy(this.perStack);
+
+  StacksCountStrategy.fromJson(Map<String, dynamic> json)
+    : perStack = json['perStack'] as int? ?? 1;
   @HiveField(0)
   int perStack;
 
@@ -551,7 +569,7 @@ class StacksCountStrategy extends CountStrategy {
   }
 
   @override
-  get strategyText => 'Stacks ($perStack per stack)';
+  String get strategyText => 'Stacks ($perStack per stack)';
 
   @override
   void populateControllers(
@@ -582,7 +600,7 @@ class StacksCountStrategy extends CountStrategy {
             perStack = 1;
             areaModel.editItem(selectedOrder, newStrategy: this);
           } else {
-            final intValue = int.tryParse(value);
+            final int? intValue = int.tryParse(value);
             perStack = intValue ?? 1;
             areaModel.editItem(selectedOrder, newStrategy: this);
           }
@@ -610,7 +628,7 @@ class StacksCountStrategy extends CountStrategy {
         border: const OutlineInputBorder(),
       ),
       onChanged: (value) {
-        final intValue = int.tryParse(value);
+        final int? intValue = int.tryParse(value);
         countModel.setField1(item, intValue);
       },
       onSubmitted: onSubmitted,
@@ -621,18 +639,15 @@ class StacksCountStrategy extends CountStrategy {
   Widget buildBumpDisplay(BuildContext context, Item item) {
     return _StacksBumpDisplay(item: item, perStack: perStack);
   }
-
-  StacksCountStrategy(this.perStack);
-
-  StacksCountStrategy.fromJson(Map<String, dynamic> json)
-    : perStack = json['perStack'] as int? ?? 1;
 }
 
 class _StacksBumpDisplay extends StatefulWidget {
-  final Item item;
-  final int perStack;
+  const _StacksBumpDisplay({required Item item, required int perStack})
+    : _perStack = perStack,
+      _item = item;
 
-  const _StacksBumpDisplay({required this.item, required this.perStack});
+  final Item _item;
+  final int _perStack;
 
   @override
   State<_StacksBumpDisplay> createState() => _StacksBumpDisplayState();
@@ -657,12 +672,16 @@ class _StacksBumpDisplayState extends State<_StacksBumpDisplay> {
   Widget build(BuildContext context) {
     return Consumer<CountModel>(
       builder: (context, countModel, child) {
-        final itemCountType = countModel.getCount(widget.item);
+        final ItemCountType? itemCountType = countModel.getCount(widget._item);
         final isNotCounted = itemCountType is ItemNotCounted;
-        final itemCount = itemCountType is ItemCount ? itemCountType : null;
-        var count = isNotCounted ? '-' : itemCount?.count;
-        final stacks = itemCount?.field1;
-        final expectedText = isNotCounted ? '-' : (stacks?.toString() ?? '');
+        final ItemCount? itemCount = itemCountType is ItemCount
+            ? itemCountType
+            : null;
+        final Object? count = isNotCounted ? '-' : itemCount?.count;
+        final int? stacks = itemCount?.field1;
+        final String expectedText = isNotCounted
+            ? '-'
+            : (stacks?.toString() ?? '');
 
         if (_controller.text != expectedText &&
             !_controller.selection.isValid) {
@@ -673,28 +692,28 @@ class _StacksBumpDisplayState extends State<_StacksBumpDisplay> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.remove),
+              icon: const Icon(Icons.remove),
               onPressed: isNotCounted
                   ? null
                   : () {
-                      final currentValue = stacks ?? 0;
+                      final int currentValue = stacks ?? 0;
                       if (currentValue <= 0) {
-                        countModel.setNotCounted(widget.item);
+                        countModel.setNotCounted(widget._item);
                         _controller.text = '-';
                       } else {
-                        final newValue = currentValue - 1;
-                        countModel.setField1(widget.item, newValue);
+                        final int newValue = currentValue - 1;
+                        countModel.setField1(widget._item, newValue);
                         _controller.text = newValue.toString();
                       }
                     },
               style: IconButton.styleFrom(
-                padding: EdgeInsets.all(8),
-                minimumSize: Size(40, 40),
+                padding: const EdgeInsets.all(8),
+                minimumSize: const Size(40, 40),
               ),
             ),
             const SizedBox(width: 8),
             ConstrainedBox(
-              constraints: BoxConstraints(minWidth: 60),
+              constraints: const BoxConstraints(minWidth: 60),
               child: IntrinsicWidth(
                 child: TextField(
                   controller: _controller,
@@ -702,9 +721,9 @@ class _StacksBumpDisplayState extends State<_StacksBumpDisplay> {
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall,
                   decoration: InputDecoration(
-                    labelText: 'x${widget.perStack}',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                    labelText: 'x${widget._perStack}',
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   onTap: () {
                     _controller.selection = TextSelection(
@@ -713,29 +732,29 @@ class _StacksBumpDisplayState extends State<_StacksBumpDisplay> {
                     );
                   },
                   onChanged: (value) {
-                    final intValue = int.tryParse(value);
-                    countModel.setField1(widget.item, intValue);
+                    final int? intValue = int.tryParse(value);
+                    countModel.setField1(widget._item, intValue);
                   },
                 ),
               ),
             ),
             const SizedBox(width: 8),
             IconButton(
-              icon: Icon(Icons.add),
+              icon: const Icon(Icons.add),
               onPressed: () {
                 final currentValue = stacks;
                 if (currentValue == null) {
-                  countModel.setField1(widget.item, 0);
+                  countModel.setField1(widget._item, 0);
                   _controller.text = '0';
                 } else {
-                  final newValue = currentValue + 1;
-                  countModel.setField1(widget.item, newValue);
+                  final int newValue = currentValue + 1;
+                  countModel.setField1(widget._item, newValue);
                   _controller.text = newValue.toString();
                 }
               },
               style: IconButton.styleFrom(
-                padding: EdgeInsets.all(8),
-                minimumSize: Size(40, 40),
+                padding: const EdgeInsets.all(8),
+                minimumSize: const Size(40, 40),
               ),
             ),
             Text(
@@ -751,6 +770,11 @@ class _StacksBumpDisplayState extends State<_StacksBumpDisplay> {
 
 @HiveType(typeId: 15)
 class BoxesAndStacksCountStrategy extends CountStrategy {
+  BoxesAndStacksCountStrategy(this.perBox, this.perStack);
+
+  BoxesAndStacksCountStrategy.fromJson(Map<String, dynamic> json)
+    : perBox = json['perBox'] as int? ?? 1,
+      perStack = json['perStack'] as int? ?? 1;
   @HiveField(0)
   int perBox;
 
@@ -776,14 +800,14 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
   @override
   String? getLastDisplay(int? field1, int? field2) {
     if (field1 == null && field2 == null) return null;
-    final total = calculateCount(field1, field2);
-    final boxes = field1 ?? 0;
-    final stacks = field2 ?? 0;
+    final int? total = calculateCount(field1, field2);
+    final int boxes = field1 ?? 0;
+    final int stacks = field2 ?? 0;
     return '$total (${boxes}bx, ${stacks}stk)';
   }
 
   @override
-  get strategyText => 'Both ($perBox per box, $perStack per stack)';
+  String get strategyText => 'Both ($perBox per box, $perStack per stack)';
 
   @override
   void populateControllers(
@@ -818,7 +842,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
                   perBox = 1;
                   areaModel.editItem(selectedOrder, newStrategy: this);
                 } else {
-                  final intValue = int.tryParse(value);
+                  final int? intValue = int.tryParse(value);
                   perBox = intValue ?? 1;
                   areaModel.editItem(selectedOrder, newStrategy: this);
                 }
@@ -839,7 +863,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
                   perStack = 1;
                   areaModel.editItem(selectedOrder, newStrategy: this);
                 } else {
-                  final intValue = int.tryParse(value);
+                  final int? intValue = int.tryParse(value);
                   perStack = intValue ?? 1;
                   areaModel.editItem(selectedOrder, newStrategy: this);
                 }
@@ -874,7 +898,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
               border: const OutlineInputBorder(),
             ),
             onChanged: (value) {
-              final intValue = int.tryParse(value);
+              final int? intValue = int.tryParse(value);
               countModel.setField1(item, intValue);
             },
             onSubmitted: onSubmitted,
@@ -891,7 +915,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
               border: const OutlineInputBorder(),
             ),
             onChanged: (value) {
-              final intValue = int.tryParse(value);
+              final int? intValue = int.tryParse(value);
               countModel.setField2(item, intValue);
             },
             onSubmitted: onSubmitted,
@@ -909,24 +933,20 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
       perStack: perStack,
     );
   }
-
-  BoxesAndStacksCountStrategy(this.perBox, this.perStack);
-
-  BoxesAndStacksCountStrategy.fromJson(Map<String, dynamic> json)
-    : perBox = json['perBox'] as int? ?? 1,
-      perStack = json['perStack'] as int? ?? 1;
 }
 
 class _BoxesAndStacksBumpDisplay extends StatefulWidget {
-  final Item item;
-  final int perBox;
-  final int perStack;
-
   const _BoxesAndStacksBumpDisplay({
-    required this.item,
-    required this.perBox,
-    required this.perStack,
-  });
+    required Item item,
+    required int perBox,
+    required int perStack,
+  }) : _perStack = perStack,
+       _perBox = perBox,
+       _item = item;
+
+  final Item _item;
+  final int _perBox;
+  final int _perStack;
 
   @override
   State<_BoxesAndStacksBumpDisplay> createState() =>
@@ -956,14 +976,18 @@ class _BoxesAndStacksBumpDisplayState
   Widget build(BuildContext context) {
     return Consumer<CountModel>(
       builder: (context, countModel, child) {
-        final itemCountType = countModel.getCount(widget.item);
+        final ItemCountType? itemCountType = countModel.getCount(widget._item);
         final isNotCounted = itemCountType is ItemNotCounted;
-        final itemCount = itemCountType is ItemCount ? itemCountType : null;
-        final count = isNotCounted ? '-' : itemCount?.count;
-        final boxes = itemCount?.field1;
-        final stacks = itemCount?.field2;
-        final expectedBoxText = isNotCounted ? '-' : (boxes?.toString() ?? '');
-        final expectedStackText = isNotCounted
+        final ItemCount? itemCount = itemCountType is ItemCount
+            ? itemCountType
+            : null;
+        final Object? count = isNotCounted ? '-' : itemCount?.count;
+        final int? boxes = itemCount?.field1;
+        final int? stacks = itemCount?.field2;
+        final String expectedBoxText = isNotCounted
+            ? '-'
+            : (boxes?.toString() ?? '');
+        final String expectedStackText = isNotCounted
             ? '-'
             : (stacks?.toString() ?? '');
 
@@ -987,28 +1011,28 @@ class _BoxesAndStacksBumpDisplayState
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.remove),
+                      icon: const Icon(Icons.remove),
                       onPressed: isNotCounted
                           ? null
                           : () {
-                              final currentValue = boxes ?? 0;
+                              final int currentValue = boxes ?? 0;
                               if (currentValue <= 0) {
-                                countModel.setField1(widget.item, null);
+                                countModel.setField1(widget._item, null);
                                 _boxController.text = '';
                               } else {
-                                final newValue = currentValue - 1;
-                                countModel.setField1(widget.item, newValue);
+                                final int newValue = currentValue - 1;
+                                countModel.setField1(widget._item, newValue);
                                 _boxController.text = newValue.toString();
                               }
                             },
                       style: IconButton.styleFrom(
-                        padding: EdgeInsets.all(8),
-                        minimumSize: Size(40, 40),
+                        padding: const EdgeInsets.all(8),
+                        minimumSize: const Size(40, 40),
                       ),
                     ),
                     const SizedBox(width: 8),
                     ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: 50),
+                      constraints: const BoxConstraints(minWidth: 50),
                       child: IntrinsicWidth(
                         child: TextField(
                           controller: _boxController,
@@ -1016,11 +1040,13 @@ class _BoxesAndStacksBumpDisplayState
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.titleLarge,
                           decoration: InputDecoration(
-                            labelText: widget.perBox * widget.perStack == 1
+                            labelText: widget._perBox * widget._perStack == 1
                                 ? null
-                                : 'x${widget.perBox * widget.perStack}',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                                : 'x${widget._perBox * widget._perStack}',
+                            border: const OutlineInputBorder(),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                            ),
                           ),
                           onTap: () {
                             _boxController.selection = TextSelection(
@@ -1029,29 +1055,29 @@ class _BoxesAndStacksBumpDisplayState
                             );
                           },
                           onChanged: (value) {
-                            final intValue = int.tryParse(value);
-                            countModel.setField1(widget.item, intValue);
+                            final int? intValue = int.tryParse(value);
+                            countModel.setField1(widget._item, intValue);
                           },
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: Icon(Icons.add),
+                      icon: const Icon(Icons.add),
                       onPressed: () {
                         final currentValue = boxes;
                         if (currentValue == null) {
-                          countModel.setField1(widget.item, 1);
+                          countModel.setField1(widget._item, 1);
                           _boxController.text = '1';
                         } else {
-                          final newValue = currentValue + 1;
-                          countModel.setField1(widget.item, newValue);
+                          final int newValue = currentValue + 1;
+                          countModel.setField1(widget._item, newValue);
                           _boxController.text = newValue.toString();
                         }
                       },
                       style: IconButton.styleFrom(
-                        padding: EdgeInsets.all(8),
-                        minimumSize: Size(40, 40),
+                        padding: const EdgeInsets.all(8),
+                        minimumSize: const Size(40, 40),
                       ),
                     ),
                   ],
@@ -1062,28 +1088,28 @@ class _BoxesAndStacksBumpDisplayState
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.remove),
+                      icon: const Icon(Icons.remove),
                       onPressed: isNotCounted
                           ? null
                           : () {
-                              final currentValue = stacks ?? 0;
+                              final int currentValue = stacks ?? 0;
                               if (currentValue <= 0) {
-                                countModel.setField2(widget.item, null);
+                                countModel.setField2(widget._item, null);
                                 _stackController.text = '';
                               } else {
-                                final newValue = currentValue - 1;
-                                countModel.setField2(widget.item, newValue);
+                                final int newValue = currentValue - 1;
+                                countModel.setField2(widget._item, newValue);
                                 _stackController.text = newValue.toString();
                               }
                             },
                       style: IconButton.styleFrom(
-                        padding: EdgeInsets.all(8),
-                        minimumSize: Size(40, 40),
+                        padding: const EdgeInsets.all(8),
+                        minimumSize: const Size(40, 40),
                       ),
                     ),
                     const SizedBox(width: 8),
                     ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: 50),
+                      constraints: const BoxConstraints(minWidth: 50),
                       child: IntrinsicWidth(
                         child: TextField(
                           controller: _stackController,
@@ -1091,11 +1117,13 @@ class _BoxesAndStacksBumpDisplayState
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.titleLarge,
                           decoration: InputDecoration(
-                            labelText: widget.perStack == 1
+                            labelText: widget._perStack == 1
                                 ? null
-                                : 'x${widget.perStack}',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                                : 'x${widget._perStack}',
+                            border: const OutlineInputBorder(),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                            ),
                           ),
                           onTap: () {
                             _stackController.selection = TextSelection(
@@ -1104,36 +1132,36 @@ class _BoxesAndStacksBumpDisplayState
                             );
                           },
                           onChanged: (value) {
-                            final intValue = int.tryParse(value);
-                            countModel.setField2(widget.item, intValue);
+                            final int? intValue = int.tryParse(value);
+                            countModel.setField2(widget._item, intValue);
                           },
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: Icon(Icons.add),
+                      icon: const Icon(Icons.add),
                       onPressed: () {
                         final currentValue = stacks;
                         if (currentValue == null) {
-                          countModel.setField2(widget.item, 1);
+                          countModel.setField2(widget._item, 1);
                           _stackController.text = '1';
                         } else {
-                          final newValue = currentValue + 1;
-                          countModel.setField2(widget.item, newValue);
+                          final int newValue = currentValue + 1;
+                          countModel.setField2(widget._item, newValue);
                           _stackController.text = newValue.toString();
                         }
                       },
                       style: IconButton.styleFrom(
-                        padding: EdgeInsets.all(8),
-                        minimumSize: Size(40, 40),
+                        padding: const EdgeInsets.all(8),
+                        minimumSize: const Size(40, 40),
                       ),
                     ),
                   ],
                 ),
               ],
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Text('= $count', style: Theme.of(context).textTheme.headlineSmall),
           ],
         );
@@ -1144,6 +1172,36 @@ class _BoxesAndStacksBumpDisplayState
 
 @HiveType(typeId: 10)
 class ItemCount extends ItemCountType {
+  ItemCount(this.strategy, {this.field1, this.field2, super.doubleChecked});
+
+  factory ItemCount.fromJson(Map<String, dynamic> json) {
+    try {
+      CountStrategy strategy;
+      if (json['strategy'] != null &&
+          json['strategy'] is Map<String, dynamic>) {
+        try {
+          strategy = CountStrategy.fromJson(
+            json['strategy'] as Map<String, dynamic>,
+          );
+        } on Exception catch (_) {
+          // If strategy parsing fails, use default
+          strategy = SingularCountStrategy();
+        }
+      } else {
+        strategy = SingularCountStrategy();
+      }
+
+      return ItemCount(
+        strategy,
+        field1: json['field1'] as int?,
+        field2: json['field2'] as int?,
+        doubleChecked: json['doubleChecked'] as bool? ?? false,
+      );
+    } on Exception catch (_) {
+      // If anything fails, return a basic ItemCount
+      return ItemCount(SingularCountStrategy());
+    }
+  }
   @HiveField(1)
   int? field1;
 
@@ -1160,8 +1218,6 @@ class ItemCount extends ItemCountType {
   bool isCounted() => count != null;
   bool isEmpty() => strategy.isEmpty(field1, field2);
 
-  ItemCount(this.strategy, {this.field1, this.field2, super.doubleChecked});
-
   @override
   Map<String, dynamic> toJson() => {
     'type': 'ItemCount',
@@ -1170,35 +1226,6 @@ class ItemCount extends ItemCountType {
     'strategy': strategy.toJson(),
     ...super.toJson(),
   };
-
-  factory ItemCount.fromJson(Map<String, dynamic> json) {
-    try {
-      CountStrategy strategy;
-      if (json['strategy'] != null &&
-          json['strategy'] is Map<String, dynamic>) {
-        try {
-          strategy = CountStrategy.fromJson(
-            json['strategy'] as Map<String, dynamic>,
-          );
-        } catch (e) {
-          // If strategy parsing fails, use default
-          strategy = SingularCountStrategy();
-        }
-      } else {
-        strategy = SingularCountStrategy();
-      }
-
-      return ItemCount(
-        strategy,
-        field1: json['field1'] as int?,
-        field2: json['field2'] as int?,
-        doubleChecked: json['doubleChecked'] as bool? ?? false,
-      );
-    } catch (e) {
-      // If anything fails, return a basic ItemCount
-      return ItemCount(SingularCountStrategy());
-    }
-  }
 }
 
 @HiveType(typeId: 11)
@@ -1216,11 +1243,6 @@ class ItemNotCounted extends ItemCountType {
 }
 
 abstract class ItemCountType {
-  @HiveField(0)
-  bool doubleChecked;
-
-  Map<String, dynamic> toJson() => {'doubleChecked': doubleChecked};
-
   ItemCountType({this.doubleChecked = false});
 
   factory ItemCountType.fromJson(Map<String, dynamic> json) {
@@ -1234,4 +1256,8 @@ abstract class ItemCountType {
         return ItemNotCounted();
     }
   }
+  @HiveField(0)
+  bool doubleChecked;
+
+  Map<String, dynamic> toJson() => {'doubleChecked': doubleChecked};
 }

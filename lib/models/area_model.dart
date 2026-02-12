@@ -5,37 +5,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
-import 'package:inventory_count/count_page.dart';
-import 'package:inventory_count/models/count_model.dart';
-import 'package:inventory_count/models/count_strategy.dart';
-import 'package:inventory_count/models/hive.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../count_page.dart';
+import 'count_model.dart';
+import 'count_strategy.dart';
+import 'hive.dart';
+
 class AreaModel with ChangeNotifier {
-  StreamSubscription<List<Map<String, dynamic>>>? _setupsSubscription;
-  StreamSubscription<InternetConnectionStatus>? _connectionSubscription;
-
-  final _areasBox = Hive.box('areas');
-  CountModel countModel;
-
   AreaModel(this.countModel) {
     if (_areasBox.get('profiles') == null) {
-      _areasBox.put('profiles', <Profile, List<Area>>{});
+      unawaited(_areasBox.put('profiles', <Profile, List<Area>>{}));
     }
     if (_areasBox.get('updated_at') == null) {
-      _areasBox.put('updated_at', <Profile, DateTime?>{});
+      unawaited(_areasBox.put('updated_at', <Profile, DateTime?>{}));
     }
 
-    _fetch();
+    unawaited(_fetch());
     _listenForChanges();
   }
 
+  StreamSubscription<List<Map<String, dynamic>>>? _setupsSubscription;
+  StreamSubscription<InternetConnectionStatus>? _connectionSubscription;
+
+  final Box<dynamic> _areasBox = Hive.box('areas');
+  CountModel countModel;
+
   Future<void> _fetch() async {
     try {
-      final response = await Supabase.instance.client.from('profiles').select();
+      final PostgrestList response = await Supabase.instance.client
+          .from('profiles')
+          .select();
 
-      _updateFromResponse(response);
-    } catch (_) {
+      await _updateFromResponse(response);
+    } on Exception catch (_) {
       // On fail, do nothing
     }
   }
@@ -46,12 +49,12 @@ class AreaModel with ChangeNotifier {
           .from('profiles')
           .stream(primaryKey: ['updated_at'])
           .listen(
-            (data) => _updateFromResponse(data),
+            _updateFromResponse,
             onError: (_) {
               // On fail, do nothing
             },
           );
-    } catch (_) {
+    } on Exception catch (_) {
       // On fail, do nothing
     }
 
@@ -60,12 +63,12 @@ class AreaModel with ChangeNotifier {
       _connectionSubscription = InternetConnectionChecker
           .instance
           .onStatusChange
-          .listen((InternetConnectionStatus status) async {
+          .listen((status) async {
             if (status != InternetConnectionStatus.connected) return;
 
             await _fetch();
           });
-    } catch (_) {
+    } on Exception catch (_) {
       // On fail, do nothing
     }
   }
@@ -73,10 +76,10 @@ class AreaModel with ChangeNotifier {
   Future<void> _updateFromResponse(List<Map<String, dynamic>> response) async {
     if (response.isEmpty) return;
 
-    final listOfProfiles = response
+    final List<String> listOfProfiles = response
         .map((entry) => entry['name'] as String)
         .toList();
-    final listOfRemoteProfilesInUpdatedAt = updatedAtMap.keys
+    final List<String> listOfRemoteProfilesInUpdatedAt = updatedAtMap.keys
         .map((profile) => profile.name)
         .toList();
 
@@ -95,7 +98,7 @@ class AreaModel with ChangeNotifier {
       // Get remote data for this profile
       Map<String, dynamic>? remoteEntry;
       DateTime? remoteUpdatedAt;
-      bool remoteIsDeleted = false;
+      var remoteIsDeleted = false;
       for (final entry in response) {
         if (entry['name'] == profileName) {
           remoteEntry = entry;
@@ -109,12 +112,12 @@ class AreaModel with ChangeNotifier {
 
       // TODO: Fix infinite loop
 
-      Profile targetProfile = Profile(profileName);
+      final targetProfile = Profile(profileName);
 
       // Find matching profile in updatedAtMap
-      DateTime? localUpdatedAt = updatedAtMap[targetProfile];
-      List<Area>? localAreas = profiles[targetProfile];
-      bool localIsDeleted = localAreas == null;
+      final DateTime? localUpdatedAt = updatedAtMap[targetProfile];
+      final List<Area>? localAreas = profiles[targetProfile];
+      final localIsDeleted = localAreas == null;
 
       print('Comparing profile "$profileName":');
       print(
@@ -135,21 +138,21 @@ class AreaModel with ChangeNotifier {
               remoteUpdatedAt.isAfter(localUpdatedAt))) {
         if (remoteIsDeleted) {
           // Remote is deleted but local is not, delete locally
-          final currentProfiles = profiles;
-          currentProfiles.remove(targetProfile);
+          final Map<Profile, List<Area>> currentProfiles = profiles
+            ..remove(targetProfile);
           profiles = currentProfiles;
 
-          final currentUpdatedAtMap = updatedAtMap;
+          final Map<Profile, DateTime?> currentUpdatedAtMap = updatedAtMap;
           currentUpdatedAtMap[targetProfile] = remoteUpdatedAt;
           updatedAtMap = currentUpdatedAtMap;
         } else {
           // Remote is newer, import from remote
-          final jsonData = remoteEntry!['json'] is String
+          final String jsonData = remoteEntry!['json'] is String
               ? remoteEntry['json'] as String
               : jsonEncode(remoteEntry['json']);
           importProfileFromJson(targetProfile, jsonData);
 
-          final newUpdatedAtMap = updatedAtMap;
+          final Map<Profile, DateTime?> newUpdatedAtMap = updatedAtMap;
           newUpdatedAtMap[Profile(profileName)] = remoteUpdatedAt;
           updatedAtMap = newUpdatedAtMap;
         }
@@ -180,7 +183,7 @@ class AreaModel with ChangeNotifier {
       // Add updates
       for (final MapEntry(key: profile, value: localUpdatedAt)
           in profilesToUpdate.entries) {
-        final jsonString = exportProfileToJson(profile);
+        final String jsonString = exportProfileToJson(profile);
 
         batchData.add({
           'name': profile.name,
@@ -197,13 +200,13 @@ class AreaModel with ChangeNotifier {
           'name': profile.name,
           'deleted': true,
           'updated_at': localUpdatedAt.toIso8601String(),
-          'json': "{}",
+          'json': '{}',
         });
       }
 
       // Single batch upsert call
       await Supabase.instance.client.from('profiles').upsert(batchData);
-    } catch (_) {
+    } on Exception catch (_) {
       // On fail, do nothing
     }
   }
@@ -215,22 +218,24 @@ class AreaModel with ChangeNotifier {
     super.dispose();
   }
 
-  void updateSupabase(Profile profile) async {
+  void updateSupabase(Profile profile) {
     try {
-      final jsonString = exportProfileToJson(profile);
+      final String jsonString = exportProfileToJson(profile);
 
       final DateTime now = DateTime.now().toUtc();
-      final newUpdatedAtMap = updatedAtMap;
+      final Map<Profile, DateTime?> newUpdatedAtMap = updatedAtMap;
       newUpdatedAtMap[profile] = now;
       updatedAtMap = newUpdatedAtMap;
 
-      await Supabase.instance.client.from('profiles').upsert({
-        'name': profile.name,
-        'updated_at': now.toIso8601String(),
-        'json': jsonString,
-        'deleted': false,
-      });
-    } catch (_) {
+      unawaited(
+        Supabase.instance.client.from('profiles').upsert({
+          'name': profile.name,
+          'updated_at': now.toIso8601String(),
+          'json': jsonString,
+          'deleted': false,
+        }),
+      );
+    } on Exception catch (_) {
       // On fail, do nothing
     }
   }
@@ -242,48 +247,48 @@ class AreaModel with ChangeNotifier {
         'name': profile.name,
         'deleted': true,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
-        'json': "{}",
+        'json': '{}',
       });
-    } catch (_) {
+    } on Exception catch (_) {
       // On fail, keep in set for retry
     }
   }
 
   Map<Profile, List<Area>> get profiles {
-    final data = _areasBox.get(
+    final Map<dynamic, dynamic> data = _areasBox.get(
       'profiles',
       defaultValue: <Profile, List<Area>>{},
     );
-    return (data as Map<dynamic, dynamic>).map<Profile, List<Area>>(
+    return data.map<Profile, List<Area>>(
       (k, v) => MapEntry(k as Profile, (v as List<dynamic>).cast<Area>()),
     );
   }
 
   set profiles(Map<Profile, List<Area>> value) {
-    _areasBox.put('profiles', value);
+    unawaited(_areasBox.put('profiles', value));
     SchedulerBinding.instance.addPostFrameCallback((_) {
       notifyListeners();
     });
   }
 
   Map<Profile, DateTime?> get updatedAtMap {
-    final data = _areasBox.get(
+    final Map<dynamic, dynamic> data = _areasBox.get(
       'updated_at',
       defaultValue: <Profile, DateTime?>{},
     );
-    return (data as Map<dynamic, dynamic>).map<Profile, DateTime?>(
+    return data.map<Profile, DateTime?>(
       (k, v) => MapEntry(k as Profile, v as DateTime?),
     );
   }
 
   set updatedAtMap(Map<Profile, DateTime?> value) {
-    _areasBox.put('updated_at', value);
+    unawaited(_areasBox.put('updated_at', value));
   }
 
   List<Area> getAreas() {
     if (countModel.selectedProfile == null) return [];
 
-    final currentProfiles = profiles;
+    final Map<Profile, List<Area>> currentProfiles = profiles;
 
     if (currentProfiles.containsKey(countModel.selectedProfile)) {
       return currentProfiles[countModel.selectedProfile]!;
@@ -298,8 +303,8 @@ class AreaModel with ChangeNotifier {
   void setAreas(List<Area> areas) {
     if (countModel.selectedProfile == null) return;
 
-    final currentProfiles = profiles;
-    final currentUpdatedAtMap = updatedAtMap;
+    final Map<Profile, List<Area>> currentProfiles = profiles;
+    final Map<Profile, DateTime?> currentUpdatedAtMap = updatedAtMap;
 
     currentProfiles[countModel.selectedProfile!] = areas;
     currentUpdatedAtMap[countModel.selectedProfile!] = DateTime.now().toUtc();
@@ -316,26 +321,21 @@ class AreaModel with ChangeNotifier {
   int get numAreas => getAreas().length;
 
   void addArea(Area area) {
-    var currentAreas = getAreas();
-    currentAreas.add(area);
+    final List<Area> currentAreas = getAreas()..add(area);
     setAreas(currentAreas);
   }
 
   void removeArea(int index) {
-    var currentAreas = getAreas();
-    var area = currentAreas[index];
+    final List<Area> currentAreas = getAreas();
+    final Area area = currentAreas[index];
 
     // Remove all items in the area from count list
-    for (var shelfOrItem in area.shelvesAndItems) {
+    for (final StorageObject shelfOrItem in area.shelvesAndItems) {
       if (shelfOrItem is Item) {
         countModel.removeFromCountList(shelfOrItem);
       } else if (shelfOrItem is Shelf) {
         // Remove all items in the shelf from count list
-        for (var item in shelfOrItem.items) {
-          if (item is Item) {
-            countModel.removeFromCountList(item);
-          }
-        }
+        shelfOrItem.items.forEach(countModel.removeFromCountList);
       }
     }
 
@@ -346,43 +346,40 @@ class AreaModel with ChangeNotifier {
   Area getArea(int index) => getAreas()[index];
 
   void moveArea(int oldIndex, int newIndex) {
-    var currentAreas = getAreas();
+    final List<Area> currentAreas = getAreas();
     currentAreas.insert(newIndex, currentAreas.removeAt(oldIndex));
     setAreas(currentAreas);
   }
 
   void renameArea(int index, String newName) {
-    var currentAreas = getAreas();
+    final List<Area> currentAreas = getAreas();
     currentAreas[index].name = newName;
     setAreas(currentAreas);
   }
 
   void addShelfToArea(int areaIndex, Shelf shelf) {
-    var currentAreas = getAreas();
+    final List<Area> currentAreas = getAreas();
     currentAreas[areaIndex].shelvesAndItems.add(shelf);
     setAreas(currentAreas);
   }
 
   void addItemToArea(int areaIndex, Item item) {
-    var currentAreas = getAreas();
+    final List<Area> currentAreas = getAreas();
     currentAreas[areaIndex].shelvesAndItems.add(item);
     setAreas(currentAreas);
   }
 
   void removeShelfOrItemFromArea(int areaIndex, int index) {
-    var currentAreas = getAreas();
-    var shelfOrItem = currentAreas[areaIndex].shelvesAndItems[index];
+    final List<Area> currentAreas = getAreas();
+    final StorageObject shelfOrItem =
+        currentAreas[areaIndex].shelvesAndItems[index];
 
     // Remove from count list if it's an Item
     if (shelfOrItem is Item) {
       countModel.removeFromCountList(shelfOrItem);
     } else if (shelfOrItem is Shelf) {
       // Remove all items in the shelf from count list
-      for (var item in shelfOrItem.items) {
-        if (item is Item) {
-          countModel.removeFromCountList(item);
-        }
-      }
+      shelfOrItem.items.forEach(countModel.removeFromCountList);
     }
 
     currentAreas[areaIndex].shelvesAndItems.removeAt(index);
@@ -390,43 +387,45 @@ class AreaModel with ChangeNotifier {
   }
 
   void moveShelfOrItemInArea(int areaIndex, int oldIndex, int newIndex) {
-    var currentAreas = getAreas();
-    var shelvesAndItems = currentAreas[areaIndex].shelvesAndItems;
+    final List<Area> currentAreas = getAreas();
+    final List<StorageObject> shelvesAndItems =
+        currentAreas[areaIndex].shelvesAndItems;
     shelvesAndItems.insert(newIndex, shelvesAndItems.removeAt(oldIndex));
     setAreas(currentAreas);
   }
 
   void renameShelfInArea(int areaIndex, int index, String newName) {
-    var currentAreas = getAreas();
+    final List<Area> currentAreas = getAreas();
     currentAreas[areaIndex].shelvesAndItems[index].name = newName;
     setAreas(currentAreas);
   }
 
   void addItemToShelf(int areaIndex, int shelfIndex, Item item) {
-    var currentAreas = getAreas();
-    var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
+    final List<Area> currentAreas = getAreas();
+    final shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
     shelf.items.add(item);
     setAreas(currentAreas);
   }
 
   void removeItem(List<int> selectedOrder) {
-    var currentAreas = getAreas();
+    final List<Area> currentAreas = getAreas();
 
     Item? itemToRemove;
 
     if (selectedOrder.length == 2) {
       // Item is directly in area
-      int areaIndex = selectedOrder[0];
-      int itemIndex = selectedOrder[1];
+      final int areaIndex = selectedOrder[0];
+      final int itemIndex = selectedOrder[1];
       itemToRemove = currentAreas[areaIndex].shelvesAndItems[itemIndex] as Item;
       currentAreas[areaIndex].shelvesAndItems.removeAt(itemIndex);
     } else {
       // Item is in shelf
-      int areaIndex = selectedOrder[0];
-      int shelfIndex = selectedOrder[1];
-      int itemIndex = selectedOrder[2];
-      var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
-      itemToRemove = shelf.items[itemIndex] as Item;
+      final int areaIndex = selectedOrder[0];
+      final int shelfIndex = selectedOrder[1];
+      final int itemIndex = selectedOrder[2];
+      final shelf =
+          currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
+      itemToRemove = shelf.items[itemIndex];
       shelf.items.removeAt(itemIndex);
     }
 
@@ -442,19 +441,19 @@ class AreaModel with ChangeNotifier {
     int oldIndex,
     int newIndex,
   ) {
-    var currentAreas = getAreas();
-    var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
+    final List<Area> currentAreas = getAreas();
+    final shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
     shelf.items.insert(newIndex, shelf.items.removeAt(oldIndex));
     setAreas(currentAreas);
   }
 
   dynamic getShelfOrItem(List<int> selectedOrder) {
-    int areaIndex = selectedOrder[0];
-    int index = selectedOrder[1];
-    int? index2 = selectedOrder.elementAtOrNull(2);
+    final int areaIndex = selectedOrder[0];
+    final int index = selectedOrder[1];
+    final int? index2 = selectedOrder.elementAtOrNull(2);
 
     if (index2 != null) {
-      var shelf = getAreas()[areaIndex].shelvesAndItems[index] as Shelf;
+      final shelf = getAreas()[areaIndex].shelvesAndItems[index] as Shelf;
       return shelf.items[index2];
     }
     return getAreas()[areaIndex].shelvesAndItems[index];
@@ -472,21 +471,22 @@ class AreaModel with ChangeNotifier {
     bool clearDefaultCount = false,
     bool clearPersonalCountPhase = false,
   }) {
-    var currentAreas = getAreas();
+    final List<Area> currentAreas = getAreas();
     Item? item;
 
     if (selectedOrder.length == 2) {
       // Item is directly in area
-      int areaIndex = selectedOrder[0];
-      int itemIndex = selectedOrder[1];
+      final int areaIndex = selectedOrder[0];
+      final int itemIndex = selectedOrder[1];
       item = currentAreas[areaIndex].shelvesAndItems[itemIndex] as Item;
     } else {
       // Item is in shelf
-      int areaIndex = selectedOrder[0];
-      int shelfIndex = selectedOrder[1];
-      int itemIndex = selectedOrder[2];
-      var shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
-      item = shelf.items[itemIndex] as Item;
+      final int areaIndex = selectedOrder[0];
+      final int shelfIndex = selectedOrder[1];
+      final int itemIndex = selectedOrder[2];
+      final shelf =
+          currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
+      item = shelf.items[itemIndex];
     }
 
     var countListNeedsUpdate = false;
@@ -531,7 +531,7 @@ class AreaModel with ChangeNotifier {
   }
 
   String exportAreasToJson() {
-    final data = {
+    final Map<String, Object> data = {
       'profiles': profiles.map(
         (profile, areas) => MapEntry(profile.name, areas),
       ),
@@ -546,16 +546,17 @@ class AreaModel with ChangeNotifier {
 
     // Import areas
     if (data['profiles'] != null) {
-      final importedProfiles = (data['profiles'] as Map<String, dynamic>).map((
-        profileName,
-        areasData,
-      ) {
-        final profile = Profile(profileName);
-        final areas = (areasData as List<dynamic>)
-            .map((areaData) => Area.fromJson(areaData))
-            .toList();
-        return MapEntry(profile, areas);
-      });
+      final Map<Profile, List<Area>> importedProfiles =
+          (data['profiles'] as Map<String, dynamic>).map((
+            profileName,
+            areasData,
+          ) {
+            final profile = Profile(profileName);
+            final List<Area> areas = (areasData as List<dynamic>)
+                .map((areaData) => Area.fromJson(areaData))
+                .toList();
+            return MapEntry(profile, areas);
+          });
       profiles = importedProfiles;
     }
 
@@ -570,8 +571,8 @@ class AreaModel with ChangeNotifier {
   }
 
   String exportProfileToJson(Profile profile) {
-    final currentProfiles = profiles;
-    final areas = currentProfiles[profile] ?? [];
+    final Map<Profile, List<Area>> currentProfiles = profiles;
+    final List<Area> areas = currentProfiles[profile] ?? [];
 
     final data = {'areas': areas};
 
@@ -583,11 +584,11 @@ class AreaModel with ChangeNotifier {
 
     // Import areas for this specific profile
     if (data['areas'] != null) {
-      final areas = (data['areas'] as List<dynamic>)
+      final List<Area> areas = (data['areas'] as List<dynamic>)
           .map((areaData) => Area.fromJson(areaData))
           .toList();
 
-      final currentProfiles = profiles;
+      final Map<Profile, List<Area>> currentProfiles = profiles;
       currentProfiles[profile] = areas;
       profiles = currentProfiles;
     }
@@ -598,9 +599,9 @@ class AreaModel with ChangeNotifier {
   }
 
   bool hasAnyItems() {
-    for (int i = 0; i < numAreas; i++) {
-      final area = getArea(i);
-      for (var shelfOrItem in area.shelvesAndItems) {
+    for (var i = 0; i < numAreas; i++) {
+      final Area area = getArea(i);
+      for (final StorageObject shelfOrItem in area.shelvesAndItems) {
         if (shelfOrItem is Shelf) {
           if (shelfOrItem.items.isNotEmpty) {
             return true;
@@ -614,15 +615,15 @@ class AreaModel with ChangeNotifier {
   }
 
   List<String> getPathsForItem(String itemName) {
-    List<String> paths = [];
-    for (int i = 0; i < numAreas; i++) {
-      final area = getArea(i);
-      String areaName = area.name;
-      for (var shelfOrItem in area.shelvesAndItems) {
+    final List<String> paths = [];
+    for (var i = 0; i < numAreas; i++) {
+      final Area area = getArea(i);
+      final String areaName = area.name;
+      for (final StorageObject shelfOrItem in area.shelvesAndItems) {
         if (shelfOrItem is Shelf) {
-          String shelfName = shelfOrItem.name;
-          for (var item in shelfOrItem.items) {
-            if (item is Item && (item.countName ?? item.name) == itemName) {
+          final String shelfName = shelfOrItem.name;
+          for (final Item item in shelfOrItem.items) {
+            if ((item.countName ?? item.name) == itemName) {
               paths.add('$areaName > $shelfName > ${item.name}');
             }
           }
@@ -636,8 +637,8 @@ class AreaModel with ChangeNotifier {
   }
 
   List<ItemTreeData> findItemsByName(String name, CountPhase phase) {
-    List<int> itemIds = [];
-    List<ItemTreeData> items = [];
+    final List<int> itemIds = [];
+    final List<ItemTreeData> items = [];
 
     if (countModel.selectedProfile == null) return [];
 
@@ -648,15 +649,15 @@ class AreaModel with ChangeNotifier {
       }
     }
 
-    for (int i = 0; i < numAreas; i++) {
-      final area = getArea(i);
-      for (var shelfOrItem in area.shelvesAndItems) {
+    for (var i = 0; i < numAreas; i++) {
+      final Area area = getArea(i);
+      for (final StorageObject shelfOrItem in area.shelvesAndItems) {
         if (shelfOrItem is Item) {
           if (itemIds.contains(shelfOrItem.id)) {
             items.add(ItemTreeData(shelfOrItem, area: area));
           }
         } else if (shelfOrItem is Shelf) {
-          for (var item in shelfOrItem.items) {
+          for (final Item item in shelfOrItem.items) {
             if (itemIds.contains(item.id)) {
               items.add(ItemTreeData(item, area: area, shelf: shelfOrItem));
             }

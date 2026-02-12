@@ -12,14 +12,11 @@ class ExportItemAdapter extends TypeAdapter<ExportItem> {
 
   @override
   ExportItem read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
+    final int numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return ExportItem(
-      fields[0] as String,
-      isHidden: fields[1] as bool?,
-    );
+    return ExportItem(fields[0] as String, isHidden: fields[1] as bool?);
   }
 
   @override
@@ -49,14 +46,11 @@ class ExportTitleAdapter extends TypeAdapter<ExportTitle> {
 
   @override
   ExportTitle read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
+    final int numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return ExportTitle(
-      fields[0] as String,
-      isHidden: fields[1] as bool?,
-    );
+    return ExportTitle(fields[0] as String, isHidden: fields[1] as bool?);
   }
 
   @override

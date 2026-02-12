@@ -1,21 +1,22 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:inventory_count/companion/companion_app.dart';
-import 'package:inventory_count/companion/companion_setup.dart';
-import 'package:inventory_count/fix_page.dart';
-import 'package:inventory_count/models/count_model.dart';
-import 'package:inventory_count/models/export_model.dart';
-import 'package:inventory_count/models/hive.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/count_page.dart';
-import 'package:inventory_count/export_page.dart';
-import 'package:inventory_count/setup/setup_page.dart';
-import 'package:inventory_count/hive_error_page.dart';
-import 'package:inventory_count/widgets/date_picker.dart';
-import 'package:inventory_count/widgets/profile_selection.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'companion/companion_app.dart';
+import 'companion/companion_setup.dart';
+import 'count_page.dart';
+import 'export_page.dart';
+import 'fix_page.dart';
+import 'hive_error_page.dart';
+import 'models/area_model.dart';
+import 'models/count_model.dart';
+import 'models/export_model.dart';
+import 'models/hive.dart';
+import 'setup/setup_page.dart';
+import 'widgets/date_picker.dart';
+import 'widgets/profile_selection.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,9 @@ void main() async {
     anonKey: 'sb_publishable_6GGLYRmVrTZ5yLI64u1vmQ_jkm5imVL',
   );
 
+  // Environment variable is set via --dart-define=COMPANION=true to build the
+  // companion app
+  // ignore: do_not_use_environment
   if (const String.fromEnvironment('COMPANION') == 'true') {
     await companionHiveSetup();
 
@@ -38,12 +42,14 @@ void main() async {
   String? hiveError;
   try {
     await hiveSetup();
-  } catch (e) {
+  } on Exception catch (e) {
     hiveError = e.toString();
   }
 
   runApp(
     DevicePreview(
+      // False positive
+      // ignore: avoid_redundant_argument_values
       enabled: !kReleaseMode,
       builder: (context) => hiveError != null
           ? HiveErrorPage(errorMessage: hiveError)
@@ -93,13 +99,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int currentPageIndex = 0;
+  int _currentPageIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<CountModel>(
       builder: (context, countModel, child) {
-        final currentProfile = countModel.selectedProfile;
+        final Profile? currentProfile = countModel.selectedProfile;
 
         return Scaffold(
           bottomNavigationBar: BottomAppBar(
@@ -111,12 +117,12 @@ class _HomePageState extends State<HomePage> {
                 if (currentProfile != null) ...[
                   NavigationBar(
                     height: 60,
-                    onDestinationSelected: (int index) {
+                    onDestinationSelected: (index) {
                       setState(() {
-                        currentPageIndex = index;
+                        _currentPageIndex = index;
                       });
                     },
-                    selectedIndex: currentPageIndex,
+                    selectedIndex: _currentPageIndex,
                     destinations: const <Widget>[
                       NavigationDestination(
                         icon: Icon(Icons.list),
@@ -139,22 +145,21 @@ class _HomePageState extends State<HomePage> {
                         tooltip: '',
                       ),
                     ],
-                    labelBehavior: null,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                 ],
-                DatePicker(),
+                const DatePicker(),
               ],
             ),
           ),
           body: currentProfile != null
               ? [
-                  CountPage(),
-                  FixPage(),
-                  ExportPage(),
-                  SetupPage(),
-                ][currentPageIndex]
-              : SelectProfile(),
+                  const CountPage(),
+                  const FixPage(),
+                  const ExportPage(),
+                  const SetupPage(),
+                ][_currentPageIndex]
+              : const SelectProfile(),
         );
       },
     );

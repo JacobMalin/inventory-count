@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/count_model.dart';
-import 'package:inventory_count/models/export_entry.dart';
-import 'package:inventory_count/models/export_model.dart';
-import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'models/area_model.dart';
+import 'models/count_model.dart';
+import 'models/export_entry.dart';
+import 'models/export_model.dart';
+import 'models/hive.dart';
 
 class ExportPage extends StatefulWidget {
   const ExportPage({super.key});
@@ -27,14 +28,15 @@ class _ExportPageState extends State<ExportPage> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
   }
 
   void _onScroll() {
     if (_scrollController.hasClients) {
-      final isAtBottom =
+      final bool isAtBottom =
           _scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 50;
       if (isAtBottom != _isAtBottom) {
@@ -45,7 +47,7 @@ class _ExportPageState extends State<ExportPage> {
     }
   }
 
-  void _scrollToBottom() async {
+  Future<void> _scrollToBottom() async {
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -55,7 +57,7 @@ class _ExportPageState extends State<ExportPage> {
     }
   }
 
-  void _scrollToTop() async {
+  Future<void> _scrollToTop() async {
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
         0,
@@ -81,17 +83,19 @@ class _ExportPageState extends State<ExportPage> {
         children: [
           Consumer3<AreaModel, ExportModel, CountModel>(
             builder: (context, areaModel, exportModel, countModel, child) {
-              final exportList = exportModel.exportList;
+              final List<ExportEntry> exportList = exportModel.exportList;
 
               // Check if there are any items in the list
-              final hasItems = exportList.any((entry) => entry is ExportItem);
+              final bool hasItems = exportList.any(
+                (entry) => entry is ExportItem,
+              );
 
               // Calculate the width needed for headers with padding
-              final textStyle = Theme.of(
+              final TextStyle? textStyle = Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold);
 
-              final columnWidths = {
+              final Map<String, double> columnWidths = {
                 'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
                 'Cabinet': _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
                 'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
@@ -102,7 +106,7 @@ class _ExportPageState extends State<ExportPage> {
               if (!hasItems) {
                 return Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: const EdgeInsets.all(24),
                     child: Text(
                       'Add items in Setup to begin counting!',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -120,11 +124,10 @@ class _ExportPageState extends State<ExportPage> {
                   key: const PageStorageKey('export_table_scroll'),
                   controller: _scrollController,
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 70.0),
+                    padding: const EdgeInsets.only(bottom: 70),
                     child: Table(
                       border: TableBorder.all(
                         color: Theme.of(context).colorScheme.outline,
-                        width: 1,
                       ),
                       columnWidths: {
                         0: const FlexColumnWidth(),
@@ -176,7 +179,7 @@ class _ExportPageState extends State<ExportPage> {
                         ),
                         // Data rows
                         ...(() {
-                          bool currentTitleHidden = false;
+                          var currentTitleHidden = false;
                           final rows = <TableRow>[];
 
                           for (final entry in exportList) {
@@ -218,10 +221,11 @@ class _ExportPageState extends State<ExportPage> {
               builder: (context, exportModel, countModel, child) {
                 return FloatingActionButton.small(
                   onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
+                    final ScaffoldMessengerState messenger =
+                        ScaffoldMessenger.of(context);
 
                     try {
-                      final jsonString = exportModel.exportInExportOrder(
+                      final String jsonString = exportModel.exportInExportOrder(
                         countModel,
                       );
 
@@ -232,17 +236,17 @@ class _ExportPageState extends State<ExportPage> {
                       messenger.showSnackBar(
                         SnackBar(
                           content: GestureDetector(
-                            onTap: () => messenger.hideCurrentSnackBar(),
+                            onTap: messenger.hideCurrentSnackBar,
                             child: const Text('Exported successfully!'),
                           ),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
-                    } catch (e) {
+                    } on Exception catch (e) {
                       messenger.showSnackBar(
                         SnackBar(
                           content: GestureDetector(
-                            onTap: () => messenger.hideCurrentSnackBar(),
+                            onTap: messenger.hideCurrentSnackBar,
                             child: Text('Export failed: $e'),
                           ),
                           behavior: SnackBarBehavior.floating,
@@ -290,7 +294,7 @@ class _ExportPageState extends State<ExportPage> {
     TextStyle? textStyle,
   ) {
     return Padding(
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.all(12),
       child: Text(
         text,
         textAlign: textAlign,
@@ -315,22 +319,22 @@ class _ExportPageState extends State<ExportPage> {
     );
     int? outCount = countModel.getCountValueByName(item.name, CountPhase.out);
 
-    String? backSumNotation = countModel.getCountSumNotationByName(
+    final String? backSumNotation = countModel.getCountSumNotationByName(
       item.name,
       CountPhase.back,
     );
-    String? cabinetSumNotation = countModel.getCountSumNotationByName(
+    final String? cabinetSumNotation = countModel.getCountSumNotationByName(
       item.name,
       CountPhase.cabinet,
     );
-    String? outSumNotation = countModel.getCountSumNotationByName(
+    final String? outSumNotation = countModel.getCountSumNotationByName(
       item.name,
       CountPhase.out,
     );
 
-    bool backIsNotCounted = backCount == -1;
-    bool cabinetIsNotCounted = cabinetCount == -1;
-    bool outIsNotCounted = outCount == -1;
+    final backIsNotCounted = backCount == -1;
+    final cabinetIsNotCounted = cabinetCount == -1;
+    final outIsNotCounted = outCount == -1;
 
     if (backIsNotCounted) {
       backCount = null;
@@ -352,7 +356,8 @@ class _ExportPageState extends State<ExportPage> {
 
     final String totalStr;
     if (hasAnyValue) {
-      final total = (backCount ?? 0) + (cabinetCount ?? 0) + (outCount ?? 0);
+      final int total =
+          (backCount ?? 0) + (cabinetCount ?? 0) + (outCount ?? 0);
       totalStr = total.toString();
     } else if (anyNotCounted) {
       totalStr = '-';
@@ -410,7 +415,7 @@ class _ExportPageState extends State<ExportPage> {
       ),
       children: [
         Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(12),
           child: Text(
             title.name,
             style: Theme.of(
@@ -464,7 +469,7 @@ class _ExportPageState extends State<ExportPage> {
   }) {
     return Container(
       color: backgroundColor,
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       child: FittedBox(
         fit: BoxFit.scaleDown,
         alignment: textAlign == TextAlign.left

@@ -1,23 +1,26 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/count_strategy.dart';
-import 'package:inventory_count/models/export_model.dart';
-import 'package:inventory_count/models/hive.dart';
-import 'package:inventory_count/models/export_entry.dart';
 import 'package:provider/provider.dart';
+
+import '../models/area_model.dart';
+import '../models/count_strategy.dart';
+import '../models/export_entry.dart';
+import '../models/export_model.dart';
+import '../models/hive.dart';
 
 class ItemPage extends StatelessWidget {
   const ItemPage({
+    required dynamic Function() deselect,
+    required Item item,
+    required List<int> selectedOrder,
     super.key,
-    required this.deselect,
-    required this.item,
-    required this.selectedOrder,
-  });
+  }) : _selectedOrder = selectedOrder,
+       _item = item,
+       _deselect = deselect;
 
-  final Function() deselect;
-  final Item item;
-  final List<int> selectedOrder;
+  final Function() _deselect;
+  final Item _item;
+  final List<int> _selectedOrder;
 
   @override
   Widget build(BuildContext context) {
@@ -26,26 +29,26 @@ class ItemPage extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              item.name,
+              _item.name,
               style: Theme.of(context).textTheme.headlineLarge,
             ),
             centerTitle: true,
             toolbarHeight: 40,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new),
-              onPressed: deselect,
+              onPressed: _deselect,
             ),
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit),
-                onPressed: () {
-                  final controller = TextEditingController(text: item.name);
+                onPressed: () async {
+                  final controller = TextEditingController(text: _item.name);
                   controller.selection = TextSelection(
                     baseOffset: 0,
                     extentOffset: controller.text.length,
                   );
 
-                  showDialog(
+                  await showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Rename Item'),
@@ -54,7 +57,7 @@ class ItemPage extends StatelessWidget {
                         autofocus: true,
                         onChanged: (value) {
                           if (value.isNotEmpty) {
-                            areaModel.editItem(selectedOrder, newName: value);
+                            areaModel.editItem(_selectedOrder, newName: value);
                           }
                         },
                         onSubmitted: (_) => Navigator.pop(context),
@@ -71,8 +74,8 @@ class ItemPage extends StatelessWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.delete),
-                onPressed: () {
-                  showDialog(
+                onPressed: () async {
+                  await showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Delete Item'),
@@ -86,9 +89,9 @@ class ItemPage extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () {
-                            areaModel.removeItem(selectedOrder);
+                            areaModel.removeItem(_selectedOrder);
                             Navigator.pop(context);
-                            deselect();
+                            _deselect();
                           },
                           child: const Text('Delete'),
                         ),
@@ -104,10 +107,10 @@ class ItemPage extends StatelessWidget {
           body: GestureDetector(
             onHorizontalDragEnd: (details) {
               if (details.primaryVelocity! > 300) {
-                deselect();
+                _deselect();
               }
             },
-            child: ItemSettings(item: item, selectedOrder: selectedOrder),
+            child: ItemSettings(item: _item, selectedOrder: _selectedOrder),
           ),
         );
       },
@@ -117,83 +120,88 @@ class ItemPage extends StatelessWidget {
 
 class ItemSettings extends StatefulWidget {
   const ItemSettings({
+    required Item item,
+    required List<int> selectedOrder,
     super.key,
-    required this.item,
-    required this.selectedOrder,
-  });
+  }) : _selectedOrder = selectedOrder,
+       _item = item;
 
-  final Item item;
-  final List<int> selectedOrder;
+  final Item _item;
+  final List<int> _selectedOrder;
 
   @override
   State<ItemSettings> createState() => _ItemSettingsState();
 }
 
 class _ItemSettingsState extends State<ItemSettings> {
-  late CountStrategy countStrategy;
-  late CountPhase countPhase;
-  late CountPhase? personalCountPhase;
-  final TextEditingController strategyIntController = TextEditingController();
-  final TextEditingController strategyInt2Controller = TextEditingController();
-  final TextEditingController defaultCountController = TextEditingController();
-  final TextEditingController defaultStacksController = TextEditingController();
+  late CountStrategy _countStrategy;
+  late CountPhase _countPhase;
+  late CountPhase? _personalCountPhase;
+  final TextEditingController _strategyIntController = TextEditingController();
+  final TextEditingController _strategyInt2Controller = TextEditingController();
+  final TextEditingController _defaultCountController = TextEditingController();
+  final TextEditingController _defaultStacksController =
+      TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    countStrategy = widget.item.strategy;
-    countPhase = widget.item.countPhase;
-    personalCountPhase = widget.item.personalCountPhase;
-    countStrategy.populateControllers(
-      strategyIntController,
-      strategyInt2Controller,
+    _countStrategy = widget._item.strategy;
+    _countPhase = widget._item.countPhase;
+    _personalCountPhase = widget._item.personalCountPhase;
+    _countStrategy.populateControllers(
+      _strategyIntController,
+      _strategyInt2Controller,
     );
-    if (widget.item.defaultCount != null) {
-      defaultCountController.text =
-          widget.item.defaultCount!.field1?.toString() ?? '';
-      defaultStacksController.text =
-          widget.item.defaultCount!.field2?.toString() ?? '';
+    if (widget._item.defaultCount != null) {
+      _defaultCountController.text =
+          widget._item.defaultCount!.field1?.toString() ?? '';
+      _defaultStacksController.text =
+          widget._item.defaultCount!.field2?.toString() ?? '';
     }
   }
 
   @override
   void dispose() {
-    strategyIntController.dispose();
-    strategyInt2Controller.dispose();
-    defaultCountController.dispose();
-    defaultStacksController.dispose();
+    _strategyIntController.dispose();
+    _strategyInt2Controller.dispose();
+    _defaultCountController.dispose();
+    _defaultStacksController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       child: Consumer<AreaModel>(
         builder: (context, areaModel, child) {
           void updateDefaultCount() {
             int? defaultCountField1;
             int? defaultCountField2;
 
-            if (defaultCountController.text.isNotEmpty) {
-              defaultCountField1 = int.tryParse(defaultCountController.text);
+            if (_defaultCountController.text.isNotEmpty) {
+              defaultCountField1 = int.tryParse(_defaultCountController.text);
             }
 
-            if (defaultStacksController.text.isNotEmpty) {
-              defaultCountField2 = int.tryParse(defaultStacksController.text);
+            if (_defaultStacksController.text.isNotEmpty) {
+              defaultCountField2 = int.tryParse(_defaultStacksController.text);
             }
 
             if (defaultCountField1 != null || defaultCountField2 != null) {
               areaModel.editItem(
-                widget.selectedOrder,
+                widget._selectedOrder,
                 newDefaultCount: ItemCount(
-                  countStrategy,
+                  _countStrategy,
                   field1: defaultCountField1,
                   field2: defaultCountField2,
                 ),
               );
             } else {
-              areaModel.editItem(widget.selectedOrder, clearDefaultCount: true);
+              areaModel.editItem(
+                widget._selectedOrder,
+                clearDefaultCount: true,
+              );
             }
           }
 
@@ -202,8 +210,8 @@ class _ItemSettingsState extends State<ItemSettings> {
             children: [
               Consumer<ExportModel>(
                 builder: (context, exportModel, child) {
-                  final isValid = widget.item.getIsValid(exportModel);
-                  final countName = widget.item.countName;
+                  final bool isValid = widget._item.getIsValid(exportModel);
+                  final String? countName = widget._item.countName;
 
                   return Row(
                     children: [
@@ -236,11 +244,11 @@ class _ItemSettingsState extends State<ItemSettings> {
               const SizedBox(height: 16),
               Consumer<ExportModel>(
                 builder: (context, exportModel, child) {
-                  final exportItemNames = exportModel.exportList
+                  final List<String> exportItemNames = exportModel.exportList
                       .whereType<ExportItem>()
                       .map((entry) => entry.name)
                       .toList();
-                  final currentCountName = widget.item.countName;
+                  final String? currentCountName = widget._item.countName;
                   final dropdownValue = currentCountName;
 
                   return DropdownSearch<String>(
@@ -255,12 +263,12 @@ class _ItemSettingsState extends State<ItemSettings> {
                     onSelected: (value) {
                       if (value == null) {
                         areaModel.editItem(
-                          widget.selectedOrder,
-                          newCountName: "",
+                          widget._selectedOrder,
+                          newCountName: '',
                         );
                       } else {
                         areaModel.editItem(
-                          widget.selectedOrder,
+                          widget._selectedOrder,
                           newCountName: value,
                         );
                       }
@@ -284,60 +292,60 @@ class _ItemSettingsState extends State<ItemSettings> {
                         label: Text(CountStrategyType.values[i].name),
                       ),
                   ],
-                  selected: {countStrategy.index},
-                  onSelectionChanged: (Set<CountStrategyType> newSelection) {
+                  selected: {_countStrategy.index},
+                  onSelectionChanged: (newSelection) {
                     setState(() {
-                      countStrategy = CountStrategy.fromIndex(
+                      _countStrategy = CountStrategy.fromIndex(
                         newSelection.first,
-                        modifier1: int.tryParse(strategyIntController.text),
-                        modifier2: int.tryParse(strategyInt2Controller.text),
+                        modifier1: int.tryParse(_strategyIntController.text),
+                        modifier2: int.tryParse(_strategyInt2Controller.text),
                       );
                     });
                     areaModel.editItem(
-                      widget.selectedOrder,
-                      newStrategy: countStrategy,
+                      widget._selectedOrder,
+                      newStrategy: _countStrategy,
                     );
                     updateDefaultCount();
                   },
                 ),
               ),
-              ...countStrategy.buildConfigFields(
-                controller1: strategyIntController,
-                controller2: strategyInt2Controller,
-                selectedOrder: widget.selectedOrder,
+              ..._countStrategy.buildConfigFields(
+                controller1: _strategyIntController,
+                controller2: _strategyInt2Controller,
+                selectedOrder: widget._selectedOrder,
                 areaModel: areaModel,
               ),
               const SizedBox(height: 24),
-              if (countStrategy is! NegativeCountStrategy) ...[
+              if (_countStrategy is! NegativeCountStrategy) ...[
                 Text(
-                  widget.item.defaultCount != null
-                      ? 'Default Count: ${widget.item.defaultCount!.count}'
+                  widget._item.defaultCount != null
+                      ? 'Default Count: ${widget._item.defaultCount!.count}'
                       : 'Default Count',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
-                if (countStrategy is SingularCountStrategy ||
-                    countStrategy is StacksCountStrategy)
+                if (_countStrategy is SingularCountStrategy ||
+                    _countStrategy is StacksCountStrategy)
                   TextField(
-                    controller: defaultCountController,
+                    controller: _defaultCountController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       hintText: '0',
-                      labelText: countStrategy is StacksCountStrategy
+                      labelText: _countStrategy is StacksCountStrategy
                           ? 'Default stacks'
                           : null,
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       updateDefaultCount();
                     },
                   )
-                else if (countStrategy is BoxesAndStacksCountStrategy)
+                else if (_countStrategy is BoxesAndStacksCountStrategy)
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
-                          controller: defaultCountController,
+                          controller: _defaultCountController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
                             hintText: '0',
@@ -352,7 +360,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: TextField(
-                          controller: defaultStacksController,
+                          controller: _defaultStacksController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
                             hintText: '0',
@@ -395,14 +403,14 @@ class _ItemSettingsState extends State<ItemSettings> {
                       label: Text('Out'),
                     ),
                   ],
-                  selected: {countPhase},
-                  onSelectionChanged: (Set<CountPhase> newSelection) {
+                  selected: {_countPhase},
+                  onSelectionChanged: (newSelection) {
                     setState(() {
-                      countPhase = newSelection.first;
+                      _countPhase = newSelection.first;
                     });
                     areaModel.editItem(
-                      widget.selectedOrder,
-                      newCountPhase: countPhase,
+                      widget._selectedOrder,
+                      newCountPhase: _countPhase,
                     );
                   },
                 ),
@@ -431,17 +439,17 @@ class _ItemSettingsState extends State<ItemSettings> {
                       label: Text('Out'),
                     ),
                   ],
-                  selected: personalCountPhase != null
-                      ? {personalCountPhase!}
+                  selected: _personalCountPhase != null
+                      ? {_personalCountPhase!}
                       : {},
-                  onSelectionChanged: (Set<CountPhase> newSelection) {
+                  onSelectionChanged: (newSelection) {
                     setState(() {
-                      personalCountPhase = newSelection.firstOrNull;
+                      _personalCountPhase = newSelection.firstOrNull;
                     });
                     areaModel.editItem(
-                      widget.selectedOrder,
-                      newPersonalCountPhase: personalCountPhase,
-                      clearPersonalCountPhase: personalCountPhase == null,
+                      widget._selectedOrder,
+                      newPersonalCountPhase: _personalCountPhase,
+                      clearPersonalCountPhase: _personalCountPhase == null,
                     );
                   },
                 ),

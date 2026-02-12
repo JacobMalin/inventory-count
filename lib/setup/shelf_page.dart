@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/hive.dart';
-import 'package:inventory_count/setup/setup_tiles.dart';
 import 'package:provider/provider.dart';
+
+import '../models/area_model.dart';
+import '../models/hive.dart';
+import 'setup_tiles.dart';
 
 class ShelfPage extends StatelessWidget {
   const ShelfPage({
+    required void Function(int) select,
+    required void Function() deselect,
+    required Shelf shelf,
+    required List<int> selectedOrder,
     super.key,
-    required this.select,
-    required this.deselect,
-    required this.shelf,
-    required this.selectedOrder,
-  });
+  }) : _selectedOrder = selectedOrder,
+       _shelf = shelf,
+       _deselect = deselect,
+       _select = select;
 
-  final void Function(int) select;
-  final void Function() deselect;
-  final Shelf shelf;
-  final List<int> selectedOrder;
+  final void Function(int) _select;
+  final void Function() _deselect;
+  final Shelf _shelf;
+  final List<int> _selectedOrder;
 
   @override
   Widget build(BuildContext context) {
@@ -25,25 +29,25 @@ class ShelfPage extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              shelf.name,
+              _shelf.name,
               style: Theme.of(context).textTheme.headlineLarge,
             ),
             centerTitle: true,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new),
-              onPressed: deselect,
+              onPressed: _deselect,
             ),
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit),
-                onPressed: () {
-                  final controller = TextEditingController(text: shelf.name);
+                onPressed: () async {
+                  final controller = TextEditingController(text: _shelf.name);
                   controller.selection = TextSelection(
                     baseOffset: 0,
                     extentOffset: controller.text.length,
                   );
 
-                  showDialog(
+                  await showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Rename Shelf'),
@@ -52,8 +56,8 @@ class ShelfPage extends StatelessWidget {
                         autofocus: true,
                         onChanged: (value) {
                           areaModel.renameShelfInArea(
-                            selectedOrder[0],
-                            selectedOrder[1],
+                            _selectedOrder[0],
+                            _selectedOrder[1],
                             value,
                           );
                         },
@@ -71,8 +75,8 @@ class ShelfPage extends StatelessWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.delete),
-                onPressed: () {
-                  showDialog(
+                onPressed: () async {
+                  await showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Delete Shelf'),
@@ -87,11 +91,11 @@ class ShelfPage extends StatelessWidget {
                         TextButton(
                           onPressed: () {
                             areaModel.removeShelfOrItemFromArea(
-                              selectedOrder[0],
-                              selectedOrder[1],
+                              _selectedOrder[0],
+                              _selectedOrder[1],
                             );
                             Navigator.pop(context);
-                            deselect();
+                            _deselect();
                           },
                           child: const Text('Delete'),
                         ),
@@ -107,10 +111,10 @@ class ShelfPage extends StatelessWidget {
           body: GestureDetector(
             onHorizontalDragEnd: (details) {
               if (details.primaryVelocity! > 300) {
-                deselect();
+                _deselect();
               }
             },
-            child: ItemList(select: select, selectedOrder: selectedOrder),
+            child: ItemList(select: _select, selectedOrder: _selectedOrder),
           ),
         );
       },
@@ -120,13 +124,14 @@ class ShelfPage extends StatelessWidget {
 
 class ItemList extends StatefulWidget {
   const ItemList({
+    required void Function(int) select,
+    required List<int> selectedOrder,
     super.key,
-    required this.select,
-    required this.selectedOrder,
-  });
+  }) : _select = select,
+       _selectedOrder = selectedOrder;
 
-  final void Function(int) select;
-  final List<int> selectedOrder;
+  final void Function(int) _select;
+  final List<int> _selectedOrder;
 
   @override
   State<ItemList> createState() => _ItemListState();
@@ -141,7 +146,7 @@ class _ItemListState extends State<ItemList> {
     super.dispose();
   }
 
-  void _scrollToBottom() async {
+  Future<void> _scrollToBottom() async {
     await Future.delayed(const Duration(milliseconds: 100));
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
@@ -166,23 +171,23 @@ class _ItemListState extends State<ItemList> {
               leading: const Icon(Icons.add),
               title: const Text('Add Item'),
               tileColor: Theme.of(context).colorScheme.surface,
-              onTap: () {
-                showDialog(
+              onTap: () async {
+                await showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('Enter Item Name'),
                     content: TextField(
                       autofocus: true,
-                      onSubmitted: (value) {
+                      onSubmitted: (value) async {
                         if (value.isNotEmpty) {
                           areaModel.addItemToShelf(
-                            widget.selectedOrder[0],
-                            widget.selectedOrder[1],
+                            widget._selectedOrder[0],
+                            widget._selectedOrder[1],
                             Item(value),
                           );
 
                           Navigator.pop(context);
-                          _scrollToBottom();
+                          await _scrollToBottom();
                         }
                       },
                     ),
@@ -208,7 +213,7 @@ class _ItemListState extends State<ItemList> {
                           for (
                             int index = 0;
                             index <
-                                (areaModel.getShelfOrItem(widget.selectedOrder)
+                                (areaModel.getShelfOrItem(widget._selectedOrder)
                                         as Shelf)
                                     .items
                                     .length;
@@ -217,18 +222,18 @@ class _ItemListState extends State<ItemList> {
                             ItemTile(
                               key: Key('$index'),
                               index: index,
-                              selectedOrder: widget.selectedOrder,
-                              select: widget.select,
+                              selectedOrder: widget._selectedOrder,
+                              select: widget._select,
                             ),
                         ],
-                        onReorder: (int oldIndex, int newIndex) {
+                        onReorder: (oldIndex, newIndex) {
                           if (newIndex > oldIndex) {
                             newIndex -= 1;
                           }
 
                           areaModel.moveItemInShelf(
-                            widget.selectedOrder[0],
-                            widget.selectedOrder[1],
+                            widget._selectedOrder[0],
+                            widget._selectedOrder[1],
                             oldIndex,
                             newIndex,
                           );

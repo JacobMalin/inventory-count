@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:inventory_count/models/count_model.dart';
 import 'package:provider/provider.dart';
+
+import '../models/count_model.dart';
 
 class DatePicker extends StatelessWidget {
   const DatePicker({super.key});
@@ -27,7 +28,7 @@ class DatePicker extends StatelessWidget {
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    spacing: 8.0,
+                    spacing: 8,
                     children: [
                       TextButton.icon(
                         onPressed: countModel.selectedProfile == null

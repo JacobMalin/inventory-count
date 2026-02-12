@@ -12,13 +12,11 @@ class SingularCountStrategyAdapter extends TypeAdapter<SingularCountStrategy> {
 
   @override
   SingularCountStrategy read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
+    final int numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return SingularCountStrategy(
-      placeholder: fields[0] as bool?,
-    );
+    return SingularCountStrategy(placeholder: fields[0] as bool?);
   }
 
   @override
@@ -46,13 +44,11 @@ class NegativeCountStrategyAdapter extends TypeAdapter<NegativeCountStrategy> {
 
   @override
   NegativeCountStrategy read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
+    final int numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return NegativeCountStrategy(
-      fields[0] as int,
-    );
+    return NegativeCountStrategy(fields[0] as int);
   }
 
   @override
@@ -80,13 +76,11 @@ class StacksCountStrategyAdapter extends TypeAdapter<StacksCountStrategy> {
 
   @override
   StacksCountStrategy read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
+    final int numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return StacksCountStrategy(
-      fields[0] as int,
-    );
+    return StacksCountStrategy(fields[0] as int);
   }
 
   @override
@@ -115,14 +109,11 @@ class BoxesAndStacksCountStrategyAdapter
 
   @override
   BoxesAndStacksCountStrategy read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
+    final int numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return BoxesAndStacksCountStrategy(
-      fields[0] as int,
-      fields[1] as int,
-    );
+    return BoxesAndStacksCountStrategy(fields[0] as int, fields[1] as int);
   }
 
   @override
@@ -152,7 +143,7 @@ class ItemCountAdapter extends TypeAdapter<ItemCount> {
 
   @override
   ItemCount read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
+    final int numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
@@ -195,13 +186,11 @@ class ItemNotCountedAdapter extends TypeAdapter<ItemNotCounted> {
 
   @override
   ItemNotCounted read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
+    final int numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return ItemNotCounted(
-      doubleChecked: fields[0] as bool,
-    );
+    return ItemNotCounted(doubleChecked: fields[0] as bool);
   }
 
   @override

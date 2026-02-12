@@ -1,11 +1,14 @@
+import 'dart:async';
+
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class HiveErrorPage extends StatefulWidget {
-  final String errorMessage;
+  const HiveErrorPage({required String errorMessage, super.key})
+    : _errorMessage = errorMessage;
 
-  const HiveErrorPage({super.key, required this.errorMessage});
+  final String _errorMessage;
 
   @override
   State<HiveErrorPage> createState() => _HiveErrorPageState();
@@ -31,7 +34,7 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
   @override
   void initState() {
     super.initState();
-    _checkBoxes();
+    unawaited(_checkBoxes());
   }
 
   Future<void> _checkBoxes() async {
@@ -44,16 +47,12 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
       await Hive.close();
       await Hive.initFlutter('inventory_count');
 
-      for (final boxName in _boxesToDelete.keys) {
-        bool isCorrupted = false;
+      for (final String boxName in _boxesToDelete.keys) {
+        var isCorrupted = false;
         try {
-          if (boxName == 'counts') {
-            await Hive.openBox<dynamic>(boxName);
-          } else {
-            await Hive.openBox(boxName);
-          }
-          await Hive.box(boxName).close();
-        } catch (e) {
+          final Box box = await Hive.openBox<dynamic>(boxName);
+          await box.close();
+        } on Exception catch (_) {
           isCorrupted = true;
         }
 
@@ -62,18 +61,19 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
         });
       }
 
-      final corruptedCount = _boxesToDelete.values.where((v) => v).length;
+      final int corruptedCount = _boxesToDelete.values.where((v) => v).length;
       setState(() {
         _isChecking = false;
         if (corruptedCount > 0) {
           _statusMessage =
-              'Found $corruptedCount corrupted box(es). Please review and delete.';
+              'Found $corruptedCount corrupted box(es). '
+              'Please review and delete.';
         } else {
           _statusMessage =
               'No corrupted boxes detected. The error may be elsewhere.';
         }
       });
-    } catch (e) {
+    } on Exception catch (_) {
       setState(() {
         _isChecking = false;
         _statusMessage = 'Unable to check boxes. You may need to delete all.';
@@ -84,7 +84,7 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
   }
 
   Future<void> _deleteHiveData() async {
-    final selectedBoxes = _boxesToDelete.entries
+    final List<String> selectedBoxes = _boxesToDelete.entries
         .where((entry) => entry.value)
         .map((entry) => entry.key)
         .toList();
@@ -108,14 +108,14 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
       // Reinitialize Hive
       await Hive.initFlutter('inventory_count');
 
-      int deletedCount = 0;
+      var deletedCount = 0;
 
       for (final boxName in selectedBoxes) {
         try {
           // Use Hive's built-in method to delete the box
           await Hive.deleteBoxFromDisk(boxName);
           deletedCount++;
-        } catch (e) {
+        } on Exception catch (e) {
           // Continue with other boxes even if one fails
           setState(() {
             _statusMessage = 'Warning: Failed to delete $boxName: $e';
@@ -137,7 +137,7 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
       setState(() {
         _statusMessage = 'Please restart the app to continue.';
       });
-    } catch (e) {
+    } on Exception catch (e) {
       setState(() {
         _statusMessage = 'Error deleting data: $e';
       });
@@ -166,7 +166,7 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
       home: Scaffold(
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -183,7 +183,8 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'The app encountered an error while loading the database. This may be due to corrupted data.',
+                  'The app encountered an error while loading the database. '
+                  'This may be due to corrupted data.',
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(color: bodyColor),
@@ -209,7 +210,7 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        widget.errorMessage,
+                        widget._errorMessage,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontFamily: 'monospace',
                           color: bodyColor,

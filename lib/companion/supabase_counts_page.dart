@@ -1,5 +1,6 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -11,16 +12,19 @@ class SupabaseCountsPage extends StatelessWidget {
   const SupabaseCountsPage({super.key});
 
   Future<bool> printJson(BuildContext context, String json) async {
+    final windowModel = WindowModel();
+
     // Prompt user to locate Excel if not configured
-    if (WindowModel.countExcelPath == null ||
-        !await File(WindowModel.countExcelPath!).exists()) {
+    if (windowModel.countExcelPath == null ||
+        !File(windowModel.countExcelPath!).existsSync()) {
       if (!context.mounted) return false;
-      final locate = await showDialog<bool>(
+      final bool? locate = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Locate Conc Inventory Count Sheet'),
           content: const Text(
-            'Inventory Sheet path is not configured. Would you like to locate the Excel sheet?',
+            'Inventory Sheet path is not configured. '
+            'Would you like to locate the Excel sheet?',
           ),
           actions: [
             TextButton(
@@ -37,14 +41,14 @@ class SupabaseCountsPage extends StatelessWidget {
 
       if (locate != true) return false;
 
-      final result = await FilePicker.platform.pickFiles(
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
         dialogTitle: 'Select Excel sheet',
         type: FileType.custom,
         allowedExtensions: ['xlsx', 'xls', 'xlsm'],
       );
-      final path = result?.files.single.path;
+      final String? path = result?.files.single.path;
       if (path == null) return false;
-      WindowModel.countExcelPath = path;
+      windowModel.countExcelPath = path;
     }
 
     if (!context.mounted) return false;
@@ -60,18 +64,18 @@ class SupabaseCountsPage extends StatelessWidget {
     ).loadString('assets/VbsJson.vbs');
 
     // Create temporary VBS script and JSON file
-    final tempDir = Directory.systemTemp;
-    final scriptFile = await File(
+    final Directory tempDir = Directory.systemTemp;
+    final File scriptFile = await File(
       '${tempDir.path}\\print_count_${DateTime.now().millisecondsSinceEpoch}.vbs',
     ).create();
     await scriptFile.writeAsString(printCountVbs);
 
-    final vbsJsonFile = await File(
+    final File vbsJsonFile = await File(
       '${tempDir.path}\\vbs_json_${DateTime.now().millisecondsSinceEpoch}.vbs',
     ).create();
     await vbsJsonFile.writeAsString(vbsJsonVbs);
 
-    final jsonFile = await File(
+    final File jsonFile = await File(
       '${tempDir.path}\\count_${DateTime.now().millisecondsSinceEpoch}.json',
     ).create();
     await jsonFile.writeAsString(json);
@@ -88,20 +92,24 @@ class SupabaseCountsPage extends StatelessWidget {
         return false;
       }
 
-      final proc = await Process.start('cscript', [
+      final Process proc = await Process.start('cscript', [
         '//Nologo',
         scriptFile.path,
         vbsJsonFile.path,
-        WindowModel.countExcelPath!,
+        windowModel.countExcelPath!,
         jsonFile.path,
       ]);
 
-      final stdoutData = proc.stdout.transform(utf8.decoder).join();
-      final stderrData = proc.stderr.transform(utf8.decoder).join();
+      final Future<String> stdoutData = proc.stdout
+          .transform(utf8.decoder)
+          .join();
+      final Future<String> stderrData = proc.stderr
+          .transform(utf8.decoder)
+          .join();
 
-      final exitCode = await proc.exitCode;
-      final out = await stdoutData;
-      final err = await stderrData;
+      final int exitCode = await proc.exitCode;
+      final String out = await stdoutData;
+      final String err = await stderrData;
 
       if (exitCode != 0) {
         throw Exception(
@@ -112,26 +120,32 @@ class SupabaseCountsPage extends StatelessWidget {
       return true;
     } finally {
       try {
-        if (await scriptFile.exists()) await scriptFile.delete();
-      } catch (_) {}
+        if (scriptFile.existsSync()) await scriptFile.delete();
+      } on Exception {
+        // On fail, do nothing
+      }
       try {
-        if (await vbsJsonFile.exists()) await vbsJsonFile.delete();
-      } catch (_) {}
+        if (vbsJsonFile.existsSync()) await vbsJsonFile.delete();
+      } on Exception {
+        // On fail, do nothing
+      }
       try {
-        if (await jsonFile.exists()) await jsonFile.delete();
-      } catch (_) {}
+        if (jsonFile.existsSync()) await jsonFile.delete();
+      } on Exception {
+        // On fail, do nothing
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final storage = Supabase.instance.client.from('counts');
+    final SupabaseQueryBuilder storage = Supabase.instance.client.from(
+      'counts',
+    );
 
     return SafeArea(
       child: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: storage
-            .stream(primaryKey: ['created_at'])
-            .order('created_at', ascending: false),
+        stream: storage.stream(primaryKey: ['created_at']).order('created_at'),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -140,7 +154,7 @@ class SupabaseCountsPage extends StatelessWidget {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
-          final counts = snapshot.data ?? [];
+          final List<Map<String, dynamic>> counts = snapshot.data ?? [];
           if (counts.isEmpty) {
             return const Center(child: Text('No counts found.'));
           }
@@ -148,11 +162,11 @@ class SupabaseCountsPage extends StatelessWidget {
           return ListView.builder(
             itemCount: counts.length,
             itemBuilder: (context, index) {
-              final count = counts[index];
+              final Map<String, dynamic> count = counts[index];
 
               var title = '';
               if (count['created_at'] != null) {
-                DateTime? dt = DateTime.tryParse(
+                final DateTime? dt = DateTime.tryParse(
                   count['created_at'].toString(),
                 )?.toLocal();
 
@@ -170,12 +184,13 @@ class SupabaseCountsPage extends StatelessWidget {
                   try {
                     if (!context.mounted) return;
                     final hostContext = context;
-                    showDialog(
+                    await showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: Text('Print this count?'),
+                        title: const Text('Print this count?'),
                         content: Text(
-                          'Would you like to print the count uploaded on $title?',
+                          'Would you like to print the count '
+                          'uploaded on $title?',
                         ),
                         actions: [
                           TextButton(
@@ -187,7 +202,7 @@ class SupabaseCountsPage extends StatelessWidget {
                               Navigator.of(context).pop();
 
                               try {
-                                bool success = await printJson(
+                                final bool success = await printJson(
                                   hostContext,
                                   count['json'] is String
                                       ? count['json'] as String
@@ -200,8 +215,10 @@ class SupabaseCountsPage extends StatelessWidget {
                                   ).showSnackBar(
                                     SnackBar(
                                       content: success
-                                          ? Text('Print completed. Exiting...')
-                                          : Text('Print canceled.'),
+                                          ? const Text(
+                                              'Print completed. Exiting...',
+                                            )
+                                          : const Text('Print canceled.'),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
@@ -213,7 +230,7 @@ class SupabaseCountsPage extends StatelessWidget {
                                   );
                                   exit(0);
                                 }
-                              } catch (e) {
+                              } on Exception catch (e) {
                                 if (hostContext.mounted) {
                                   ScaffoldMessenger.of(
                                     hostContext,
@@ -231,7 +248,7 @@ class SupabaseCountsPage extends StatelessWidget {
                         ],
                       ),
                     );
-                  } catch (e) {
+                  } on Exception catch (e) {
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Download failed: $e')),

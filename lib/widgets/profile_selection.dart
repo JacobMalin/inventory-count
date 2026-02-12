@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/count_model.dart';
-import 'package:inventory_count/models/hive.dart';
-import 'package:provider/provider.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../models/area_model.dart';
+import '../models/count_model.dart';
+import '../models/hive.dart';
 
 class SelectProfile extends StatefulWidget {
   const SelectProfile({super.key});
@@ -27,7 +28,7 @@ class _SelectProfileState extends State<SelectProfile> {
     CountModel countModel,
     Profile? baseProfile,
   ) {
-    final name = _newProfileController.text.trim();
+    final String name = _newProfileController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -41,9 +42,9 @@ class _SelectProfileState extends State<SelectProfile> {
       return;
     }
 
-    final currentProfiles = areaModel.profiles;
-    final nameLower = name.toLowerCase();
-    final hasDuplicate = currentProfiles.keys.any(
+    final Map<Profile, List<Area>> currentProfiles = areaModel.profiles;
+    final String nameLower = name.toLowerCase();
+    final bool hasDuplicate = currentProfiles.keys.any(
       (profile) => profile.name.toLowerCase() == nameLower,
     );
     if (hasDuplicate) {
@@ -63,19 +64,19 @@ class _SelectProfileState extends State<SelectProfile> {
     if (!currentProfiles.containsKey(newProfile)) {
       // Copy areas from base profile if one is selected
       if (baseProfile != null && currentProfiles.containsKey(baseProfile)) {
-        final baseAreas = currentProfiles[baseProfile] ?? <Area>[];
+        final List<Area> baseAreas = currentProfiles[baseProfile] ?? <Area>[];
         currentProfiles[newProfile] = List<Area>.from(baseAreas);
       } else {
         currentProfiles[newProfile] = <Area>[];
       }
       areaModel.profiles = currentProfiles;
 
-      final currentUpdatedAtMap = areaModel.updatedAtMap;
+      final Map<Profile, DateTime?> currentUpdatedAtMap =
+          areaModel.updatedAtMap;
       currentUpdatedAtMap[newProfile] = DateTime.now().toUtc();
-      areaModel.updatedAtMap = currentUpdatedAtMap;
-
-      // Sync to Supabase
-      areaModel.updateSupabase(newProfile);
+      areaModel
+        ..updatedAtMap = currentUpdatedAtMap
+        ..updateSupabase(newProfile);
     }
 
     countModel.selectedProfile = newProfile;
@@ -102,7 +103,7 @@ class _SelectProfileState extends State<SelectProfile> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) {
-          final profileList = areaModel.profiles.keys.toList();
+          final List<Profile> profileList = areaModel.profiles.keys.toList();
 
           return AlertDialog(
             title: const Text('Add new profile'),
@@ -130,11 +131,11 @@ class _SelectProfileState extends State<SelectProfile> {
                   DropdownSearch<Profile?>(
                     items: (f, cs) => [null, ...profileList],
                     selectedItem: _baseProfile,
-                    itemAsString: (Profile? profile) =>
+                    itemAsString: (profile) =>
                         profile?.name ?? 'None (start empty)',
                     decoratorProps: const DropDownDecoratorProps(
                       decoration: InputDecoration(
-                        hintText: "Base on existing profile",
+                        hintText: 'Base on existing profile',
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 12,
@@ -199,17 +200,21 @@ class _SelectProfileState extends State<SelectProfile> {
             ListTile(
               leading: const Icon(Icons.update),
               title: const Text('Update from profile'),
-              onTap: () {
+              onTap: () async {
                 Navigator.of(bottomSheetContext).pop();
-                _showUpdateFromProfileDialog(profile, areaModel, countModel);
+                await _showUpdateFromProfileDialog(
+                  profile,
+                  areaModel,
+                  countModel,
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.edit),
               title: const Text('Rename profile'),
-              onTap: () {
+              onTap: () async {
                 Navigator.of(bottomSheetContext).pop();
-                _showRenameProfileDialog(profile, areaModel, countModel);
+                await _showRenameProfileDialog(profile, areaModel, countModel);
               },
             ),
             ListTile(
@@ -221,9 +226,9 @@ class _SelectProfileState extends State<SelectProfile> {
                 'Delete profile',
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
-              onTap: () {
+              onTap: () async {
                 Navigator.of(bottomSheetContext).pop();
-                _showDeleteProfileDialog(profile, areaModel, countModel);
+                await _showDeleteProfileDialog(profile, areaModel, countModel);
               },
             ),
           ],
@@ -237,9 +242,7 @@ class _SelectProfileState extends State<SelectProfile> {
     AreaModel areaModel,
     CountModel countModel,
   ) async {
-    final TextEditingController renameController = TextEditingController(
-      text: profile.name,
-    );
+    final renameController = TextEditingController(text: profile.name);
 
     await showDialog<void>(
       context: context,
@@ -250,9 +253,9 @@ class _SelectProfileState extends State<SelectProfile> {
             controller: renameController,
             autofocus: true,
             decoration: const InputDecoration(labelText: 'Profile name'),
-            onSubmitted: (_) {
+            onSubmitted: (_) async {
               Navigator.of(dialogContext).pop();
-              _renameProfile(
+              await _renameProfile(
                 profile,
                 renameController.text,
                 areaModel,
@@ -266,9 +269,9 @@ class _SelectProfileState extends State<SelectProfile> {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                _renameProfile(
+                await _renameProfile(
                   profile,
                   renameController.text,
                   areaModel,
@@ -285,13 +288,13 @@ class _SelectProfileState extends State<SelectProfile> {
     renameController.dispose();
   }
 
-  void _renameProfile(
+  Future<void> _renameProfile(
     Profile profile,
     String newName,
     AreaModel areaModel,
     CountModel countModel,
-  ) {
-    final trimmedName = newName.trim();
+  ) async {
+    final String trimmedName = newName.trim();
     if (trimmedName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -309,9 +312,9 @@ class _SelectProfileState extends State<SelectProfile> {
       return; // No change
     }
 
-    final currentProfiles = areaModel.profiles;
-    final nameLower = trimmedName.toLowerCase();
-    final hasDuplicate = currentProfiles.keys.any(
+    final Map<Profile, List<Area>> currentProfiles = areaModel.profiles;
+    final String nameLower = trimmedName.toLowerCase();
+    final bool hasDuplicate = currentProfiles.keys.any(
       (p) => p.name.toLowerCase() == nameLower && p != profile,
     );
 
@@ -328,13 +331,13 @@ class _SelectProfileState extends State<SelectProfile> {
       return;
     }
     // Create new profile with new name and transfer data
-    final areas = currentProfiles.remove(profile) ?? <Area>[];
+    final List<Area> areas = currentProfiles.remove(profile) ?? <Area>[];
     final newProfile = Profile(trimmedName);
     currentProfiles[newProfile] = areas;
     areaModel.profiles = currentProfiles;
 
     // Update updatedAtMap with new profile key
-    final currentUpdatedAtMap = areaModel.updatedAtMap;
+    final Map<Profile, DateTime?> currentUpdatedAtMap = areaModel.updatedAtMap;
     currentUpdatedAtMap[profile] = DateTime.now().toUtc();
     currentUpdatedAtMap[newProfile] = DateTime.now().toUtc();
     areaModel.updatedAtMap = currentUpdatedAtMap;
@@ -345,9 +348,10 @@ class _SelectProfileState extends State<SelectProfile> {
     }
 
     // Sync to Supabase: delete old profile name and push new one
-    areaModel.deleteProfileFromSupabase(profile);
+    await areaModel.deleteProfileFromSupabase(profile);
     areaModel.updateSupabase(newProfile);
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Profile renamed to "$trimmedName"'),
@@ -363,7 +367,7 @@ class _SelectProfileState extends State<SelectProfile> {
     CountModel countModel,
   ) async {
     Profile? sourceProfile;
-    final profileList = areaModel.profiles.keys
+    final List<Profile> profileList = areaModel.profiles.keys
         .where((p) => p != targetProfile)
         .toList();
 
@@ -398,10 +402,10 @@ class _SelectProfileState extends State<SelectProfile> {
                 DropdownSearch<Profile?>(
                   items: (f, cs) => profileList,
                   selectedItem: sourceProfile,
-                  itemAsString: (Profile? profile) => profile?.name ?? '',
+                  itemAsString: (profile) => profile?.name ?? '',
                   decoratorProps: const DropDownDecoratorProps(
                     decoration: InputDecoration(
-                      hintText: "Select profile",
+                      hintText: 'Select profile',
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 12,
@@ -429,7 +433,9 @@ class _SelectProfileState extends State<SelectProfile> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'This will replace all areas and items in "${targetProfile.name}" with data from the selected profile.',
+                  'This will replace all areas and items in '
+                  '"${targetProfile.name}" with data from the selected '
+                  'profile.',
                   style: const TextStyle(
                     fontSize: 12,
                     fontStyle: FontStyle.italic,
@@ -467,17 +473,16 @@ class _SelectProfileState extends State<SelectProfile> {
     Profile sourceProfile,
     AreaModel areaModel,
   ) {
-    final currentProfiles = areaModel.profiles;
-    final sourceAreas = currentProfiles[sourceProfile] ?? <Area>[];
+    final Map<Profile, List<Area>> currentProfiles = areaModel.profiles;
+    final List<Area> sourceAreas = currentProfiles[sourceProfile] ?? <Area>[];
     currentProfiles[targetProfile] = List<Area>.from(sourceAreas);
     areaModel.profiles = currentProfiles;
 
-    final currentUpdatedAtMap = areaModel.updatedAtMap;
+    final Map<Profile, DateTime?> currentUpdatedAtMap = areaModel.updatedAtMap;
     currentUpdatedAtMap[targetProfile] = DateTime.now().toUtc();
-    areaModel.updatedAtMap = currentUpdatedAtMap;
-
-    // Sync to Supabase
-    areaModel.updateSupabase(targetProfile);
+    areaModel
+      ..updatedAtMap = currentUpdatedAtMap
+      ..updateSupabase(targetProfile);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -495,12 +500,13 @@ class _SelectProfileState extends State<SelectProfile> {
     AreaModel areaModel,
     CountModel countModel,
   ) async {
-    final confirmed = await showDialog<bool>(
+    final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete profile'),
         content: Text(
-          'Are you sure you want to delete "${profile.name}"? This action cannot be undone.',
+          'Are you sure you want to delete "${profile.name}"? '
+          'This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -518,12 +524,13 @@ class _SelectProfileState extends State<SelectProfile> {
       ),
     );
 
-    if (confirmed == true) {
-      final currentProfiles = areaModel.profiles;
-      currentProfiles.remove(profile);
+    if (confirmed ?? false) {
+      final Map<Profile, List<Area>> currentProfiles = areaModel.profiles
+        ..remove(profile);
       areaModel.profiles = currentProfiles;
 
-      final currentUpdatedAtMap = areaModel.updatedAtMap;
+      final Map<Profile, DateTime?> currentUpdatedAtMap =
+          areaModel.updatedAtMap;
       currentUpdatedAtMap[profile] = DateTime.now().toUtc();
       areaModel.updatedAtMap = currentUpdatedAtMap;
 
@@ -532,7 +539,7 @@ class _SelectProfileState extends State<SelectProfile> {
       }
 
       // Sync to Supabase: delete the profile
-      areaModel.deleteProfileFromSupabase(profile);
+      await areaModel.deleteProfileFromSupabase(profile);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -556,7 +563,8 @@ class _SelectProfileState extends State<SelectProfile> {
           constraints: const BoxConstraints(maxWidth: 360),
           child: Consumer2<AreaModel, CountModel>(
             builder: (context, areaModel, countModel, child) {
-              final profileList = areaModel.profiles.keys.toList();
+              final List<Profile> profileList = areaModel.profiles.keys
+                  .toList();
 
               return Column(
                 mainAxisSize: MainAxisSize.min,
@@ -582,7 +590,6 @@ class _SelectProfileState extends State<SelectProfile> {
                           crossAxisCount: 3,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio: 1,
                         ),
                     itemBuilder: (context, index) {
                       if (index == profileList.length) {
@@ -594,7 +601,7 @@ class _SelectProfileState extends State<SelectProfile> {
                         );
                       }
 
-                      final profile = profileList[index];
+                      final Profile profile = profileList[index];
                       return _ProfileTile(
                         label: profile.name,
                         icon: profile.icon,
@@ -602,8 +609,12 @@ class _SelectProfileState extends State<SelectProfile> {
                         onTap: () {
                           countModel.selectedProfile = profile;
                         },
-                        onLongPress: () {
-                          _showProfileMenu(profile, areaModel, countModel);
+                        onLongPress: () async {
+                          await _showProfileMenu(
+                            profile,
+                            areaModel,
+                            countModel,
+                          );
                         },
                       );
                     },
@@ -620,25 +631,37 @@ class _SelectProfileState extends State<SelectProfile> {
 
 class _ProfileTile extends StatelessWidget {
   const _ProfileTile({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.iconColor,
-    this.onLongPress,
-  });
+    required String label,
+    required IconData icon,
+    required void Function() onTap,
+    Color? iconColor,
+    void Function()? onLongPress,
+  }) : _iconColor = iconColor,
+       _onLongPress = onLongPress,
+       _onTap = onTap,
+       _icon = icon,
+       _label = label;
 
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-  final Color? iconColor;
+  final String _label;
+  final IconData _icon;
+  final VoidCallback _onTap;
+  final VoidCallback? _onLongPress;
+  final Color? _iconColor;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final effectiveColor = iconColor ?? colorScheme.primary;
-    final dulledColor1 = Color.lerp(effectiveColor, colorScheme.surface, 0.80)!;
-    final dulledColor2 = Color.lerp(effectiveColor, colorScheme.surface, 0.85)!;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color effectiveColor = _iconColor ?? colorScheme.primary;
+    final Color dulledColor1 = Color.lerp(
+      effectiveColor,
+      colorScheme.surface,
+      0.80,
+    )!;
+    final Color dulledColor2 = Color.lerp(
+      effectiveColor,
+      colorScheme.surface,
+      0.85,
+    )!;
 
     return Material(
       elevation: 3,
@@ -653,9 +676,9 @@ class _ProfileTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
         ),
         child: InkWell(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          onSecondaryTap: onLongPress,
+          onTap: _onTap,
+          onLongPress: _onLongPress,
+          onSecondaryTap: _onLongPress,
           borderRadius: BorderRadius.circular(20),
           splashColor: effectiveColor.withAlpha(51),
           highlightColor: effectiveColor.withAlpha(26),
@@ -664,10 +687,10 @@ class _ProfileTile extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: effectiveColor, size: 36),
+                Icon(_icon, color: effectiveColor, size: 36),
                 const SizedBox(height: 8),
                 Text(
-                  label,
+                  _label,
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

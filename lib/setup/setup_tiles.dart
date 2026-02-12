@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/export_model.dart';
-import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
+
+import '../models/area_model.dart';
+import '../models/export_model.dart';
+import '../models/hive.dart';
 
 String _getPhaseText(CountPhase phase) {
   switch (phase) {
@@ -27,7 +28,7 @@ Color _getPhaseColor(CountPhase phase) {
 }
 
 Widget _buildPhaseIndicators(Set<CountPhase> phases) {
-  final sortedPhases = phases.toList()
+  final List<CountPhase> sortedPhases = phases.toList()
     ..sort((a, b) => a.index.compareTo(b.index));
 
   return Row(
@@ -59,26 +60,31 @@ Widget _buildPhaseIndicators(Set<CountPhase> phases) {
 }
 
 class AreaTile extends StatelessWidget {
-  const AreaTile({super.key, required this.index, required this.select});
+  const AreaTile({
+    required int index,
+    required void Function(int) select,
+    super.key,
+  }) : _select = select,
+       _index = index;
 
-  final int index;
-  final void Function(int) select;
+  final int _index;
+  final void Function(int) _select;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
-        final area = areaModel.getArea(index);
-        final numShelves = area.shelvesAndItems.whereType<Shelf>().length;
-        final numItems = area.shelvesAndItems.whereType<Item>().length;
+        final Area area = areaModel.getArea(_index);
+        final int numShelves = area.shelvesAndItems.whereType<Shelf>().length;
+        final int numItems = area.shelvesAndItems.whereType<Item>().length;
 
         // Collect all phases from items in area
         final phases = <CountPhase>{};
-        for (var element in area.shelvesAndItems) {
+        for (final StorageObject element in area.shelvesAndItems) {
           if (element is Item) {
             phases.add(element.personalCountPhase ?? element.countPhase);
           } else if (element is Shelf) {
-            for (var item in element.items) {
+            for (final Item item in element.items) {
               phases.add(item.personalCountPhase ?? item.countPhase);
             }
           }
@@ -93,7 +99,8 @@ class AreaTile extends StatelessWidget {
           subtitleText = '$numShelves ${numShelves == 1 ? 'shelf' : 'shelves'}';
         } else {
           subtitleText =
-              '$numShelves ${numShelves == 1 ? 'shelf' : 'shelves'}, $numItems item${numItems == 1 ? '' : 's'}';
+              '$numShelves ${numShelves == 1 ? 'shelf' : 'shelves'}, '
+              '$numItems item${numItems == 1 ? '' : 's'}';
         }
 
         return ListTile(
@@ -110,7 +117,7 @@ class AreaTile extends StatelessWidget {
               const Icon(Icons.drag_handle),
             ],
           ),
-          onTap: () => select(index),
+          onTap: () => _select(_index),
         );
       },
     );
@@ -119,32 +126,33 @@ class AreaTile extends StatelessWidget {
 
 class ShelfTile extends StatelessWidget {
   const ShelfTile({
+    required int index,
+    required List<int> selectedOrder,
+    required void Function(int) select,
     super.key,
-    required this.index,
-    required this.selectedOrder,
-    required this.select,
-  });
+  }) : _select = select,
+       _ = selectedOrder,
+       _index = index;
 
-  final int index;
-  final List<int> selectedOrder;
-  final void Function(int) select;
+  final int _index;
+  final List<int> _;
+  final void Function(int) _select;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
-        final shelf =
-            areaModel.getShelfOrItem([...selectedOrder, index]) as Shelf;
+        final shelf = areaModel.getShelfOrItem([..._, _index]) as Shelf;
 
         // Collect all phases from items in shelf
         final phases = <CountPhase>{};
-        for (var item in shelf.items) {
+        for (final Item item in shelf.items) {
           phases.add(item.personalCountPhase ?? item.countPhase);
         }
 
         return ListTile(
-          key: Key('$index'),
-          leading: Icon(Icons.shelves, color: Colors.amber),
+          key: Key('$_index'),
+          leading: const Icon(Icons.shelves, color: Colors.amber),
           tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           title: Text(shelf.name),
           subtitle: Text('${shelf.items.length} items'),
@@ -158,7 +166,7 @@ class ShelfTile extends StatelessWidget {
               const Icon(Icons.drag_handle),
             ],
           ),
-          onTap: () => select(index),
+          onTap: () => _select(_index),
         );
       },
     );
@@ -167,32 +175,35 @@ class ShelfTile extends StatelessWidget {
 
 class ItemTile extends StatelessWidget {
   const ItemTile({
+    required int index,
+    required List<int> selectedOrder,
+    required void Function(int) select,
     super.key,
-    required this.index,
-    required this.selectedOrder,
-    required this.select,
-  });
+  }) : _select = select,
+       _selectedOrder = selectedOrder,
+       _index = index;
 
-  final int index;
-  final List<int> selectedOrder;
-  final void Function(int) select;
+  final int _index;
+  final List<int> _selectedOrder;
+  final void Function(int) _select;
 
   @override
   Widget build(BuildContext context) {
     return Consumer2<AreaModel, ExportModel>(
       builder: (context, areaModel, exportModel, child) {
         final item =
-            areaModel.getShelfOrItem([...selectedOrder, index]) as Item;
-        final isValid = item.getIsValid(exportModel);
+            areaModel.getShelfOrItem([..._selectedOrder, _index]) as Item;
+        final bool isValid = item.getIsValid(exportModel);
 
         return ListTile(
-          key: Key('$index'),
-          leading: Icon(Icons.inventory, color: Colors.blue),
+          key: Key('$_index'),
+          leading: const Icon(Icons.inventory, color: Colors.blue),
           tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           title: Text(item.name),
           subtitle: Text(
             item.defaultCount != null
-                ? '${item.strategy.strategyText} • Default: ${item.defaultCount!.count}'
+                ? '${item.strategy.strategyText} • '
+                      'Default: ${item.defaultCount!.count}'
                 : item.strategy.strategyText,
           ),
           trailing: Row(
@@ -258,7 +269,7 @@ class ItemTile extends StatelessWidget {
               const Icon(Icons.drag_handle),
             ],
           ),
-          onTap: () => select(index),
+          onTap: () => _select(_index),
         );
       },
     );

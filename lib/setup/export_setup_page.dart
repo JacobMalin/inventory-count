@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/export_model.dart';
-import 'package:inventory_count/models/export_entry.dart';
 import 'package:provider/provider.dart';
+
+import '../models/area_model.dart';
+import '../models/export_entry.dart';
+import '../models/export_model.dart';
 
 class ExportSetupPage extends StatefulWidget {
   const ExportSetupPage({super.key});
@@ -24,14 +25,15 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
   }
 
   void _onScroll() {
     if (_scrollController.hasClients) {
-      final isAtBottom =
+      final bool isAtBottom =
           _scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 50;
       if (isAtBottom != _isAtBottom) {
@@ -42,7 +44,7 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
     }
   }
 
-  void _scrollToBottom() async {
+  Future<void> _scrollToBottom() async {
     await Future.delayed(const Duration(milliseconds: 100));
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
@@ -57,7 +59,7 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
     }
   }
 
-  void _scrollToTop() async {
+  Future<void> _scrollToTop() async {
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
         0,
@@ -75,7 +77,7 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
           builder: (context) {
             return Consumer2<ExportModel, AreaModel>(
               builder: (context, exportModel, areaModel, child) {
-                final exportList = exportModel.exportList;
+                final List<ExportEntry> exportList = exportModel.exportList;
                 return Scaffold(
                   appBar: AppBar(
                     title: Text(
@@ -97,8 +99,8 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                     child: ListTile(
                                       leading: const Icon(Icons.add),
                                       title: const Text('Add Title'),
-                                      onTap: () {
-                                        showDialog(
+                                      onTap: () async {
+                                        await showDialog(
                                           context: context,
                                           builder: (context) {
                                             final controller =
@@ -108,13 +110,16 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                               content: TextField(
                                                 controller: controller,
                                                 autofocus: true,
-                                                onSubmitted: (value) {
+                                                onSubmitted: (value) async {
                                                   if (value.isNotEmpty) {
-                                                    exportModel.add(
+                                                    await exportModel.add(
                                                       ExportTitle(value),
                                                     );
+                                                    await _scrollToBottom();
+                                                    if (!context.mounted) {
+                                                      return;
+                                                    }
                                                     Navigator.pop(context);
-                                                    _scrollToBottom();
                                                   }
                                                 },
                                               ),
@@ -125,17 +130,20 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                                   child: const Text('Cancel'),
                                                 ),
                                                 TextButton(
-                                                  onPressed: () {
+                                                  onPressed: () async {
                                                     if (controller
                                                         .text
                                                         .isNotEmpty) {
-                                                      exportModel.add(
+                                                      await exportModel.add(
                                                         ExportTitle(
                                                           controller.text,
                                                         ),
                                                       );
+                                                      await _scrollToBottom();
+                                                      if (!context.mounted) {
+                                                        return;
+                                                      }
                                                       Navigator.pop(context);
-                                                      _scrollToBottom();
                                                     }
                                                   },
                                                   child: const Text('Add'),
@@ -151,8 +159,8 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                     child: ListTile(
                                       leading: const Icon(Icons.add),
                                       title: const Text('Add Item'),
-                                      onTap: () {
-                                        showDialog(
+                                      onTap: () async {
+                                        await showDialog(
                                           context: context,
                                           builder: (context) {
                                             final controller =
@@ -162,13 +170,16 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                               content: TextField(
                                                 controller: controller,
                                                 autofocus: true,
-                                                onSubmitted: (value) {
+                                                onSubmitted: (value) async {
                                                   if (value.isNotEmpty) {
-                                                    exportModel.add(
+                                                    await exportModel.add(
                                                       ExportItem(value),
                                                     );
+                                                    await _scrollToBottom();
+                                                    if (!context.mounted) {
+                                                      return;
+                                                    }
                                                     Navigator.pop(context);
-                                                    _scrollToBottom();
                                                   }
                                                 },
                                               ),
@@ -179,17 +190,20 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                                   child: const Text('Cancel'),
                                                 ),
                                                 TextButton(
-                                                  onPressed: () {
+                                                  onPressed: () async {
                                                     if (controller
                                                         .text
                                                         .isNotEmpty) {
-                                                      exportModel.add(
+                                                      await exportModel.add(
                                                         ExportItem(
                                                           controller.text,
                                                         ),
                                                       );
+                                                      await _scrollToBottom();
+                                                      if (!context.mounted) {
+                                                        return;
+                                                      }
                                                       Navigator.pop(context);
-                                                      _scrollToBottom();
                                                     }
                                                   },
                                                   child: const Text('Add'),
@@ -211,11 +225,14 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                   child: ReorderableListView(
                                     scrollController: _scrollController,
                                     key: const PageStorageKey('exportListView'),
-                                    onReorder: (int oldIndex, int newIndex) {
+                                    onReorder: (oldIndex, newIndex) async {
                                       if (newIndex > oldIndex) {
                                         newIndex -= 1;
                                       }
-                                      exportModel.reorder(oldIndex, newIndex);
+                                      await exportModel.reorder(
+                                        oldIndex,
+                                        newIndex,
+                                      );
                                     },
                                     children: [
                                       for (
@@ -224,7 +241,8 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                                         index++
                                       )
                                         () {
-                                          final exportEntry = exportList[index];
+                                          final ExportEntry exportEntry =
+                                              exportList[index];
                                           if (exportEntry is ExportTitle) {
                                             titleHidden = exportEntry.isHidden;
                                           }
@@ -297,7 +315,7 @@ Future<bool> _confirmDelete(
   required String title,
   required String content,
 }) async {
-  final shouldDelete = await showDialog<bool>(
+  final bool? shouldDelete = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(title),
@@ -361,52 +379,54 @@ Future<void> _showRenameDialog({
 
 class ExportItemTile extends StatelessWidget {
   const ExportItemTile({
+    required ExportItem exportItem,
+    required int index,
+    required bool titleHidden,
     super.key,
-    required this.exportItem,
-    required this.index,
-    required this.titleHidden,
-  });
+  }) : _titleHidden = titleHidden,
+       _index = index,
+       _exportItem = exportItem;
 
-  final ExportItem exportItem;
-  final int index;
-  final bool titleHidden;
+  final ExportItem _exportItem;
+  final int _index;
+  final bool _titleHidden;
 
   @override
   Widget build(BuildContext context) {
     return Consumer2<AreaModel, ExportModel>(
       builder: (context, areaModel, exportModel, child) {
-        final colorScheme = Theme.of(context).colorScheme;
+        final ColorScheme colorScheme = Theme.of(context).colorScheme;
         return Material(
           child: Slidable(
-            key: ValueKey(exportItem),
+            key: ValueKey(_exportItem),
             endActionPane: ActionPane(
               motion: const DrawerMotion(),
               children: [
                 SlidableAction(
-                  onPressed: (_) {
-                    exportModel.editEntry(
-                      index,
-                      isHidden: !exportItem.isHidden,
+                  onPressed: (_) async {
+                    await exportModel.editEntry(
+                      _index,
+                      isHidden: !_exportItem.isHidden,
                     );
                   },
                   backgroundColor: colorScheme.secondaryContainer,
                   foregroundColor: colorScheme.onSecondaryContainer,
-                  icon: exportItem.isHidden
+                  icon: _exportItem.isHidden
                       ? Icons.visibility
                       : Icons.visibility_off,
-                  label: exportItem.isHidden ? 'Show' : 'Hide',
+                  label: _exportItem.isHidden ? 'Show' : 'Hide',
                 ),
                 SlidableAction(
                   onPressed: (_) async {
                     await _showRenameDialog(
                       context: context,
                       title: 'Rename Item',
-                      initialValue: exportItem.name,
-                      onChanged: (value) {
-                        exportModel.editEntry(index, name: value);
+                      initialValue: _exportItem.name,
+                      onChanged: (value) async {
+                        await exportModel.editEntry(_index, name: value);
                       },
-                      onSaved: (value) {
-                        exportModel.editEntry(index, name: value);
+                      onSaved: (value) async {
+                        await exportModel.editEntry(_index, name: value);
                       },
                     );
                   },
@@ -417,14 +437,15 @@ class ExportItemTile extends StatelessWidget {
                 ),
                 SlidableAction(
                   onPressed: (_) async {
-                    final shouldDelete = await _confirmDelete(
+                    final bool shouldDelete = await _confirmDelete(
                       context,
                       title: 'Delete Item',
                       content:
-                          'Are you sure you want to delete "${exportItem.name}"?',
+                          'Are you sure you want to delete '
+                          '"${_exportItem.name}"?',
                     );
                     if (shouldDelete) {
-                      exportModel.removeAt(index);
+                      await exportModel.removeAt(_index);
                     }
                   },
                   backgroundColor: colorScheme.errorContainer,
@@ -435,12 +456,12 @@ class ExportItemTile extends StatelessWidget {
               ],
             ),
             child: ListTile(
-              contentPadding: const EdgeInsets.only(left: 32.0, right: 16.0),
+              contentPadding: const EdgeInsets.only(left: 32, right: 16),
               tileColor: colorScheme.surfaceContainerHighest,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (exportItem.isHidden)
+                  if (_exportItem.isHidden)
                     Icon(
                       Icons.visibility_off,
                       color: Colors.red.withAlpha(160),
@@ -452,16 +473,16 @@ class ExportItemTile extends StatelessWidget {
               ),
               onTap: () {},
               title: Text(
-                exportItem.name,
-                style: exportItem.isHidden || titleHidden
+                _exportItem.name,
+                style: _exportItem.isHidden || _titleHidden
                     ? TextStyle(
                         decoration: TextDecoration.lineThrough,
                         color: colorScheme.onSurfaceVariant,
                       )
                     : null,
               ),
-              subtitle: areaModel.getPathsForItem(exportItem.name).isNotEmpty
-                  ? Text(areaModel.getPathsForItem(exportItem.name).join('\n'))
+              subtitle: areaModel.getPathsForItem(_exportItem.name).isNotEmpty
+                  ? Text(areaModel.getPathsForItem(_exportItem.name).join('\n'))
                   : null,
             ),
           ),
@@ -473,52 +494,54 @@ class ExportItemTile extends StatelessWidget {
 
 class ExportPlaceholderTile extends StatelessWidget {
   const ExportPlaceholderTile({
+    required ExportItem exportPlaceholder,
+    required int index,
+    required bool titleHidden,
     super.key,
-    required this.exportPlaceholder,
-    required this.index,
-    required this.titleHidden,
-  });
+  }) : _titleHidden = titleHidden,
+       _index = index,
+       _exportPlaceholder = exportPlaceholder;
 
-  final ExportItem exportPlaceholder;
-  final int index;
-  final bool titleHidden;
+  final ExportItem _exportPlaceholder;
+  final int _index;
+  final bool _titleHidden;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ExportModel>(
       builder: (context, exportModel, child) {
-        final colorScheme = Theme.of(context).colorScheme;
+        final ColorScheme colorScheme = Theme.of(context).colorScheme;
         return Material(
           child: Slidable(
-            key: ValueKey(exportPlaceholder),
+            key: ValueKey(_exportPlaceholder),
             endActionPane: ActionPane(
               motion: const DrawerMotion(),
               children: [
                 SlidableAction(
-                  onPressed: (_) {
-                    exportModel.editEntry(
-                      index,
-                      isHidden: !exportPlaceholder.isHidden,
+                  onPressed: (_) async {
+                    await exportModel.editEntry(
+                      _index,
+                      isHidden: !_exportPlaceholder.isHidden,
                     );
                   },
                   backgroundColor: colorScheme.secondaryContainer,
                   foregroundColor: colorScheme.onSecondaryContainer,
-                  icon: exportPlaceholder.isHidden
+                  icon: _exportPlaceholder.isHidden
                       ? Icons.visibility
                       : Icons.visibility_off,
-                  label: exportPlaceholder.isHidden ? 'Show' : 'Hide',
+                  label: _exportPlaceholder.isHidden ? 'Show' : 'Hide',
                 ),
                 SlidableAction(
                   onPressed: (_) async {
                     await _showRenameDialog(
                       context: context,
                       title: 'Rename Placeholder',
-                      initialValue: exportPlaceholder.name,
-                      onChanged: (value) {
-                        exportModel.editEntry(index, name: value);
+                      initialValue: _exportPlaceholder.name,
+                      onChanged: (value) async {
+                        await exportModel.editEntry(_index, name: value);
                       },
-                      onSaved: (value) {
-                        exportModel.editEntry(index, name: value);
+                      onSaved: (value) async {
+                        await exportModel.editEntry(_index, name: value);
                       },
                     );
                   },
@@ -529,14 +552,15 @@ class ExportPlaceholderTile extends StatelessWidget {
                 ),
                 SlidableAction(
                   onPressed: (_) async {
-                    final shouldDelete = await _confirmDelete(
+                    final bool shouldDelete = await _confirmDelete(
                       context,
                       title: 'Delete Placeholder',
                       content:
-                          'Are you sure you want to delete "${exportPlaceholder.name}"?',
+                          'Are you sure you want to delete '
+                          '"${_exportPlaceholder.name}"?',
                     );
                     if (shouldDelete) {
-                      exportModel.removeAt(index);
+                      await exportModel.removeAt(_index);
                     }
                   },
                   backgroundColor: colorScheme.errorContainer,
@@ -547,12 +571,12 @@ class ExportPlaceholderTile extends StatelessWidget {
               ],
             ),
             child: ListTile(
-              contentPadding: const EdgeInsets.only(left: 32.0, right: 16.0),
+              contentPadding: const EdgeInsets.only(left: 32, right: 16),
               tileColor: Colors.yellow.withValues(alpha: 0.3),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (exportPlaceholder.isHidden)
+                  if (_exportPlaceholder.isHidden)
                     Icon(
                       Icons.visibility_off,
                       color: Colors.red.withAlpha(160),
@@ -564,8 +588,8 @@ class ExportPlaceholderTile extends StatelessWidget {
               ),
               onTap: () {},
               title: Text(
-                exportPlaceholder.name,
-                style: exportPlaceholder.isHidden || titleHidden
+                _exportPlaceholder.name,
+                style: _exportPlaceholder.isHidden || _titleHidden
                     ? TextStyle(
                         decoration: TextDecoration.lineThrough,
                         color: colorScheme.onSurfaceVariant,
@@ -582,50 +606,51 @@ class ExportPlaceholderTile extends StatelessWidget {
 
 class ExportTitleTile extends StatelessWidget {
   const ExportTitleTile({
+    required ExportTitle exportTitle,
+    required int index,
     super.key,
-    required this.exportTitle,
-    required this.index,
-  });
+  }) : _index = index,
+       _exportTitle = exportTitle;
 
-  final ExportTitle exportTitle;
-  final int index;
+  final ExportTitle _exportTitle;
+  final int _index;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ExportModel>(
       builder: (context, exportModel, child) {
-        final colorScheme = Theme.of(context).colorScheme;
+        final ColorScheme colorScheme = Theme.of(context).colorScheme;
         return Material(
           child: Slidable(
-            key: ValueKey(exportTitle),
+            key: ValueKey(_exportTitle),
             endActionPane: ActionPane(
               motion: const DrawerMotion(),
               children: [
                 SlidableAction(
-                  onPressed: (_) {
-                    exportModel.editEntry(
-                      index,
-                      isHidden: !exportTitle.isHidden,
+                  onPressed: (_) async {
+                    await exportModel.editEntry(
+                      _index,
+                      isHidden: !_exportTitle.isHidden,
                     );
                   },
                   backgroundColor: colorScheme.secondaryContainer,
                   foregroundColor: colorScheme.onSecondaryContainer,
-                  icon: exportTitle.isHidden
+                  icon: _exportTitle.isHidden
                       ? Icons.visibility
                       : Icons.visibility_off,
-                  label: exportTitle.isHidden ? 'Show' : 'Hide',
+                  label: _exportTitle.isHidden ? 'Show' : 'Hide',
                 ),
                 SlidableAction(
                   onPressed: (_) async {
                     await _showRenameDialog(
                       context: context,
                       title: 'Rename Title',
-                      initialValue: exportTitle.name,
-                      onChanged: (value) {
-                        exportModel.editEntry(index, name: value);
+                      initialValue: _exportTitle.name,
+                      onChanged: (value) async {
+                        await exportModel.editEntry(_index, name: value);
                       },
-                      onSaved: (value) {
-                        exportModel.editEntry(index, name: value);
+                      onSaved: (value) async {
+                        await exportModel.editEntry(_index, name: value);
                       },
                     );
                   },
@@ -636,14 +661,15 @@ class ExportTitleTile extends StatelessWidget {
                 ),
                 SlidableAction(
                   onPressed: (_) async {
-                    final shouldDelete = await _confirmDelete(
+                    final bool shouldDelete = await _confirmDelete(
                       context,
                       title: 'Delete Title',
                       content:
-                          'Are you sure you want to delete "${exportTitle.name}"?',
+                          'Are you sure you want to delete '
+                          '"${_exportTitle.name}"?',
                     );
                     if (shouldDelete) {
-                      exportModel.removeAt(index);
+                      await exportModel.removeAt(_index);
                     }
                   },
                   backgroundColor: colorScheme.errorContainer,
@@ -654,11 +680,11 @@ class ExportTitleTile extends StatelessWidget {
               ],
             ),
             child: ListTile(
-              contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (exportTitle.isHidden)
+                  if (_exportTitle.isHidden)
                     Icon(
                       Icons.visibility_off,
                       color: Colors.red.withAlpha(160),
@@ -670,8 +696,8 @@ class ExportTitleTile extends StatelessWidget {
               ),
               onTap: () {},
               title: Text(
-                exportTitle.name,
-                style: exportTitle.isHidden
+                _exportTitle.name,
+                style: _exportTitle.isHidden
                     ? TextStyle(
                         decoration: TextDecoration.lineThrough,
                         color: colorScheme.onSurfaceVariant,

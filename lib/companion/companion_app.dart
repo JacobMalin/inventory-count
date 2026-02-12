@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:inventory_count/companion/window_model.dart';
-import 'package:inventory_count/companion/supabase_counts_page.dart';
+
+import 'supabase_counts_page.dart';
+import 'window_model.dart';
 
 class CompanionApp extends StatelessWidget {
   const CompanionApp({super.key});
@@ -17,7 +18,7 @@ class CompanionApp extends StatelessWidget {
         useMaterial3: true,
       ),
       builder: (context, child) => WindowSetupWatcher(child!),
-      home: Scaffold(body: SupabaseCountsPage()),
+      home: const Scaffold(body: SupabaseCountsPage()),
     );
   }
 }
