@@ -90,7 +90,7 @@ jobs:
           restore-keys: |
             cocoapods-${{ runner.os }}-
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
         with:
           channel: 'stable'
           architecture: x64
@@ -123,7 +123,7 @@ jobs:
           mv build/ios/iphoneos/FlutterIpaExport.ipa build/release/InventoryCount.ipa
           
       - name: Upload IPA to release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@6b7fa9f267e90b50a19fef07b3596790bb941741
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: build/release/InventoryCount.ipa
@@ -205,7 +205,7 @@ jobs:
           restore-keys: |
             pub-cache-${{ runner.os }}-
       
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
         with:
           channel: 'stable'
           architecture: x64
@@ -219,7 +219,7 @@ jobs:
           mv build/app/outputs/flutter-apk/app-release.apk build/release/InventoryCount.apk
           
       - name: Upload apk to release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@6b7fa9f267e90b50a19fef07b3596790bb941741
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: build/release/InventoryCount.apk
