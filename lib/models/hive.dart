@@ -252,6 +252,18 @@ class Item extends StorageObject {
       'id': id,
     };
   }
+
+  String get defaultButtonText {
+    if (strategy is NegativeCountStrategy) {
+      return ': ${(strategy as NegativeCountStrategy).from}';
+    }
+
+    if (defaultCount != null) {
+      return ': ${defaultCount!.count}';
+    }
+
+    return '';
+  }
 }
 
 @HiveType(typeId: 4)

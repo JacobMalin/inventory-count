@@ -601,7 +601,6 @@ class _FixPageState extends State<FixPage> {
           CountPhase.back,
           backIsNotCounted,
           backCount != null || backIsNotCounted,
-          areaModel,
           backgroundColor: backIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (backCount == null ? Colors.red.withValues(alpha: 0.1) : null),
@@ -613,7 +612,6 @@ class _FixPageState extends State<FixPage> {
           CountPhase.cabinet,
           cabinetIsNotCounted,
           cabinetCount != null || cabinetIsNotCounted,
-          areaModel,
           backgroundColor: cabinetIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (cabinetCount == null
@@ -627,7 +625,6 @@ class _FixPageState extends State<FixPage> {
           CountPhase.out,
           outIsNotCounted,
           outCount != null || outIsNotCounted,
-          areaModel,
           backgroundColor: outIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (outCount == null ? Colors.red.withValues(alpha: 0.1) : null),
@@ -709,29 +706,35 @@ class _FixPageState extends State<FixPage> {
     String itemName,
     CountPhase phase,
     bool isNotCounted,
-    bool hasCounted,
-    AreaModel areaModel, {
+    bool hasCounted, {
     Color? backgroundColor,
   }) {
     return Container(
       color: backgroundColor,
-      child: InkWell(
-        onTap: (isNotCounted || hasCounted)
-            ? () => _showBumpCountDialog(
-                context,
-                itemName,
-                phase,
-                isNotCounted,
-                areaModel,
-              )
-            : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
-          ),
-        ),
+      child: Consumer<AreaModel>(
+        builder: (context, areaModel, child) {
+          return InkWell(
+            onTap: (isNotCounted || hasCounted)
+                ? () => _showBumpCountDialog(
+                    context,
+                    itemName,
+                    phase,
+                    isNotCounted,
+                    areaModel,
+                  )
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  text,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

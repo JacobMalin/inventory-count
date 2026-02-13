@@ -306,6 +306,38 @@ class _ExportPageState extends State<ExportPage> {
     );
   }
 
+  Color? _countCellBackgroundColor({
+    required bool isNotCounted,
+    required int? count,
+  }) {
+    if (isNotCounted) {
+      return Colors.yellow.withValues(alpha: 0.3);
+    }
+
+    if (count == null) {
+      return Colors.red.withValues(alpha: 0.1);
+    }
+
+    return null;
+  }
+
+  Color? _totalCellBackgroundColor({
+    required bool anyNotCounted,
+    required int? backCount,
+    required int? cabinetCount,
+    required int? outCount,
+  }) {
+    if (anyNotCounted) {
+      return Colors.yellow.withValues(alpha: 0.3);
+    }
+
+    if (backCount == null || cabinetCount == null || outCount == null) {
+      return Colors.red.withValues(alpha: 0.1);
+    }
+
+    return null;
+  }
+
   TableRow _buildItemRow(
     BuildContext context,
     ExportItem item,
@@ -372,37 +404,39 @@ class _ExportPageState extends State<ExportPage> {
           context,
           backIsNotCounted ? '-' : backSumNotation ?? '',
           TextAlign.center,
-          backgroundColor: backIsNotCounted
-              ? Colors.yellow.withValues(alpha: 0.3)
-              : (backCount == null ? Colors.red.withValues(alpha: 0.1) : null),
+          backgroundColor: _countCellBackgroundColor(
+            isNotCounted: backIsNotCounted,
+            count: backCount,
+          ),
         ),
         _buildDataCell(
           context,
           cabinetIsNotCounted ? '-' : cabinetSumNotation ?? '',
           TextAlign.center,
-          backgroundColor: cabinetIsNotCounted
-              ? Colors.yellow.withValues(alpha: 0.3)
-              : (cabinetCount == null
-                    ? Colors.red.withValues(alpha: 0.1)
-                    : null),
+          backgroundColor: _countCellBackgroundColor(
+            isNotCounted: cabinetIsNotCounted,
+            count: cabinetCount,
+          ),
         ),
         _buildDataCell(
           context,
           outIsNotCounted ? '-' : outSumNotation ?? '',
           TextAlign.center,
-          backgroundColor: outIsNotCounted
-              ? Colors.yellow.withValues(alpha: 0.3)
-              : (outCount == null ? Colors.red.withValues(alpha: 0.1) : null),
+          backgroundColor: _countCellBackgroundColor(
+            isNotCounted: outIsNotCounted,
+            count: outCount,
+          ),
         ),
         _buildDataCell(
           context,
           totalStr,
           TextAlign.center,
-          backgroundColor: anyNotCounted
-              ? Colors.yellow.withValues(alpha: 0.3)
-              : ((backCount == null || cabinetCount == null || outCount == null)
-                    ? Colors.red.withValues(alpha: 0.1)
-                    : null),
+          backgroundColor: _totalCellBackgroundColor(
+            anyNotCounted: anyNotCounted,
+            backCount: backCount,
+            cabinetCount: cabinetCount,
+            outCount: outCount,
+          ),
         ),
       ],
     );

@@ -988,13 +988,8 @@ class _CountDialogState extends State<CountDialog> {
                                   ),
                                 ),
                                 child: Text(
-                                  _currentData.item.strategy
-                                          is NegativeCountStrategy
-                                      ? 'Default: 0'
-                                      : defaultCount != null
-                                      ? 'Default: '
-                                            '${defaultCount.count}'
-                                      : 'Default',
+                                  'Default'
+                                  '${_currentData.item.defaultButtonText}',
                                 ),
                               );
                             },
