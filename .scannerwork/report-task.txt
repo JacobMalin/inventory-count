@@ -1,7 +1,7 @@
 organization=jacobmalin
 projectKey=JacobMalin_inventory-count
 serverUrl=https://sonarcloud.io
-serverVersion=8.0.0.81231
+serverVersion=8.0.0.81296
 dashboardUrl=https://sonarcloud.io/dashboard?id=JacobMalin_inventory-count
-ceTaskId=AZxU0-mqHksyDjSOUJN-
-ceTaskUrl=https://sonarcloud.io/api/ce/task?id=AZxU0-mqHksyDjSOUJN-
+ceTaskId=AZxYaCbn8inRGRvitYR1
+ceTaskUrl=https://sonarcloud.io/api/ce/task?id=AZxYaCbn8inRGRvitYR1

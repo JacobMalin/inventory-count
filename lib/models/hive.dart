@@ -545,9 +545,7 @@ class Profile extends HiveObject {
   );
 
   IconData get icon {
-    return defaultIcons.values
-        .elementAt(name.hashCode % defaultIcons.length)
-        .data;
+    return defaultIcons.values.elementAt(name.hashCode % defaultIcons.length);
   }
 
   @override
