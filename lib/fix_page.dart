@@ -103,6 +103,16 @@ class _FixPageState extends State<FixPage> {
     return textPainter.width;
   }
 
+  List<TextSpan> _buildAreaShelfTextSpans(Area? itemArea, Shelf? itemShelf) => [
+    if (itemArea != null)
+      TextSpan(
+        text: itemArea.name,
+        style: TextStyle(color: itemArea.color),
+      ),
+    if (itemArea != null && itemShelf != null) const TextSpan(text: ' > '),
+    if (itemShelf != null) TextSpan(text: itemShelf.name),
+  ];
+
   Future<void> _showBumpCountDialog(
     BuildContext context,
     String itemName,
@@ -154,17 +164,10 @@ class _FixPageState extends State<FixPage> {
                                     fontSize: 14,
                                     fontWeight: FontWeight.normal,
                                   ),
-                              children: [
-                                if (itemArea != null)
-                                  TextSpan(
-                                    text: itemArea.name,
-                                    style: TextStyle(color: itemArea.color),
-                                  ),
-                                if (itemArea != null && itemShelf != null)
-                                  const TextSpan(text: ' > '),
-                                if (itemShelf != null)
-                                  TextSpan(text: itemShelf.name),
-                              ],
+                              children: _buildAreaShelfTextSpans(
+                                itemArea,
+                                itemShelf,
+                              ),
                             ),
                           ),
                           const Spacer(),
