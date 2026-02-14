@@ -53,7 +53,7 @@ class AreaModel with ChangeNotifier {
       _setupsSubscription = Supabase.instance.client
           .channel('public:profiles')
           .onPostgresChanges(
-            event: PostgresChangeEvent.all,
+            event: PostgresChangeEvent.insert,
             schema: 'public',
             table: 'profiles',
             filter: PostgresChangeFilter(
@@ -61,6 +61,27 @@ class AreaModel with ChangeNotifier {
               column: 'udid',
               value: await FlutterUdid.udid,
             ),
+            callback: (payload) async {
+              await _updateSingleFromResponse(payload);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: 'profiles',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.neq,
+              column: 'udid',
+              value: await FlutterUdid.udid,
+            ),
+            callback: (payload) async {
+              await _updateSingleFromResponse(payload);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.delete,
+            schema: 'public',
+            table: 'profiles',
             callback: (payload) async {
               await _updateSingleFromResponse(payload);
             },
@@ -168,14 +189,11 @@ class AreaModel with ChangeNotifier {
   Future<void> _updateSingleFromResponse(PostgresChangePayload payload) async {
     Map<String, dynamic>? deleteRecord;
     Map<String, dynamic>? newRecord;
-
     if (payload.eventType == PostgresChangeEvent.delete) {
       deleteRecord = payload.oldRecord;
-    } else if (payload.eventType == PostgresChangeEvent.insert) {
+    } else if (payload.eventType == PostgresChangeEvent.insert ||
+        payload.eventType == PostgresChangeEvent.update) {
       newRecord = payload.newRecord;
-    } else if (payload.eventType == PostgresChangeEvent.update) {
-      newRecord = payload.newRecord;
-      deleteRecord = payload.oldRecord;
     }
 
     if (deleteRecord != null) {
