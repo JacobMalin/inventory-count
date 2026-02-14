@@ -1,14 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../export_model.dart';
 import 'count_strategy.dart';
 import 'export_entry.dart';
-import 'export_model.dart';
 import 'material_default_icons.dart';
 
-part 'hive.g.dart';
+part 'inventory_models.g.dart';
 
 Future<void> hiveSetup() async {
   await Hive.initFlutter('inventory_count');
@@ -54,7 +55,10 @@ class Area extends StorageObject {
               } else if (item['type'] == 'item') {
                 return Item.fromJson(item['data'] as Map<String, dynamic>);
               }
-            } on Exception catch (_) {
+            } on Exception catch (e) {
+              if (kDebugMode) {
+                print('Failed to parse StorageObject from JSON: $e');
+              }
               return null;
             }
             return null;
@@ -108,7 +112,10 @@ class Shelf extends StorageObject {
           .map((item) {
             try {
               return Item.fromJson(item as Map<String, dynamic>);
-            } on Exception catch (_) {
+            } on Exception catch (e) {
+              if (kDebugMode) {
+                print('Failed to parse Item from JSON: $e');
+              }
               return null;
             }
           })
@@ -158,7 +165,10 @@ class Item extends StorageObject {
               json['strategy'] as Map<String, dynamic>,
             );
           }
-        } on Exception catch (_) {
+        } on Exception catch (e) {
+          if (kDebugMode) {
+            print('Failed to parse strategy from JSON: $e');
+          }
           // If strategy parsing fails, use default
           strategy = null;
         }
@@ -172,7 +182,10 @@ class Item extends StorageObject {
               json['defaultCount'] as Map<String, dynamic>,
             );
           }
-        } on Exception catch (_) {
+        } on Exception catch (e) {
+          if (kDebugMode) {
+            print('Failed to parse defaultCount from JSON: $e');
+          }
           // If defaultCount parsing fails, use null
           defaultCount = null;
         }
@@ -195,7 +208,10 @@ class Item extends StorageObject {
             : null,
         id: json['id'] as int?,
       );
-    } on Exception catch (_) {
+    } on Exception catch (e) {
+      if (kDebugMode) {
+        print('Failed to parse Item from JSON: $e');
+      }
       // If anything fails, return a basic item with the name
       return Item(json['name'] as String? ?? 'Unknown Item');
     }
@@ -235,7 +251,10 @@ class Item extends StorageObject {
       final newId = box.get('itemIdCounter', defaultValue: 0) as int;
       unawaited(box.put('itemIdCounter', newId + 1));
       return newId;
-    } on Exception catch (_) {
+    } on Exception catch (e) {
+      if (kDebugMode) {
+        print('Failed to generate ID: $e');
+      }
       return 0;
     }
   }
@@ -358,8 +377,10 @@ class Count extends HiveObject {
           try {
             final entry = CountEntry.fromJson(entryJson);
             itemCountsMap[itemId] = entry;
-          } on Exception catch (_) {
-            // skip malformed entries
+          } on Exception catch (e) {
+            if (kDebugMode) {
+              print('Failed to parse CountEntry from JSON: $e');
+            }
           }
         }
       }

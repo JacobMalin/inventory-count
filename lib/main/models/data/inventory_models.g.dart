@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'hive.dart';
+part of 'inventory_models.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
@@ -12,7 +12,7 @@ class AreaAdapter extends TypeAdapter<Area> {
 
   @override
   Area read(BinaryReader reader) {
-    final int numOfFields = reader.readByte();
+    final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
@@ -51,7 +51,7 @@ class ShelfAdapter extends TypeAdapter<Shelf> {
 
   @override
   Shelf read(BinaryReader reader) {
-    final int numOfFields = reader.readByte();
+    final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
@@ -88,7 +88,7 @@ class ItemAdapter extends TypeAdapter<Item> {
 
   @override
   Item read(BinaryReader reader) {
-    final int numOfFields = reader.readByte();
+    final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
@@ -140,7 +140,7 @@ class CountEntryAdapter extends TypeAdapter<CountEntry> {
 
   @override
   CountEntry read(BinaryReader reader) {
-    final int numOfFields = reader.readByte();
+    final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
@@ -180,7 +180,7 @@ class CountAdapter extends TypeAdapter<Count> {
 
   @override
   Count read(BinaryReader reader) {
-    final int numOfFields = reader.readByte();
+    final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
@@ -223,11 +223,13 @@ class ProfileAdapter extends TypeAdapter<Profile> {
 
   @override
   Profile read(BinaryReader reader) {
-    final int numOfFields = reader.readByte();
+    final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Profile(fields[0] as String);
+    return Profile(
+      fields[0] as String,
+    );
   }
 
   @override
@@ -272,10 +274,13 @@ class CountPhaseAdapter extends TypeAdapter<CountPhase> {
     switch (obj) {
       case CountPhase.back:
         writer.writeByte(0);
+        break;
       case CountPhase.cabinet:
         writer.writeByte(1);
+        break;
       case CountPhase.out:
         writer.writeByte(2);
+        break;
     }
   }
 

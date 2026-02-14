@@ -1,35 +1,40 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_udid/flutter_udid.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../count_page.dart';
 import 'count_model.dart';
-import 'count_strategy.dart';
-import 'hive.dart';
+import 'data/count_strategy.dart';
+import 'data/inventory_models.dart';
 
 class AreaModel with ChangeNotifier {
   AreaModel(this.countModel) {
     if (_areasBox.get('profiles') == null) {
       unawaited(_areasBox.put('profiles', <Profile, List<Area>>{}));
     }
-    if (_areasBox.get('updated_at') == null) {
-      unawaited(_areasBox.put('updated_at', <Profile, DateTime?>{}));
+    if (_areasBox.get('itemIdCounter') == null) {
+      unawaited(_areasBox.put('itemIdCounter', 0));
     }
 
-    unawaited(_fetch());
-    _listenForChanges();
+    unawaited(() async {
+      await _fetch();
+      await _listenForChanges();
+    }());
   }
 
-  StreamSubscription<List<Map<String, dynamic>>>? _setupsSubscription;
+  RealtimeChannel? _setupsSubscription;
   StreamSubscription<InternetConnectionStatus>? _connectionSubscription;
 
   final Box<dynamic> _areasBox = Hive.box('areas');
   CountModel countModel;
+
+  final _notYetDeletedProfiles = <Profile>{};
 
   Future<void> _fetch() async {
     try {
@@ -38,24 +43,31 @@ class AreaModel with ChangeNotifier {
           .select();
 
       await _updateFromResponse(response);
-    } on Exception catch (_) {
-      // On fail, do nothing
+    } on Exception catch (e) {
+      if (kDebugMode) print('Failed to fetch profiles from Supabase: $e');
     }
   }
 
-  void _listenForChanges() {
+  Future<void> _listenForChanges() async {
     try {
       _setupsSubscription = Supabase.instance.client
-          .from('profiles')
-          .stream(primaryKey: ['updated_at'])
-          .listen(
-            _updateFromResponse,
-            onError: (_) {
-              // On fail, do nothing
+          .channel('public:profiles')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'profiles',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.neq,
+              column: 'udid',
+              value: await FlutterUdid.udid,
+            ),
+            callback: (payload) async {
+              await _updateSingleFromResponse(payload);
             },
-          );
-    } on Exception catch (_) {
-      // On fail, do nothing
+          )
+          .subscribe();
+    } on Exception catch (e) {
+      if (kDebugMode) print('Failed to subscribe to Supabase changes: $e');
     }
 
     // Listen for connectivity changes
@@ -66,116 +78,144 @@ class AreaModel with ChangeNotifier {
           .listen((status) async {
             if (status != InternetConnectionStatus.connected) return;
 
+            for (final profile in List<Profile>.from(_notYetDeletedProfiles)) {
+              _notYetDeletedProfiles.remove(profile);
+              await deleteProfileFromSupabase(profile);
+            }
             await _fetch();
           });
-    } on Exception catch (_) {
-      // On fail, do nothing
+    } on Exception catch (e) {
+      if (kDebugMode) print('Failed to listen for connectivity changes: $e');
     }
   }
 
   Future<void> _updateFromResponse(List<Map<String, dynamic>> response) async {
     if (response.isEmpty) return;
 
-    final List<String> listOfProfiles = response
+    final List<String> remoteProfiles = response
         .map((entry) => entry['name'] as String)
         .toList();
-    final List<String> listOfRemoteProfilesInUpdatedAt = updatedAtMap.keys
-        .map((profile) => profile.name)
-        .toList();
-
-    // Combine all profiles from remote and local
-    final allProfileNames = <String>{
-      ...listOfProfiles,
-      ...listOfRemoteProfilesInUpdatedAt,
-    };
 
     // Batch jobs to push at end
     final Map<Profile, DateTime> profilesToUpdateRemote = {};
-    final Map<Profile, DateTime> profilesToDeleteRemote = {};
 
     // Compare timestamps for each profile
-    for (final profileName in allProfileNames) {
+    for (final profileName in remoteProfiles) {
       // Get remote data for this profile
       Map<String, dynamic>? remoteEntry;
       DateTime? remoteUpdatedAt;
-      var remoteIsDeleted = false;
+      String? remoteUdid;
       for (final entry in response) {
         if (entry['name'] == profileName) {
+          remoteUdid = entry['udid'];
           remoteEntry = entry;
           remoteUpdatedAt = entry['updated_at'] != null
               ? DateTime.tryParse(entry['updated_at'].toString())
               : null;
-          remoteIsDeleted = entry['deleted'] == true;
           break;
         }
       }
 
-      // TODO: Fix infinite loop
-
-      final targetProfile = Profile(profileName);
-
-      // Find matching profile in updatedAtMap
-      final DateTime? localUpdatedAt = updatedAtMap[targetProfile];
-      final List<Area>? localAreas = profiles[targetProfile];
-      final localIsDeleted = localAreas == null;
-
-      print('Comparing profile "$profileName":');
-      print(
-        '  Remote - updatedAt: $remoteUpdatedAt, isDeleted: $remoteIsDeleted',
-      );
-      print(
-        '  Local  - updatedAt: $localUpdatedAt, isDeleted: $localIsDeleted',
-      );
-
-      if (remoteUpdatedAt == localUpdatedAt) {
-        // Timestamps are the same, no action needed
+      if (remoteUdid == await FlutterUdid.udid) {
+        // Don't update from our own changes
         continue;
       }
 
-      // Both exist and are different, compare them
-      if (localUpdatedAt == null ||
-          (remoteUpdatedAt != null &&
-              remoteUpdatedAt.isAfter(localUpdatedAt))) {
-        if (remoteIsDeleted) {
-          // Remote is deleted but local is not, delete locally
-          final Map<Profile, List<Area>> currentProfiles = profiles
-            ..remove(targetProfile);
-          profiles = currentProfiles;
+      if (remoteUpdatedAt == null) continue; // Should not be possible
 
-          final Map<Profile, DateTime?> currentUpdatedAtMap = updatedAtMap;
-          currentUpdatedAtMap[targetProfile] = remoteUpdatedAt;
-          updatedAtMap = currentUpdatedAtMap;
-        } else {
-          // Remote is newer, import from remote
-          final String jsonData = remoteEntry!['json'] is String
-              ? remoteEntry['json'] as String
-              : jsonEncode(remoteEntry['json']);
-          importProfileFromJson(targetProfile, jsonData);
+      final targetProfile = Profile(profileName);
+      final DateTime? localUpdatedAt = _updatedAtMap[targetProfile];
 
-          final Map<Profile, DateTime?> newUpdatedAtMap = updatedAtMap;
-          newUpdatedAtMap[Profile(profileName)] = remoteUpdatedAt;
-          updatedAtMap = newUpdatedAtMap;
-        }
-      } else {
-        if (localIsDeleted) {
-          // Local is deleted, queue for remote deletion
-          profilesToDeleteRemote[targetProfile] = localUpdatedAt;
-        } else {
-          // Local is newer, queue for remote update
-          profilesToUpdateRemote[targetProfile] = localUpdatedAt;
-        }
+      if (localUpdatedAt == null || localUpdatedAt.isBefore(remoteUpdatedAt)) {
+        // Remote is newer, import from remote
+        final String jsonData = remoteEntry!['json'] is String
+            ? remoteEntry['json'] as String
+            : jsonEncode(remoteEntry['json']);
+        importProfileFromJson(targetProfile, jsonData);
+
+        final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap;
+        newUpdatedAtMap[Profile(profileName)] = remoteUpdatedAt;
+        _updatedAtMap = newUpdatedAtMap;
+      } else if (localUpdatedAt.isAfter(remoteUpdatedAt)) {
+        // Local is newer, queue for remote update
+        profilesToUpdateRemote[targetProfile] = localUpdatedAt;
       }
     }
 
     // Batch push all changes at the end
-    await _batchUpdateSupabase(profilesToUpdateRemote, profilesToDeleteRemote);
+    await _batchUpdateSupabase(profilesToUpdateRemote);
+
+    // Handle deleted profiles
+    final Set<String> localProfiles = {
+      ..._updatedAtMap.keys.map((profile) => profile.name),
+      ...profiles.keys.map((profile) => profile.name),
+    };
+    final List<String> profilesToDelete = localProfiles
+        .where((localProfile) => !remoteProfiles.contains(localProfile))
+        .toList();
+    for (final profileName in profilesToDelete) {
+      final targetProfile = Profile(profileName);
+      final Map<Profile, List<Area>> currentProfiles = profiles
+        ..remove(targetProfile);
+      profiles = currentProfiles;
+
+      final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap
+        ..remove(targetProfile);
+      _updatedAtMap = newUpdatedAtMap;
+    }
+  }
+
+  Future<void> _updateSingleFromResponse(PostgresChangePayload payload) async {
+    if (payload.eventType == PostgresChangeEvent.delete) {
+      final profileName = payload.oldRecord['name'] as String;
+      final targetProfile = Profile(profileName);
+
+      final Map<Profile, List<Area>> currentProfiles = profiles
+        ..remove(targetProfile);
+      profiles = currentProfiles;
+
+      final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap
+        ..remove(targetProfile);
+      _updatedAtMap = newUpdatedAtMap;
+
+      return;
+    }
+
+    final Map<String, dynamic> entry = payload.newRecord;
+
+    final profileName = entry['name'] as String;
+    final DateTime? remoteUpdatedAt = entry['updated_at'] != null
+        ? DateTime.tryParse(entry['updated_at'].toString())
+        : null;
+    final String? remoteUdid = entry['udid'];
+
+    if (remoteUdid == await FlutterUdid.udid) {
+      // Don't update from our own changes
+      return;
+    }
+
+    if (remoteUpdatedAt == null) return; // Should not be possible
+
+    final targetProfile = Profile(profileName);
+    final DateTime? localUpdatedAt = _updatedAtMap[targetProfile];
+
+    if (localUpdatedAt == null || localUpdatedAt.isBefore(remoteUpdatedAt)) {
+      // Remote is newer, import from remote
+      final String jsonData = entry['json'] is String
+          ? entry['json'] as String
+          : jsonEncode(entry['json']);
+      importProfileFromJson(targetProfile, jsonData);
+
+      final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap;
+      newUpdatedAtMap[Profile(profileName)] = remoteUpdatedAt;
+      _updatedAtMap = newUpdatedAtMap;
+    }
   }
 
   Future<void> _batchUpdateSupabase(
     Map<Profile, DateTime> profilesToUpdate,
-    Map<Profile, DateTime> profilesToDelete,
   ) async {
-    if (profilesToUpdate.isEmpty && profilesToDelete.isEmpty) return;
+    if (profilesToUpdate.isEmpty) return;
 
     try {
       final List<Map<String, dynamic>> batchData = [];
@@ -189,69 +229,71 @@ class AreaModel with ChangeNotifier {
           'name': profile.name,
           'updated_at': localUpdatedAt.toIso8601String(),
           'json': jsonString,
-          'deleted': false,
-        });
-      }
-
-      // Add deletes
-      for (final MapEntry(key: profile, value: localUpdatedAt)
-          in profilesToDelete.entries) {
-        batchData.add({
-          'name': profile.name,
-          'deleted': true,
-          'updated_at': localUpdatedAt.toIso8601String(),
-          'json': '{}',
+          'udid': await FlutterUdid.udid,
         });
       }
 
       // Single batch upsert call
       await Supabase.instance.client.from('profiles').upsert(batchData);
-    } on Exception catch (_) {
-      // On fail, do nothing
+    } on Exception catch (e) {
+      if (kDebugMode) print('Failed to batch update profiles to Supabase: $e');
     }
   }
 
   @override
   Future<void> dispose() async {
-    await _setupsSubscription?.cancel();
+    await _setupsSubscription?.unsubscribe();
     await _connectionSubscription?.cancel();
     super.dispose();
   }
 
   void updateSupabase(Profile profile) {
-    try {
-      final String jsonString = exportProfileToJson(profile);
+    final String jsonString = exportProfileToJson(profile);
 
-      final DateTime now = DateTime.now().toUtc();
-      final Map<Profile, DateTime?> newUpdatedAtMap = updatedAtMap;
-      newUpdatedAtMap[profile] = now;
-      updatedAtMap = newUpdatedAtMap;
+    final DateTime now = DateTime.now().toUtc();
+    final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap;
+    newUpdatedAtMap[profile] = now;
+    _updatedAtMap = newUpdatedAtMap;
 
-      unawaited(
-        Supabase.instance.client.from('profiles').upsert({
-          'name': profile.name,
-          'updated_at': now.toIso8601String(),
-          'json': jsonString,
-          'deleted': false,
-        }),
-      );
-    } on Exception catch (_) {
-      // On fail, do nothing
-    }
+    unawaited(() async {
+      await Supabase.instance.client
+          .from('profiles')
+          .upsert({
+            'name': profile.name,
+            'updated_at': now.toIso8601String(),
+            'json': jsonString,
+            'udid': await FlutterUdid.udid,
+          })
+          .onError((error, _) {
+            if (kDebugMode) {
+              print(
+                'Failed to update profile "${profile.name}" to Supabase: '
+                '$error',
+              );
+            }
+          });
+    }());
   }
 
   Future<void> deleteProfileFromSupabase(Profile profile) async {
-    try {
-      // Soft delete: mark as deleted instead of removing the row
-      await Supabase.instance.client.from('profiles').upsert({
-        'name': profile.name,
-        'deleted': true,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-        'json': '{}',
-      });
-    } on Exception catch (_) {
-      // On fail, keep in set for retry
-    }
+    final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap
+      ..remove(profile);
+    _updatedAtMap = newUpdatedAtMap;
+
+    await Supabase.instance.client
+        .from('profiles')
+        .delete()
+        .eq('name', profile.name)
+        .onError((error, _) {
+          _notYetDeletedProfiles.add(profile);
+
+          if (kDebugMode) {
+            print(
+              'Failed to delete profile "${profile.name}" from Supabase: '
+              '$error',
+            );
+          }
+        });
   }
 
   Map<Profile, List<Area>> get profiles {
@@ -271,19 +313,7 @@ class AreaModel with ChangeNotifier {
     });
   }
 
-  Map<Profile, DateTime?> get updatedAtMap {
-    final Map<dynamic, dynamic> data = _areasBox.get(
-      'updated_at',
-      defaultValue: <Profile, DateTime?>{},
-    );
-    return data.map<Profile, DateTime?>(
-      (k, v) => MapEntry(k as Profile, v as DateTime?),
-    );
-  }
-
-  set updatedAtMap(Map<Profile, DateTime?> value) {
-    unawaited(_areasBox.put('updated_at', value));
-  }
+  Map<Profile, DateTime?> _updatedAtMap = {};
 
   List<Area> getAreas() {
     if (countModel.selectedProfile == null) return [];
@@ -295,6 +325,7 @@ class AreaModel with ChangeNotifier {
     }
 
     currentProfiles[countModel.selectedProfile!] = <Area>[];
+    _updatedAtMap[countModel.selectedProfile!] = DateTime.now().toUtc();
     profiles = currentProfiles;
 
     return currentProfiles[countModel.selectedProfile]!;
@@ -304,13 +335,8 @@ class AreaModel with ChangeNotifier {
     if (countModel.selectedProfile == null) return;
 
     final Map<Profile, List<Area>> currentProfiles = profiles;
-    final Map<Profile, DateTime?> currentUpdatedAtMap = updatedAtMap;
-
     currentProfiles[countModel.selectedProfile!] = areas;
-    currentUpdatedAtMap[countModel.selectedProfile!] = DateTime.now().toUtc();
-
     profiles = currentProfiles;
-    updatedAtMap = currentUpdatedAtMap;
 
     updateSupabase(countModel.selectedProfile!);
   }
@@ -583,15 +609,16 @@ class AreaModel with ChangeNotifier {
     final data = jsonDecode(jsonString) as Map<String, dynamic>;
 
     // Import areas for this specific profile
+    List<Area> areas = [];
     if (data['areas'] != null) {
-      final List<Area> areas = (data['areas'] as List<dynamic>)
+      areas = (data['areas'] as List<dynamic>)
           .map((areaData) => Area.fromJson(areaData))
           .toList();
-
-      final Map<Profile, List<Area>> currentProfiles = profiles;
-      currentProfiles[profile] = areas;
-      profiles = currentProfiles;
     }
+
+    final Map<Profile, List<Area>> currentProfiles = profiles;
+    currentProfiles[profile] = areas;
+    profiles = currentProfiles;
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       notifyListeners();

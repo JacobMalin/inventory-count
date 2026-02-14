@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/area_model.dart';
-import '../models/count_strategy.dart';
-import '../models/export_entry.dart';
+import '../models/data/count_strategy.dart';
+import '../models/data/export_entry.dart';
+import '../models/data/inventory_models.dart';
 import '../models/export_model.dart';
-import '../models/hive.dart';
 
 class ItemPage extends StatelessWidget {
   const ItemPage({

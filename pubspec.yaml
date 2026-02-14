@@ -13,6 +13,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_slidable: ^4.0.3
+  flutter_udid: ^4.1.1
   hive_flutter: ^1.1.0
   internet_connection_checker: ^3.0.1
   intl: ^0.20.2

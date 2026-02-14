@@ -4,9 +4,9 @@ import 'package:provider/provider.dart';
 import 'count_page.dart';
 import 'models/area_model.dart';
 import 'models/count_model.dart';
-import 'models/export_entry.dart';
+import 'models/data/export_entry.dart';
+import 'models/data/inventory_models.dart';
 import 'models/export_model.dart';
-import 'models/hive.dart';
 
 class FixPage extends StatefulWidget {
   const FixPage({super.key});

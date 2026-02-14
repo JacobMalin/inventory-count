@@ -1,10 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
-import 'area_model.dart';
-import 'count_model.dart';
-import 'hive.dart';
+import '../area_model.dart';
+import '../count_model.dart';
+import 'inventory_models.dart';
 
 part 'count_strategy.g.dart';
 
@@ -1183,7 +1184,8 @@ class ItemCount extends ItemCountType {
           strategy = CountStrategy.fromJson(
             json['strategy'] as Map<String, dynamic>,
           );
-        } on Exception catch (_) {
+        } on Exception catch (e) {
+          if (kDebugMode) print('Failed to parse strategy from JSON: $e');
           // If strategy parsing fails, use default
           strategy = SingularCountStrategy();
         }
@@ -1197,7 +1199,8 @@ class ItemCount extends ItemCountType {
         field2: json['field2'] as int?,
         doubleChecked: json['doubleChecked'] as bool? ?? false,
       );
-    } on Exception catch (_) {
+    } on Exception catch (e) {
+      if (kDebugMode) print('Failed to parse ItemCount from JSON: $e');
       // If anything fails, return a basic ItemCount
       return ItemCount(SingularCountStrategy());
     }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/area_model.dart';
-import '../models/hive.dart';
+import '../models/data/inventory_models.dart';
 import 'setup_tiles.dart';
 
 class ShelfPage extends StatelessWidget {

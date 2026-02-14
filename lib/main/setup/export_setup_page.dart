@@ -3,7 +3,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 
 import '../models/area_model.dart';
-import '../models/export_entry.dart';
+import '../models/data/export_entry.dart';
 import '../models/export_model.dart';
 
 class ExportSetupPage extends StatefulWidget {

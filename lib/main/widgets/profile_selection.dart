@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../models/area_model.dart';
 import '../models/count_model.dart';
-import '../models/hive.dart';
+import '../models/data/inventory_models.dart';
 
 class SelectProfile extends StatefulWidget {
   const SelectProfile({super.key});
@@ -69,13 +69,8 @@ class _SelectProfileState extends State<SelectProfile> {
       } else {
         currentProfiles[newProfile] = <Area>[];
       }
-      areaModel.profiles = currentProfiles;
-
-      final Map<Profile, DateTime?> currentUpdatedAtMap =
-          areaModel.updatedAtMap;
-      currentUpdatedAtMap[newProfile] = DateTime.now().toUtc();
       areaModel
-        ..updatedAtMap = currentUpdatedAtMap
+        ..profiles = currentProfiles
         ..updateSupabase(newProfile);
     }
 
@@ -336,12 +331,6 @@ class _SelectProfileState extends State<SelectProfile> {
     currentProfiles[newProfile] = areas;
     areaModel.profiles = currentProfiles;
 
-    // Update updatedAtMap with new profile key
-    final Map<Profile, DateTime?> currentUpdatedAtMap = areaModel.updatedAtMap;
-    currentUpdatedAtMap[profile] = DateTime.now().toUtc();
-    currentUpdatedAtMap[newProfile] = DateTime.now().toUtc();
-    areaModel.updatedAtMap = currentUpdatedAtMap;
-
     // Update selected profile if it was the one being renamed
     if (countModel.selectedProfile == profile) {
       countModel.selectedProfile = newProfile;
@@ -476,12 +465,8 @@ class _SelectProfileState extends State<SelectProfile> {
     final Map<Profile, List<Area>> currentProfiles = areaModel.profiles;
     final List<Area> sourceAreas = currentProfiles[sourceProfile] ?? <Area>[];
     currentProfiles[targetProfile] = List<Area>.from(sourceAreas);
-    areaModel.profiles = currentProfiles;
-
-    final Map<Profile, DateTime?> currentUpdatedAtMap = areaModel.updatedAtMap;
-    currentUpdatedAtMap[targetProfile] = DateTime.now().toUtc();
     areaModel
-      ..updatedAtMap = currentUpdatedAtMap
+      ..profiles = currentProfiles
       ..updateSupabase(targetProfile);
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -528,11 +513,6 @@ class _SelectProfileState extends State<SelectProfile> {
       final Map<Profile, List<Area>> currentProfiles = areaModel.profiles
         ..remove(profile);
       areaModel.profiles = currentProfiles;
-
-      final Map<Profile, DateTime?> currentUpdatedAtMap =
-          areaModel.updatedAtMap;
-      currentUpdatedAtMap[profile] = DateTime.now().toUtc();
-      areaModel.updatedAtMap = currentUpdatedAtMap;
 
       if (countModel.selectedProfile == profile) {
         countModel.selectedProfile = null;

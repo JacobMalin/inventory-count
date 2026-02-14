@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_udid/flutter_udid.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'count_model.dart';
-import 'export_entry.dart';
+import 'data/export_entry.dart';
 
 class ExportModel with ChangeNotifier {
   ExportModel() {
@@ -17,8 +18,10 @@ class ExportModel with ChangeNotifier {
       unawaited(box.put('exportList', <ExportEntry>[]));
     }
 
-    unawaited(_fetch());
-    _listenForChanges();
+    unawaited(() async {
+      await _fetch();
+      _listenForChanges();
+    }());
   }
 
   StreamSubscription<List<Map<String, dynamic>>>? _setupsSubscription;
@@ -30,12 +33,12 @@ class ExportModel with ChangeNotifier {
       final PostgrestList response = await Supabase.instance.client
           .from('setups')
           .select()
-          .order('updated_at', ascending: false)
+          .order('updated_at')
           .limit(1);
 
       await _updateFromResponse(response);
-    } on Exception catch (_) {
-      // On fail, do nothing
+    } on Exception catch (e) {
+      if (kDebugMode) print('Failed to fetch setups from Supabase: $e');
     }
   }
 
@@ -48,14 +51,15 @@ class ExportModel with ChangeNotifier {
           .limit(1)
           .listen(
             _updateFromResponse,
-            onError: (_) {
-              // On fail, do nothing
+            onError: (e) {
+              if (kDebugMode) print('Error listening to Supabase changes: $e');
             },
           );
-    } on Exception catch (_) {
-      // On fail, do nothing
+    } on Exception catch (e) {
+      if (kDebugMode) print('Failed to subscribe to Supabase changes: $e');
     }
 
+    // TODO: If app starts offline, it stays offline
     // Listen for connectivity changes
     try {
       _connectionSubscription = InternetConnectionChecker
@@ -66,8 +70,8 @@ class ExportModel with ChangeNotifier {
 
             await _fetch();
           });
-    } on Exception catch (_) {
-      // On fail, do nothing
+    } on Exception catch (e) {
+      if (kDebugMode) print('Failed to listen for connectivity changes: $e');
     }
   }
 
@@ -76,26 +80,30 @@ class ExportModel with ChangeNotifier {
 
     final Map<String, dynamic> setup = response.first;
 
+    if (setup['udid'] == await FlutterUdid.udid) {
+      // Don't update from our own changes
+      return;
+    }
+
     DateTime? updatedTimestamp;
     if (setup['updated_at'] != null) {
       updatedTimestamp = DateTime.tryParse(
         setup['updated_at'].toString(),
-      )?.toLocal();
+      )?.toUtc();
     }
 
-    if (_lastTimestamp != null &&
-        updatedTimestamp != null &&
-        _lastTimestamp!.isAfter(updatedTimestamp)) {
+    if (updatedTimestamp == null) return; // Should not be possible
+
+    if (_lastTimestamp == null || _lastTimestamp!.isBefore(updatedTimestamp)) {
+      final String jsonData = setup['json'] is String
+          ? setup['json'] as String
+          : jsonEncode(setup['json']);
+      await importFromJson(jsonData);
+
+      _lastTimestamp = updatedTimestamp;
+    } else if (_lastTimestamp!.isAfter(updatedTimestamp)) {
       _updateSupabase();
-      return;
     }
-
-    final String jsonData = setup['json'] is String
-        ? setup['json'] as String
-        : jsonEncode(setup['json']);
-    await importFromJson(jsonData);
-
-    _lastTimestamp = updatedTimestamp;
   }
 
   @override
@@ -106,24 +114,26 @@ class ExportModel with ChangeNotifier {
   }
 
   void _updateSupabase() {
-    try {
-      final String jsonString = exportToJson();
+    final String jsonString = exportToJson();
 
-      final DateTime now = DateTime.now().toUtc();
-      final id = '${DateFormat('yyyy-MM-dd HH').format(now)}h';
+    final DateTime now = DateTime.now().toUtc();
+    final id = '${DateFormat('yyyy-MM-dd HH').format(now)}h';
 
-      _lastTimestamp = now;
+    _lastTimestamp = now;
 
-      unawaited(
-        Supabase.instance.client.from('setups').upsert({
-          'id': id,
-          'updated_at': now.toIso8601String(),
-          'json': jsonString,
-        }),
-      );
-    } on Exception catch (_) {
-      // On fail, do nothing
-    }
+    unawaited(() async {
+      await Supabase.instance.client
+          .from('setups')
+          .upsert({
+            'id': id,
+            'updated_at': now.toIso8601String(),
+            'json': jsonString,
+            'udid': await FlutterUdid.udid,
+          })
+          .catchError((error) {
+            if (kDebugMode) print('Failed to upsert to Supabase: $error');
+          });
+    }());
   }
 
   List<ExportEntry> get exportList {

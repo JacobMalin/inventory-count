@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
-import 'count_strategy.dart';
-import 'hive.dart';
+import 'data/count_strategy.dart';
+import 'data/inventory_models.dart';
 
 class CountModel with ChangeNotifier {
   final Box _settingsBox = Hive.box('settings');
