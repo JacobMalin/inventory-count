@@ -204,7 +204,7 @@ class ExportModel with ChangeNotifier {
     var titleHidden = false;
     for (final entry in currentExportList) {
       if (entry is ExportItem && !entry.isHidden && !titleHidden) {
-        (data[currentTitle] as Map<String, dynamic>)[entry.name] = countModel
+        (data[currentTitle] as Map<dynamic, dynamic>)[entry.name] = countModel
             .getItemExportJson(entry.name);
       } else if (entry is ExportTitle) {
         currentTitle = entry.name;

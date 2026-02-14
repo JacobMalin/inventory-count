@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../main/models/data/inventory_models.dart';
 import 'window_model.dart';
 
 class SupabaseCountsPage extends StatelessWidget {
@@ -145,7 +146,9 @@ class SupabaseCountsPage extends StatelessWidget {
 
     return SafeArea(
       child: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: storage.stream(primaryKey: ['created_at']).order('created_at'),
+        stream: storage
+            .stream(primaryKey: ['name', 'profile'])
+            .order('updated_at'),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -164,22 +167,31 @@ class SupabaseCountsPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final Map<String, dynamic> count = counts[index];
 
-              var title = '';
-              if (count['created_at'] != null) {
+              final String profile = count['profile'] ?? 'Default';
+
+              var time = '';
+              if (count['updated_at'] != null) {
                 final DateTime? dt = DateTime.tryParse(
-                  count['created_at'].toString(),
+                  count['updated_at'].toString(),
                 )?.toLocal();
 
                 if (dt != null) {
-                  title = DateFormat.yMMMd().add_jm().format(dt);
+                  time = DateFormat.yMMMd().add_jm().format(dt);
                 } else {
-                  title = count['created_at'].toString();
+                  time = count['updated_at'].toString();
                 }
               }
 
               return ListTile(
-                title: Text(title),
-                leading: const Icon(Icons.insert_drive_file),
+                title: Text(
+                  profile,
+                  style: TextStyle(color: Profile(profile).color),
+                ),
+                leading: Icon(
+                  Profile(profile).icon,
+                  color: Profile(profile).color,
+                ),
+                subtitle: Text('Last updated: $time'),
                 onTap: () async {
                   try {
                     if (!context.mounted) return;
@@ -190,7 +202,7 @@ class SupabaseCountsPage extends StatelessWidget {
                         title: const Text('Print this count?'),
                         content: Text(
                           'Would you like to print the count '
-                          'uploaded on $title?',
+                          'updated on $time?',
                         ),
                         actions: [
                           TextButton(

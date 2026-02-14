@@ -1,4 +1,6 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -70,7 +72,7 @@ class _ExportPageState extends State<ExportPage> {
   double _getTextWidth(BuildContext context, String text, TextStyle? style) {
     final textPainter = TextPainter(
       text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
+      textDirection: ui.TextDirection.ltr,
       maxLines: 1,
     )..layout();
     return textPainter.width;
@@ -219,6 +221,7 @@ class _ExportPageState extends State<ExportPage> {
             left: 16,
             child: Consumer2<ExportModel, CountModel>(
               builder: (context, exportModel, countModel, child) {
+                // TODO: Make automatic
                 return FloatingActionButton.small(
                   onPressed: () async {
                     final ScaffoldMessengerState messenger =
@@ -229,8 +232,16 @@ class _ExportPageState extends State<ExportPage> {
                         countModel,
                       );
 
-                      await Supabase.instance.client.from('counts').insert({
+                      final DateTime now = DateTime.now().toLocal();
+                      final String exportName = DateFormat(
+                        'yyyy-MM-dd',
+                      ).format(now.subtract(const Duration(hours: 3)));
+                      await Supabase.instance.client.from('counts').upsert({
+                        'name': exportName,
+                        'profile':
+                            countModel.selectedProfile?.name ?? 'Default',
                         'json': jsonString,
+                        'updated_at': now.toUtc().toIso8601String(),
                       });
 
                       messenger.showSnackBar(
