@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:inventory_count/companion/window_model.dart';
 import 'package:win32/win32.dart';
 import 'package:window_manager/window_manager.dart';
+
+import 'window_model.dart';
 
 const minSize = Size(450, 350);
 
@@ -15,31 +16,32 @@ Future<void> companionHiveSetup() async {
 Future<void> windowSetup() async {
   await windowManager.ensureInitialized();
 
-  Offset? startPosition = WindowModel.position;
-  final Size? startSize = WindowModel.size;
-  final bool? startIsMaximized = WindowModel.isMaximized;
+  final windowModel = WindowModel();
+  final Offset? startPosition = windowModel.position;
+  final Size? startSize = windowModel.size;
+  final bool? startIsMaximized = windowModel.isMaximized;
 
   final windowOptions = WindowOptions(
     title: 'Inventory Count',
     minimumSize: minSize,
     size: startSize ?? minSize,
   );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
+  await windowManager.waitUntilReadyToShow(windowOptions, () async {
     if (startPosition != null) {
       if (startPosition.dx > 2800) {
-        windowManager.setAlignment(Alignment.center);
+        await windowManager.setAlignment(Alignment.center);
       } else {
-        windowManager.setPosition(startPosition);
+        await windowManager.setPosition(startPosition);
       }
     }
 
     if (startIsMaximized != null && startIsMaximized) {
-      windowManager.maximize();
+      await windowManager.maximize();
     }
 
     // Check if window has landed offscreen
     if (!isWindowOnValidMonitor()) {
-      windowManager.setPosition(Offset(10, 10));
+      await windowManager.setPosition(const Offset(10, 10));
     }
 
     await windowManager.show();

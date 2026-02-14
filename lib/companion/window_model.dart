@@ -1,20 +1,28 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
 class WindowModel {
-  static final _box = Hive.box('window');
+  factory WindowModel() => _instance;
 
-  static bool? get isMaximized => _box.get('isMaximized') as bool?;
-  static set isMaximized(bool? value) {
+  WindowModel._();
+
+  static final WindowModel _instance = WindowModel._();
+
+  final Box<dynamic> _box = Hive.box('window');
+
+  bool? get isMaximized => _box.get('isMaximized') as bool?;
+  set isMaximized(bool? value) {
     if (value == null) {
-      _box.delete('isMaximized');
+      unawaited(_box.delete('isMaximized'));
     } else {
-      _box.put('isMaximized', value);
+      unawaited(_box.put('isMaximized', value));
     }
   }
 
-  static Size? get size {
+  Size? get size {
     final width = _box.get('width') as double?;
     final height = _box.get('height') as double?;
     if (width != null && height != null) {
@@ -23,17 +31,17 @@ class WindowModel {
     return null;
   }
 
-  static set size(Size? value) {
+  set size(Size? value) {
     if (value == null) {
-      _box.delete('width');
-      _box.delete('height');
+      unawaited(_box.delete('width'));
+      unawaited(_box.delete('height'));
     } else {
-      _box.put('width', value.width);
-      _box.put('height', value.height);
+      unawaited(_box.put('width', value.width));
+      unawaited(_box.put('height', value.height));
     }
   }
 
-  static Offset? get position {
+  Offset? get position {
     final x = _box.get('x') as double?;
     final y = _box.get('y') as double?;
     if (x != null && y != null) {
@@ -42,22 +50,22 @@ class WindowModel {
     return null;
   }
 
-  static set position(Offset? value) {
+  set position(Offset? value) {
     if (value == null) {
-      _box.delete('x');
-      _box.delete('y');
+      unawaited(_box.delete('x'));
+      unawaited(_box.delete('y'));
     } else {
-      _box.put('x', value.dx);
-      _box.put('y', value.dy);
+      unawaited(_box.put('x', value.dx));
+      unawaited(_box.put('y', value.dy));
     }
   }
 
-  static String? get countExcelPath => _box.get('countExcelPath') as String?;
-  static set countExcelPath(String? value) {
+  String? get countExcelPath => _box.get('countExcelPath') as String?;
+  set countExcelPath(String? value) {
     if (value == null) {
-      _box.delete('countExcelPath');
+      unawaited(_box.delete('countExcelPath'));
     } else {
-      _box.put('countExcelPath', value);
+      unawaited(_box.put('countExcelPath', value));
     }
   }
 }
@@ -75,6 +83,8 @@ class WindowSetupWatcher extends StatefulWidget {
 
 class _WindowSetupWatcherState extends State<WindowSetupWatcher>
     with WindowListener {
+  final _windowModel = WindowModel();
+
   @override
   void initState() {
     super.initState();
@@ -92,13 +102,14 @@ class _WindowSetupWatcherState extends State<WindowSetupWatcher>
 
   @override
   Future<void> onWindowMoved([int? windowId]) async {
-    WindowModel.position = await windowManager.getPosition();
-    WindowModel.size = await windowManager.getSize();
+    _windowModel.position = await windowManager.getPosition();
+    _windowModel.size = await windowManager.getSize();
   }
 
   @override
   Future<void> onWindowResized([int? windowId]) async {
-    WindowModel.size = await windowManager.getSize();
+    _windowModel.size = await windowManager.getSize();
+    _windowModel.size = await windowManager.getSize();
   }
 
   @override
@@ -109,11 +120,11 @@ class _WindowSetupWatcherState extends State<WindowSetupWatcher>
 
   @override
   void onWindowMaximize([int? windowId]) {
-    WindowModel.isMaximized = true;
+    _windowModel.isMaximized = true;
   }
 
   @override
   void onWindowUnmaximize([int? windowId]) {
-    WindowModel.isMaximized = false;
+    _windowModel.isMaximized = false;
   }
 }

@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/count_model.dart';
-import 'package:inventory_count/models/hive.dart';
-import 'package:inventory_count/setup/setup_tiles.dart';
 import 'package:provider/provider.dart';
+
+import '../models/area_model.dart';
+import '../models/data/inventory_models.dart';
+import 'setup_tiles.dart';
 
 class AreaPage extends StatelessWidget {
   const AreaPage({
+    required void Function(int) select,
+    required void Function() deselect,
+    required List<int> selectedOrder,
     super.key,
-    required this.select,
-    required this.deselect,
-    required this.selectedOrder,
-  });
+  }) : _selectedOrder = selectedOrder,
+       _deselect = deselect,
+       _select = select;
 
-  final void Function(int) select;
-  final void Function() deselect;
-  final List<int> selectedOrder;
+  final void Function(int) _select;
+  final void Function() _deselect;
+  final List<int> _selectedOrder;
 
   @override
   Widget build(BuildContext context) {
@@ -24,29 +26,29 @@ class AreaPage extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              areaModel.getArea(selectedOrder.last).name,
+              areaModel.getArea(_selectedOrder.last).name,
               style: Theme.of(context).textTheme.headlineLarge!.copyWith(
-                color: areaModel.getArea(selectedOrder.last).color,
+                color: areaModel.getArea(_selectedOrder.last).color,
               ),
             ),
             centerTitle: true,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new),
-              onPressed: deselect,
+              onPressed: _deselect,
             ),
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit),
-                onPressed: () {
+                onPressed: () async {
                   final controller = TextEditingController(
-                    text: areaModel.getArea(selectedOrder.last).name,
+                    text: areaModel.getArea(_selectedOrder.last).name,
                   );
                   controller.selection = TextSelection(
                     baseOffset: 0,
                     extentOffset: controller.text.length,
                   );
 
-                  showDialog(
+                  await showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Rename Area'),
@@ -64,15 +66,18 @@ class AreaPage extends StatelessWidget {
                     ),
                   ).then((_) {
                     if (controller.text.isNotEmpty) {
-                      areaModel.renameArea(selectedOrder.last, controller.text);
+                      areaModel.renameArea(
+                        _selectedOrder.last,
+                        controller.text,
+                      );
                     }
                   });
                 },
               ),
               IconButton(
                 icon: const Icon(Icons.delete),
-                onPressed: () {
-                  showDialog(
+                onPressed: () async {
+                  await showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Delete Area'),
@@ -84,20 +89,13 @@ class AreaPage extends StatelessWidget {
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Cancel'),
                         ),
-                        Consumer<CountModel>(
-                          builder: (context, countModel, child) {
-                            return TextButton(
-                              onPressed: () {
-                                areaModel.removeArea(
-                                  selectedOrder.last,
-                                  countModel,
-                                );
-                                Navigator.pop(context);
-                                deselect();
-                              },
-                              child: const Text('Delete'),
-                            );
+                        TextButton(
+                          onPressed: () {
+                            areaModel.removeArea(_selectedOrder.last);
+                            Navigator.pop(context);
+                            _deselect();
                           },
+                          child: const Text('Delete'),
                         ),
                       ],
                     ),
@@ -111,10 +109,10 @@ class AreaPage extends StatelessWidget {
           body: GestureDetector(
             onHorizontalDragEnd: (details) {
               if (details.primaryVelocity! > 300) {
-                deselect();
+                _deselect();
               }
             },
-            child: ShelfList(select: select, selectedOrder: selectedOrder),
+            child: ShelfList(select: _select, selectedOrder: _selectedOrder),
           ),
         );
       },
@@ -124,13 +122,14 @@ class AreaPage extends StatelessWidget {
 
 class ShelfList extends StatefulWidget {
   const ShelfList({
+    required void Function(int) select,
+    required List<int> selectedOrder,
     super.key,
-    required this.select,
-    required this.selectedOrder,
-  });
+  }) : _selectedOrder = selectedOrder,
+       _select = select;
 
-  final void Function(int) select;
-  final List<int> selectedOrder;
+  final void Function(int) _select;
+  final List<int> _selectedOrder;
 
   @override
   State<ShelfList> createState() => _ShelfListState();
@@ -145,7 +144,7 @@ class _ShelfListState extends State<ShelfList> {
     super.dispose();
   }
 
-  void _scrollToBottom() async {
+  Future<void> _scrollToBottom() async {
     await Future.delayed(const Duration(milliseconds: 100));
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
@@ -164,7 +163,7 @@ class _ShelfListState extends State<ShelfList> {
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
-        Area area = areaModel.getArea(widget.selectedOrder.last);
+        final Area area = areaModel.getArea(widget._selectedOrder.last);
 
         return Column(
           children: [
@@ -175,22 +174,22 @@ class _ShelfListState extends State<ShelfList> {
                     leading: const Icon(Icons.add),
                     title: const Text('Add Shelf'),
                     tileColor: Theme.of(context).colorScheme.surface,
-                    onTap: () {
-                      showDialog(
+                    onTap: () async {
+                      await showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
                           title: const Text('Enter Shelf Name'),
                           content: TextField(
                             autofocus: true,
-                            onSubmitted: (value) {
+                            onSubmitted: (value) async {
                               if (value.isNotEmpty) {
                                 areaModel.addShelfToArea(
-                                  widget.selectedOrder.last,
+                                  widget._selectedOrder.last,
                                   Shelf(value),
                                 );
 
                                 Navigator.pop(context);
-                                _scrollToBottom();
+                                await _scrollToBottom();
                               }
                             },
                           ),
@@ -210,22 +209,22 @@ class _ShelfListState extends State<ShelfList> {
                     leading: const Icon(Icons.add),
                     title: const Text('Add Item'),
                     tileColor: Theme.of(context).colorScheme.surface,
-                    onTap: () {
-                      showDialog(
+                    onTap: () async {
+                      await showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
                           title: const Text('Enter Item Name'),
                           content: TextField(
                             autofocus: true,
-                            onSubmitted: (value) {
+                            onSubmitted: (value) async {
                               if (value.isNotEmpty) {
                                 areaModel.addItemToArea(
-                                  widget.selectedOrder.last,
+                                  widget._selectedOrder.last,
                                   Item(value),
                                 );
 
                                 Navigator.pop(context);
-                                _scrollToBottom();
+                                await _scrollToBottom();
                               }
                             },
                           ),
@@ -260,23 +259,23 @@ class _ShelfListState extends State<ShelfList> {
                                 ? ShelfTile(
                                     key: Key('$index'),
                                     index: index,
-                                    selectedOrder: widget.selectedOrder,
-                                    select: widget.select,
+                                    selectedOrder: widget._selectedOrder,
+                                    select: widget._select,
                                   )
                                 : ItemTile(
                                     key: Key('$index'),
                                     index: index,
-                                    selectedOrder: widget.selectedOrder,
-                                    select: widget.select,
+                                    selectedOrder: widget._selectedOrder,
+                                    select: widget._select,
                                   ),
                         ],
-                        onReorder: (int oldIndex, int newIndex) {
+                        onReorder: (oldIndex, newIndex) {
                           if (newIndex > oldIndex) {
                             newIndex -= 1;
                           }
 
                           areaModel.moveShelfOrItemInArea(
-                            widget.selectedOrder.last,
+                            widget._selectedOrder.last,
                             oldIndex,
                             newIndex,
                           );

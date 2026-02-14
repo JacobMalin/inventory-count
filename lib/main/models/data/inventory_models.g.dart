@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'hive.dart';
+part of 'inventory_models.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
@@ -18,7 +18,7 @@ class AreaAdapter extends TypeAdapter<Area> {
     };
     return Area(
       fields[0] as String,
-      shelvesAndItems: (fields[2] as List?)?.cast<dynamic>(),
+      shelvesAndItems: (fields[2] as List?)?.cast<StorageObject>(),
     );
   }
 
@@ -31,7 +31,7 @@ class AreaAdapter extends TypeAdapter<Area> {
       ..writeByte(2)
       ..write(obj.shelvesAndItems)
       ..writeByte(1)
-      ..write(obj.colorInt);
+      ..write(obj._deprecated);
   }
 
   @override
@@ -57,7 +57,7 @@ class ShelfAdapter extends TypeAdapter<Shelf> {
     };
     return Shelf(
       fields[0] as String,
-      items: (fields[1] as List?)?.cast<dynamic>(),
+      items: (fields[1] as List?)?.cast<Item>(),
     );
   }
 
@@ -188,19 +188,22 @@ class CountAdapter extends TypeAdapter<Count> {
       itemCounts: (fields[0] as Map?)?.cast<int, CountEntry>(),
       countPhase: fields[1] as CountPhase?,
       itemsToFix: (fields[2] as Map?)?.cast<String, bool>(),
+      profile: fields[3] as Profile?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Count obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.itemCounts)
       ..writeByte(1)
       ..write(obj.countPhase)
       ..writeByte(2)
-      ..write(obj.itemsToFix);
+      ..write(obj.itemsToFix)
+      ..writeByte(3)
+      ..write(obj.profile);
   }
 
   @override
@@ -210,6 +213,40 @@ class CountAdapter extends TypeAdapter<Count> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CountAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ProfileAdapter extends TypeAdapter<Profile> {
+  @override
+  final int typeId = 16;
+
+  @override
+  Profile read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return Profile(
+      fields[0] as String,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, Profile obj) {
+    writer
+      ..writeByte(1)
+      ..writeByte(0)
+      ..write(obj.name);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProfileAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

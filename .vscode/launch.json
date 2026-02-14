@@ -5,21 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "inventory_count",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "inventory_count (profile mode)",
+            "name": "Inventory Count",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
         },
         {
-            "name": "inventory_count (release mode)",
+            "name": "Companion",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
-        }
+            "toolArgs": [
+                "--dart-define",
+                "COMPANION=true"
+            ]
+        },
     ]
 }

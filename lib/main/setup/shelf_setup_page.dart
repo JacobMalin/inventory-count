@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/hive.dart';
-import 'package:inventory_count/setup/area_page.dart';
-import 'package:inventory_count/setup/item_page.dart';
-import 'package:inventory_count/setup/setup_tiles.dart';
-import 'package:inventory_count/setup/shelf_page.dart';
 import 'package:provider/provider.dart';
+
+import '../models/area_model.dart';
+import '../models/data/inventory_models.dart';
+import 'area_page.dart';
+import 'item_page.dart';
+import 'setup_tiles.dart';
+import 'shelf_page.dart';
 
 class ShelfSetupPage extends StatefulWidget {
   const ShelfSetupPage({super.key});
@@ -15,48 +16,48 @@ class ShelfSetupPage extends StatefulWidget {
 }
 
 class _ShelfSetupPageState extends State<ShelfSetupPage> {
-  var selectedOrder = <int>[];
+  final _selectedOrder = <int>[];
 
   void select(int index) {
     setState(() {
-      selectedOrder.add(index);
+      _selectedOrder.add(index);
     });
   }
 
   void deselect() {
-    setState(() {
-      selectedOrder.removeLast();
-    });
+    setState(_selectedOrder.removeLast);
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
-        switch (selectedOrder.length) {
+        switch (_selectedOrder.length) {
           case 0:
             return AreasPage(select: select);
           case 1:
             return AreaPage(
               select: select,
               deselect: deselect,
-              selectedOrder: selectedOrder,
+              selectedOrder: _selectedOrder,
             );
           default:
-            dynamic shelfOrItem = areaModel.getShelfOrItem(selectedOrder);
+            final dynamic shelfOrItem = areaModel.getShelfOrItem(
+              _selectedOrder,
+            );
 
             if (shelfOrItem is Shelf) {
               return ShelfPage(
                 select: select,
                 deselect: deselect,
                 shelf: shelfOrItem,
-                selectedOrder: selectedOrder,
+                selectedOrder: _selectedOrder,
               );
             } else {
               return ItemPage(
                 deselect: deselect,
                 item: shelfOrItem,
-                selectedOrder: selectedOrder,
+                selectedOrder: _selectedOrder,
               );
             }
         }
@@ -66,9 +67,10 @@ class _ShelfSetupPageState extends State<ShelfSetupPage> {
 }
 
 class AreasPage extends StatelessWidget {
-  const AreasPage({super.key, required this.select});
+  const AreasPage({required void Function(int) select, super.key})
+    : _select = select;
 
-  final void Function(int) select;
+  final void Function(int) _select;
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +86,7 @@ class AreasPage extends StatelessWidget {
             scrolledUnderElevation: 0,
             backgroundColor: Theme.of(context).colorScheme.surface,
           ),
-          body: AreaList(select: select),
+          body: AreaList(select: _select),
         );
       },
     );
@@ -92,9 +94,10 @@ class AreasPage extends StatelessWidget {
 }
 
 class AreaList extends StatefulWidget {
-  const AreaList({super.key, required this.select});
+  const AreaList({required void Function(int) select, super.key})
+    : _select = select;
 
-  final void Function(int) select;
+  final void Function(int) _select;
 
   @override
   State<AreaList> createState() => _AreaListState();
@@ -109,7 +112,7 @@ class _AreaListState extends State<AreaList> {
     super.dispose();
   }
 
-  void _scrollToBottom() async {
+  Future<void> _scrollToBottom() async {
     await Future.delayed(const Duration(milliseconds: 100));
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
@@ -134,18 +137,18 @@ class _AreaListState extends State<AreaList> {
               leading: const Icon(Icons.add),
               title: const Text('Add Area'),
               tileColor: Theme.of(context).colorScheme.surface,
-              onTap: () {
-                showDialog(
+              onTap: () async {
+                await showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('Enter Area Name'),
                     content: TextField(
                       autofocus: true,
-                      onSubmitted: (value) {
+                      onSubmitted: (value) async {
                         if (value.isNotEmpty) {
                           areaModel.addArea(Area(value));
                           Navigator.pop(context);
-                          _scrollToBottom();
+                          await _scrollToBottom();
                         }
                       },
                     ),
@@ -176,10 +179,10 @@ class _AreaListState extends State<AreaList> {
                             AreaTile(
                               key: Key('$index'),
                               index: index,
-                              select: widget.select,
+                              select: widget._select,
                             ),
                         ],
-                        onReorder: (int oldIndex, int newIndex) {
+                        onReorder: (oldIndex, newIndex) {
                           if (newIndex > oldIndex) {
                             newIndex -= 1;
                           }

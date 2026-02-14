@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:inventory_count/models/area_model.dart';
-import 'package:inventory_count/models/count_model.dart';
-import 'package:inventory_count/models/export_entry.dart';
-import 'package:inventory_count/models/hive.dart';
 import 'package:provider/provider.dart';
+
+import 'count_page.dart';
+import 'models/area_model.dart';
+import 'models/count_model.dart';
+import 'models/data/export_entry.dart';
+import 'models/data/inventory_models.dart';
+import 'models/export_model.dart';
 
 class FixPage extends StatefulWidget {
   const FixPage({super.key});
@@ -27,17 +30,18 @@ class _FixPageState extends State<FixPage> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
   }
 
   void _onScroll() {
     if (_scrollController.hasClients) {
-      final isAtBottom =
+      final bool isAtBottom =
           _scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 50;
-      final hasScrollableContent =
+      final bool hasScrollableContent =
           _scrollController.position.maxScrollExtent > 0;
 
       if (isAtBottom != _isAtBottom ||
@@ -55,7 +59,7 @@ class _FixPageState extends State<FixPage> {
     CountModel countModel,
     bool showAllItems,
   ) {
-    final itemsToFix = countModel.itemsToFix;
+    final Map<String, bool> itemsToFix = countModel.itemsToFix;
     if (showAllItems) {
       // In show-all mode, toggle presence in the map
       if (itemsToFix.containsKey(itemName)) {
@@ -70,7 +74,7 @@ class _FixPageState extends State<FixPage> {
     countModel.setItemsToFix(itemsToFix);
   }
 
-  void _scrollToBottom() async {
+  Future<void> _scrollToBottom() async {
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -80,7 +84,7 @@ class _FixPageState extends State<FixPage> {
     }
   }
 
-  void _scrollToTop() async {
+  Future<void> _scrollToTop() async {
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
         0,
@@ -99,18 +103,27 @@ class _FixPageState extends State<FixPage> {
     return textPainter.width;
   }
 
-  void _showBumpCountDialog(
+  List<TextSpan> _buildAreaShelfTextSpans(Area? itemArea, Shelf? itemShelf) => [
+    if (itemArea != null)
+      TextSpan(
+        text: itemArea.name,
+        style: TextStyle(color: itemArea.color),
+      ),
+    if (itemArea != null && itemShelf != null) const TextSpan(text: ' > '),
+    if (itemShelf != null) TextSpan(text: itemShelf.name),
+  ];
+
+  Future<void> _showBumpCountDialog(
     BuildContext context,
     String itemName,
     CountPhase phase,
     bool isNotCounted,
-    CountModel countModel,
     AreaModel areaModel,
-  ) {
-    final items = countModel.findItemsByName(itemName, phase, areaModel);
+  ) async {
+    final List<ItemTreeData> items = areaModel.findItemsByName(itemName, phase);
     if (items.isEmpty) return;
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Center(
@@ -135,9 +148,9 @@ class _FixPageState extends State<FixPage> {
             for (final itemData in items)
               Builder(
                 builder: (context) {
-                  final itemArea = itemData.area;
-                  final itemShelf = itemData.shelf;
-                  final item = itemData.item;
+                  final Area? itemArea = itemData.area;
+                  final Shelf? itemShelf = itemData.shelf;
+                  final Item item = itemData.item;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,20 +164,13 @@ class _FixPageState extends State<FixPage> {
                                     fontSize: 14,
                                     fontWeight: FontWeight.normal,
                                   ),
-                              children: [
-                                if (itemArea != null)
-                                  TextSpan(
-                                    text: itemArea.name,
-                                    style: TextStyle(color: itemArea.color),
-                                  ),
-                                if (itemArea != null && itemShelf != null)
-                                  const TextSpan(text: ' > '),
-                                if (itemShelf != null)
-                                  TextSpan(text: itemShelf.name),
-                              ],
+                              children: _buildAreaShelfTextSpans(
+                                itemArea,
+                                itemShelf,
+                              ),
                             ),
                           ),
-                          Spacer(),
+                          const Spacer(),
                           Consumer<CountModel>(
                             builder: (context, countModel, child) {
                               return Checkbox(
@@ -172,7 +178,7 @@ class _FixPageState extends State<FixPage> {
                                 onChanged: (value) {
                                   countModel.setDoubleChecked(
                                     item,
-                                    value ?? false,
+                                    doubleChecked: value ?? false,
                                   );
                                 },
                               );
@@ -196,9 +202,9 @@ class _FixPageState extends State<FixPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        body: Consumer2<AreaModel, CountModel>(
-          builder: (context, areaModel, countModel, child) {
-            final exportList = areaModel.exportList;
+        body: Consumer3<AreaModel, ExportModel, CountModel>(
+          builder: (context, areaModel, exportModel, countModel, child) {
+            final List<ExportEntry> exportList = exportModel.exportList;
 
             // Filter items if needed
             final List<ExportEntry> displayList;
@@ -209,8 +215,8 @@ class _FixPageState extends State<FixPage> {
               final filteredItems = <ExportEntry>[];
               final titlesWithChildren = <ExportTitle>{};
 
-              for (int i = 0; i < exportList.length; i++) {
-                final entry = exportList[i];
+              for (var i = 0; i < exportList.length; i++) {
+                final ExportEntry entry = exportList[i];
 
                 if (entry is ExportItem) {
                   if (countModel.itemsToFix.containsKey(entry.name)) {
@@ -240,16 +246,20 @@ class _FixPageState extends State<FixPage> {
             }
 
             // Check if there are any items in the filtered list
-            final hasItems = displayList.any((entry) => entry is ExportItem);
+            final bool hasItems = displayList.any(
+              (entry) => entry is ExportItem,
+            );
             return Stack(
               children: [
                 Builder(
                   builder: (context) {
                     // Calculate the width needed for headers with padding
-                    final textStyle = Theme.of(context).textTheme.titleMedium
+                    final TextStyle? textStyle = Theme.of(context)
+                        .textTheme
+                        .titleMedium
                         ?.copyWith(fontWeight: FontWeight.bold);
 
-                    final columnWidths = {
+                    final Map<String, double> columnWidths = {
                       'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
                       'Cabinet':
                           _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
@@ -264,7 +274,7 @@ class _FixPageState extends State<FixPage> {
                         // There are items, but none are selected (all hidden)
                         return Center(
                           child: Padding(
-                            padding: const EdgeInsets.all(24.0),
+                            padding: const EdgeInsets.all(24),
                             child: Text(
                               'No items are selected to fix.',
                               textAlign: TextAlign.center,
@@ -280,7 +290,7 @@ class _FixPageState extends State<FixPage> {
                       } else {
                         return Center(
                           child: Padding(
-                            padding: const EdgeInsets.all(24.0),
+                            padding: const EdgeInsets.all(24),
                             child: Text(
                               'Add items in Setup to begin counting!',
                               textAlign: TextAlign.center,
@@ -299,16 +309,15 @@ class _FixPageState extends State<FixPage> {
                     return Align(
                       alignment: Alignment.topCenter,
                       child: SingleChildScrollView(
-                        key: PageStorageKey('fix_page_scroll'),
+                        key: const PageStorageKey('fix_page_scroll'),
                         controller: _scrollController,
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 70.0),
+                          padding: const EdgeInsets.only(bottom: 70),
                           child: Table(
                             defaultVerticalAlignment:
                                 TableCellVerticalAlignment.middle,
                             border: TableBorder.all(
                               color: Theme.of(context).colorScheme.outline,
-                              width: 1,
                             ),
                             columnWidths: {
                               0: const FlexColumnWidth(),
@@ -320,13 +329,8 @@ class _FixPageState extends State<FixPage> {
                             children: [
                               // Header row
                               TableRow(
-                                decoration: BoxDecoration(
-                                  color: const Color.fromARGB(
-                                    255,
-                                    189,
-                                    124,
-                                    27,
-                                  ),
+                                decoration: const BoxDecoration(
+                                  color: Color.fromARGB(255, 189, 124, 27),
                                 ),
                                 children: [
                                   _buildHeaderCell(
@@ -362,19 +366,42 @@ class _FixPageState extends State<FixPage> {
                                 ],
                               ),
                               // Data rows
-                              for (final entry in displayList)
-                                if (entry is ExportItem)
-                                  _buildItemRow(
-                                    context,
-                                    entry,
-                                    countModel,
-                                    areaModel,
-                                    _showAllItems,
-                                  )
-                                else if (entry is ExportTitle)
-                                  _buildTitleRow(context, entry)
-                                else if (entry is ExportPlaceholder)
-                                  _buildPlaceholderRow(context, entry),
+                              ...(() {
+                                var currentTitleHidden = false;
+                                final rows = <TableRow>[];
+
+                                for (final entry in displayList) {
+                                  if (entry is ExportTitle) {
+                                    currentTitleHidden = entry.isHidden;
+                                    if (!entry.isHidden) {
+                                      rows.add(_buildTitleRow(context, entry));
+                                    }
+                                  } else if (entry is ExportItem) {
+                                    if (!entry.isHidden &&
+                                        !currentTitleHidden) {
+                                      if (areaModel
+                                          .getPathsForItem(entry.name)
+                                          .isEmpty) {
+                                        rows.add(
+                                          _buildPlaceholderRow(context, entry),
+                                        );
+                                      } else {
+                                        rows.add(
+                                          _buildItemRow(
+                                            context,
+                                            entry,
+                                            countModel,
+                                            areaModel,
+                                            _showAllItems,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  }
+                                }
+
+                                return rows;
+                              }()),
                             ],
                           ),
                         ),
@@ -450,7 +477,7 @@ class _FixPageState extends State<FixPage> {
       child: InkWell(
         onTap: () => _toggleItemToFix(itemName, countModel, showAllItems),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               if (isMarked)
@@ -484,7 +511,7 @@ class _FixPageState extends State<FixPage> {
     TextStyle? textStyle,
   ) {
     return Padding(
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.all(12),
       child: Text(
         text,
         textAlign: textAlign,
@@ -511,22 +538,22 @@ class _FixPageState extends State<FixPage> {
     );
     int? outCount = countModel.getCountValueByName(item.name, CountPhase.out);
 
-    String? backSumNotation = countModel.getCountSumNotationByName(
+    final String? backSumNotation = countModel.getCountSumNotationByName(
       item.name,
       CountPhase.back,
     );
-    String? cabinetSumNotation = countModel.getCountSumNotationByName(
+    final String? cabinetSumNotation = countModel.getCountSumNotationByName(
       item.name,
       CountPhase.cabinet,
     );
-    String? outSumNotation = countModel.getCountSumNotationByName(
+    final String? outSumNotation = countModel.getCountSumNotationByName(
       item.name,
       CountPhase.out,
     );
 
-    bool backIsNotCounted = backCount == -1;
-    bool cabinetIsNotCounted = cabinetCount == -1;
-    bool outIsNotCounted = outCount == -1;
+    final backIsNotCounted = backCount == -1;
+    final cabinetIsNotCounted = cabinetCount == -1;
+    final outIsNotCounted = outCount == -1;
 
     if (backIsNotCounted) {
       backCount = null;
@@ -548,7 +575,8 @@ class _FixPageState extends State<FixPage> {
 
     final String totalStr;
     if (hasAnyValue) {
-      final total = (backCount ?? 0) + (cabinetCount ?? 0) + (outCount ?? 0);
+      final int total =
+          (backCount ?? 0) + (cabinetCount ?? 0) + (outCount ?? 0);
       totalStr = total.toString();
     } else if (anyNotCounted) {
       totalStr = '-';
@@ -556,7 +584,7 @@ class _FixPageState extends State<FixPage> {
       totalStr = '';
     }
 
-    final isMarkedToFix = countModel.itemsToFix.containsKey(item.name);
+    final bool isMarkedToFix = countModel.itemsToFix.containsKey(item.name);
     final bool isFixed = countModel.itemsToFix[item.name] ?? false;
 
     return TableRow(
@@ -576,8 +604,6 @@ class _FixPageState extends State<FixPage> {
           CountPhase.back,
           backIsNotCounted,
           backCount != null || backIsNotCounted,
-          countModel,
-          areaModel,
           backgroundColor: backIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (backCount == null ? Colors.red.withValues(alpha: 0.1) : null),
@@ -589,8 +615,6 @@ class _FixPageState extends State<FixPage> {
           CountPhase.cabinet,
           cabinetIsNotCounted,
           cabinetCount != null || cabinetIsNotCounted,
-          countModel,
-          areaModel,
           backgroundColor: cabinetIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (cabinetCount == null
@@ -604,8 +628,6 @@ class _FixPageState extends State<FixPage> {
           CountPhase.out,
           outIsNotCounted,
           outCount != null || outIsNotCounted,
-          countModel,
-          areaModel,
           backgroundColor: outIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (outCount == null ? Colors.red.withValues(alpha: 0.1) : null),
@@ -626,10 +648,10 @@ class _FixPageState extends State<FixPage> {
 
   TableRow _buildTitleRow(BuildContext context, ExportTitle title) {
     return TableRow(
-      decoration: BoxDecoration(color: const Color.fromARGB(255, 94, 71, 37)),
+      decoration: const BoxDecoration(color: Color.fromARGB(255, 94, 71, 37)),
       children: [
         Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(12),
           child: Text(
             title.name,
             style: Theme.of(
@@ -648,10 +670,7 @@ class _FixPageState extends State<FixPage> {
     );
   }
 
-  TableRow _buildPlaceholderRow(
-    BuildContext context,
-    ExportPlaceholder placeholder,
-  ) {
+  TableRow _buildPlaceholderRow(BuildContext context, ExportItem placeholder) {
     return TableRow(
       decoration: BoxDecoration(color: Colors.yellow.withValues(alpha: 0.2)),
       children: [
@@ -672,7 +691,7 @@ class _FixPageState extends State<FixPage> {
   }) {
     return Container(
       color: backgroundColor,
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.all(12),
       child: Text(
         text,
         textAlign: textAlign,
@@ -690,31 +709,35 @@ class _FixPageState extends State<FixPage> {
     String itemName,
     CountPhase phase,
     bool isNotCounted,
-    bool hasCounted,
-    CountModel countModel,
-    AreaModel areaModel, {
+    bool hasCounted, {
     Color? backgroundColor,
   }) {
     return Container(
       color: backgroundColor,
-      child: InkWell(
-        onTap: (isNotCounted || hasCounted)
-            ? () => _showBumpCountDialog(
-                context,
-                itemName,
-                phase,
-                isNotCounted,
-                countModel,
-                areaModel,
-              )
-            : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
-          ),
-        ),
+      child: Consumer<AreaModel>(
+        builder: (context, areaModel, child) {
+          return InkWell(
+            onTap: (isNotCounted || hasCounted)
+                ? () => _showBumpCountDialog(
+                    context,
+                    itemName,
+                    phase,
+                    isNotCounted,
+                    areaModel,
+                  )
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  text,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
