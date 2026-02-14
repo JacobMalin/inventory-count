@@ -166,8 +166,20 @@ class AreaModel with ChangeNotifier {
   }
 
   Future<void> _updateSingleFromResponse(PostgresChangePayload payload) async {
+    Map<String, dynamic>? deleteRecord;
+    Map<String, dynamic>? newRecord;
+
     if (payload.eventType == PostgresChangeEvent.delete) {
-      final profileName = payload.oldRecord['name'] as String;
+      deleteRecord = payload.oldRecord;
+    } else if (payload.eventType == PostgresChangeEvent.insert) {
+      newRecord = payload.newRecord;
+    } else if (payload.eventType == PostgresChangeEvent.update) {
+      newRecord = payload.newRecord;
+      deleteRecord = payload.oldRecord;
+    }
+
+    if (deleteRecord != null) {
+      final profileName = deleteRecord['name'] as String;
       final targetProfile = Profile(profileName);
 
       final Map<Profile, List<Area>> currentProfiles = profiles
@@ -181,34 +193,34 @@ class AreaModel with ChangeNotifier {
       return;
     }
 
-    final Map<String, dynamic> entry = payload.newRecord;
+    if (newRecord != null) {
+      final profileName = newRecord['name'] as String;
+      final DateTime? remoteUpdatedAt = newRecord['updated_at'] != null
+          ? DateTime.tryParse(newRecord['updated_at'].toString())
+          : null;
+      final String? remoteUdid = newRecord['udid'];
 
-    final profileName = entry['name'] as String;
-    final DateTime? remoteUpdatedAt = entry['updated_at'] != null
-        ? DateTime.tryParse(entry['updated_at'].toString())
-        : null;
-    final String? remoteUdid = entry['udid'];
+      if (remoteUdid == await FlutterUdid.udid) {
+        // Don't update from our own changes
+        return;
+      }
 
-    if (remoteUdid == await FlutterUdid.udid) {
-      // Don't update from our own changes
-      return;
-    }
+      if (remoteUpdatedAt == null) return; // Should not be possible
 
-    if (remoteUpdatedAt == null) return; // Should not be possible
+      final targetProfile = Profile(profileName);
+      final DateTime? localUpdatedAt = _updatedAtMap[targetProfile];
 
-    final targetProfile = Profile(profileName);
-    final DateTime? localUpdatedAt = _updatedAtMap[targetProfile];
+      if (localUpdatedAt == null || localUpdatedAt.isBefore(remoteUpdatedAt)) {
+        // Remote is newer, import from remote
+        final String jsonData = newRecord['json'] is String
+            ? newRecord['json'] as String
+            : jsonEncode(newRecord['json']);
+        importProfileFromJson(targetProfile, jsonData);
 
-    if (localUpdatedAt == null || localUpdatedAt.isBefore(remoteUpdatedAt)) {
-      // Remote is newer, import from remote
-      final String jsonData = entry['json'] is String
-          ? entry['json'] as String
-          : jsonEncode(entry['json']);
-      importProfileFromJson(targetProfile, jsonData);
-
-      final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap;
-      newUpdatedAtMap[Profile(profileName)] = remoteUpdatedAt;
-      _updatedAtMap = newUpdatedAtMap;
+        final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap;
+        newUpdatedAtMap[Profile(profileName)] = remoteUpdatedAt;
+        _updatedAtMap = newUpdatedAtMap;
+      }
     }
   }
 

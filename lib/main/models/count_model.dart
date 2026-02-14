@@ -144,6 +144,7 @@ class CountModel with ChangeNotifier {
   }
 
   ItemCountType? getLastCount(Item item) {
+    // TODO: Make last pull from supabase
     final Box<Count> countBox = Hive.box<Count>('counts');
 
     // Look back through the last 'days' days to find a count
