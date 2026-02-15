@@ -225,4 +225,45 @@ jobs:
           file: build/release/InventoryCount.apk
           tag: v${{ needs.get-and-bump-version.outputs.version }}
           overwrite: true
-    
+  build-companion:
+    name: 🪟 Windows Companion Build
+    runs-on: windows-latest
+    needs: get-and-bump-version
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Ensure up to date
+        run: git pull
+
+      # Cache Flutter pub packages
+      - name: Cache Flutter pub packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~\AppData\Local\Pub\Cache
+          key: pub-cache-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml') }}
+          restore-keys: |
+            pub-cache-${{ runner.os }}-
+      
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+        with:
+          channel: 'stable'
+          architecture: x64
+      - run: flutter pub get
+
+      - run: flutter build windows --release --dart-define=COMPANION=true
+
+      - name: Create release archive
+        run: |
+          mkdir build\release
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath build\release\CompanionApp.zip
+        shell: pwsh
+          
+      - name: Upload companion app to release
+        uses: svenstaro/upload-release-action@6b7fa9f267e90b50a19fef07b3596790bb941741
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build/release/CompanionApp.zip
+          tag: v${{ needs.get-and-bump-version.outputs.version }}
+          overwrite: true
