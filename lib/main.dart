@@ -42,6 +42,7 @@ void main() async {
       // False positive
       // ignore: avoid_redundant_argument_values
       enabled: !kReleaseMode,
+      isToolbarVisible: false,
       builder: (context) => hiveError != null
           ? HiveErrorPage(errorMessage: hiveError)
           : const MainApp(),

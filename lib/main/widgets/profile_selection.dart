@@ -538,72 +538,101 @@ class _SelectProfileState extends State<SelectProfile> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Consumer2<AreaModel, CountModel>(
-            builder: (context, areaModel, countModel, child) {
-              final List<Profile> profileList = areaModel.profiles.keys
-                  .toList();
+      child: Consumer2<AreaModel, CountModel>(
+        builder: (context, areaModel, countModel, child) {
+          final List<Profile> profileList = areaModel.profiles.keys.toList();
 
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Inventory Count',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Pick a profile to start counting items.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    itemCount: profileList.length + 1,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
+          return Column(
+            children: [
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Inventory Count',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                          textAlign: TextAlign.center,
                         ),
-                    itemBuilder: (context, index) {
-                      if (index == profileList.length) {
-                        return _ProfileTile(
-                          label: 'Add profile',
-                          icon: Icons.add,
-                          onTap: () =>
-                              _showCreateProfileDialog(areaModel, countModel),
-                        );
-                      }
+                        const SizedBox(height: 8),
+                        Text(
+                          'Pick a profile to start counting items.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          itemCount: profileList.length + 1,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                          itemBuilder: (context, index) {
+                            if (index == profileList.length) {
+                              return _ProfileTile(
+                                label: 'Add profile',
+                                icon: Icons.add,
+                                onTap: () => _showCreateProfileDialog(
+                                  areaModel,
+                                  countModel,
+                                ),
+                              );
+                            }
 
-                      final Profile profile = profileList[index];
-                      return _ProfileTile(
-                        label: profile.name,
-                        icon: profile.icon,
-                        iconColor: profile.color,
-                        onTap: () {
-                          countModel.selectedProfile = profile;
-                        },
-                        onLongPress: () async {
-                          await _showProfileMenu(
-                            profile,
-                            areaModel,
-                            countModel,
-                          );
-                        },
-                      );
-                    },
+                            final Profile profile = profileList[index];
+                            return _ProfileTile(
+                              label: profile.name,
+                              icon: profile.icon,
+                              iconColor: profile.color,
+                              onTap: () {
+                                countModel.selectedProfile = profile;
+                              },
+                              onLongPress: () async {
+                                await _showProfileMenu(
+                                  profile,
+                                  areaModel,
+                                  countModel,
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              );
-            },
-          ),
-        ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Remember selected profile',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    Switch(
+                      value: countModel.isProfileRemembered,
+                      onChanged: (value) {
+                        countModel.isProfileRemembered = value;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

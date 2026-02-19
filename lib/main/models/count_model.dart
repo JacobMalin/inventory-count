@@ -51,17 +51,48 @@ class CountModel with ChangeNotifier {
     notifyListeners();
   }
 
-  Count get _thisCount => _countBox.get(date) ?? Count();
+  Count get _thisCount =>
+      _countBox.get(date) ??
+      Count(profile: isProfileRemembered ? rememberedProfile : null);
   set _thisCount(Count count) {
     unawaited(_countBox.put(date, count));
     notifyListeners();
   }
 
-  // TODO: Add profile lock
   Profile? get selectedProfile => _thisCount.profile;
   set selectedProfile(Profile? profile) {
     final Count currentCount = _thisCount..profile = profile;
     _thisCount = currentCount;
+
+    if (profile == null) {
+      clearRememberedProfile();
+      return;
+    }
+
+    if (isProfileRemembered) {
+      unawaited(_settingsBox.put('rememberedProfile', profile));
+    } else {
+      clearRememberedProfile();
+    }
+  }
+
+  bool get isProfileRemembered =>
+      _settingsBox.get('isProfileRemembered', defaultValue: false);
+  set isProfileRemembered(bool value) {
+    unawaited(_settingsBox.put('isProfileRemembered', value));
+    notifyListeners();
+  }
+
+  Profile? get rememberedProfile {
+    final dynamic value = _settingsBox.get('rememberedProfile');
+    if (value is Profile) {
+      return value;
+    }
+    return null;
+  }
+
+  void clearRememberedProfile() {
+    unawaited(_settingsBox.delete('rememberedProfile'));
   }
 
   CountPhase get countPhase => _thisCount.countPhase;
