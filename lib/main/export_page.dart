@@ -182,19 +182,23 @@ class _ExportPageState extends State<ExportPage> {
                         // Data rows
                         ...(() {
                           var currentTitleHidden = false;
+                          var currentTitleNotCounted = false;
                           final rows = <TableRow>[];
 
                           for (final entry in exportList) {
                             if (entry is ExportTitle) {
                               currentTitleHidden = entry.isHidden;
+                              currentTitleNotCounted = entry.isNotCounted;
                               if (!entry.isHidden) {
                                 rows.add(_buildTitleRow(context, entry));
                               }
                             } else if (entry is ExportItem) {
                               if (!entry.isHidden && !currentTitleHidden) {
                                 if (areaModel
-                                    .getPathsForItem(entry.name)
-                                    .isEmpty) {
+                                        .getPathsForItem(entry.name)
+                                        .isEmpty ||
+                                    entry.isNotCounted ||
+                                    currentTitleNotCounted) {
                                   rows.add(
                                     _buildPlaceholderRow(context, entry),
                                   );

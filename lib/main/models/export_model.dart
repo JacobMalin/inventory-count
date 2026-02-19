@@ -159,12 +159,18 @@ class ExportModel with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> editEntry(int index, {String? name, bool? isHidden}) async {
+  Future<void> editEntry(
+    int index, {
+    String? name,
+    bool? isHidden,
+    bool? isNotCounted,
+  }) async {
     final List<ExportEntry> currentExportList = exportList;
     final ExportEntry entry = currentExportList[index];
 
     if (name != null) entry.name = name;
     if (isHidden != null) entry.isHidden = isHidden;
+    if (isNotCounted != null) entry.isNotCounted = isNotCounted;
 
     await Hive.box('settings').put('exportList', currentExportList);
     _updateSupabase();
@@ -182,14 +188,18 @@ class ExportModel with ChangeNotifier {
     final List<ExportEntry> currentExportList = exportList;
 
     var titleHidden = false;
+    var titleNotCounted = false;
     for (final entry in currentExportList) {
       if (entry is ExportItem &&
           entry.name == countName &&
           !entry.isHidden &&
-          !titleHidden) {
+          !titleHidden &&
+          !entry.isNotCounted &&
+          !titleNotCounted) {
         return true;
       } else if (entry is ExportTitle) {
         titleHidden = entry.isHidden;
+        titleNotCounted = entry.isNotCounted;
       }
     }
     return false;
@@ -202,13 +212,19 @@ class ExportModel with ChangeNotifier {
 
     var currentTitle = '';
     var titleHidden = false;
+    var titleNotCounted = false;
     for (final entry in currentExportList) {
       if (entry is ExportItem && !entry.isHidden && !titleHidden) {
-        (data[currentTitle] as Map<dynamic, dynamic>)[entry.name] = countModel
-            .getItemExportJson(entry.name);
+        final bool useNotCountedJson = entry.isNotCounted || titleNotCounted;
+
+        final currentBucket = data[currentTitle] as Map<dynamic, dynamic>;
+        currentBucket[entry.name] = useNotCountedJson
+            ? countModel.getItemNotCountedJson()
+            : countModel.getItemExportJson(entry.name);
       } else if (entry is ExportTitle) {
         currentTitle = entry.name;
         titleHidden = entry.isHidden;
+        titleNotCounted = entry.isNotCounted;
         if (!data.containsKey(currentTitle)) data[currentTitle] = {};
       }
     }

@@ -249,6 +249,46 @@ class _FixPageState extends State<FixPage> {
             final bool hasItems = displayList.any(
               (entry) => entry is ExportItem,
             );
+            final List<TableRow> dataRows = () {
+              var currentTitleHidden = false;
+              var currentTitleNotCounted = false;
+              ExportTitle? pendingTitle;
+              final rows = <TableRow>[];
+
+              for (final entry in displayList) {
+                if (entry is ExportTitle) {
+                  currentTitleHidden = entry.isHidden;
+                  currentTitleNotCounted = entry.isNotCounted;
+                  pendingTitle = currentTitleNotCounted || currentTitleHidden
+                      ? null
+                      : entry;
+                } else if (entry is ExportItem) {
+                  if (!entry.isHidden &&
+                      !entry.isNotCounted &&
+                      !currentTitleHidden &&
+                      !currentTitleNotCounted) {
+                    if (areaModel.getPathsForItem(entry.name).isNotEmpty) {
+                      final TableRow? row = _buildItemRow(
+                        context,
+                        entry,
+                        countModel,
+                        areaModel,
+                        _showAllItems,
+                      );
+                      if (row != null) {
+                        if (pendingTitle != null) {
+                          rows.add(_buildTitleRow(context, pendingTitle));
+                          pendingTitle = null;
+                        }
+                        rows.add(row);
+                      }
+                    }
+                  }
+                }
+              }
+
+              return rows;
+            }();
             return Stack(
               children: [
                 Builder(
@@ -304,6 +344,24 @@ class _FixPageState extends State<FixPage> {
                           ),
                         );
                       }
+                    }
+
+                    if (dataRows.isEmpty) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            'Count items to see them here',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                      );
                     }
 
                     return Align(
@@ -366,42 +424,7 @@ class _FixPageState extends State<FixPage> {
                                 ],
                               ),
                               // Data rows
-                              ...(() {
-                                var currentTitleHidden = false;
-                                final rows = <TableRow>[];
-
-                                for (final entry in displayList) {
-                                  if (entry is ExportTitle) {
-                                    currentTitleHidden = entry.isHidden;
-                                    if (!entry.isHidden) {
-                                      rows.add(_buildTitleRow(context, entry));
-                                    }
-                                  } else if (entry is ExportItem) {
-                                    if (!entry.isHidden &&
-                                        !currentTitleHidden) {
-                                      if (areaModel
-                                          .getPathsForItem(entry.name)
-                                          .isEmpty) {
-                                        rows.add(
-                                          _buildPlaceholderRow(context, entry),
-                                        );
-                                      } else {
-                                        rows.add(
-                                          _buildItemRow(
-                                            context,
-                                            entry,
-                                            countModel,
-                                            areaModel,
-                                            _showAllItems,
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  }
-                                }
-
-                                return rows;
-                              }()),
+                              ...dataRows,
                             ],
                           ),
                         ),
@@ -409,33 +432,36 @@ class _FixPageState extends State<FixPage> {
                     );
                   },
                 ),
-                Positioned(
-                  left: 16,
-                  bottom: 16,
-                  child: FloatingActionButton.small(
-                    onPressed: () {
-                      setState(() {
-                        _showAllItems = !_showAllItems;
-                      });
+                if (hasItems && dataRows.isNotEmpty)
+                  Positioned(
+                    left: 16,
+                    bottom: 16,
+                    child: FloatingActionButton.small(
+                      onPressed: () {
+                        setState(() {
+                          _showAllItems = !_showAllItems;
+                        });
 
-                      // Update scroll arrow state after collapse
-                      WidgetsBinding.instance.addPostFrameCallback((_) async {
-                        await Future.delayed(const Duration(milliseconds: 300));
-                        _onScroll();
-                      });
-                    },
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainer,
-                    foregroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant,
-                    elevation: 2,
-                    child: Icon(
-                      _showAllItems ? Icons.visibility : Icons.visibility_off,
+                        // Update scroll arrow state after collapse
+                        WidgetsBinding.instance.addPostFrameCallback((_) async {
+                          await Future.delayed(
+                            const Duration(milliseconds: 300),
+                          );
+                          _onScroll();
+                        });
+                      },
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainer,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant,
+                      elevation: 2,
+                      child: Icon(
+                        _showAllItems ? Icons.visibility : Icons.visibility_off,
+                      ),
                     ),
                   ),
-                ),
                 if (_hasScrollableContent && hasItems)
                   Positioned(
                     right: 16,
@@ -523,7 +549,7 @@ class _FixPageState extends State<FixPage> {
     );
   }
 
-  TableRow _buildItemRow(
+  TableRow? _buildItemRow(
     BuildContext context,
     ExportItem item,
     CountModel countModel,
@@ -583,6 +609,8 @@ class _FixPageState extends State<FixPage> {
     } else {
       totalStr = '';
     }
+
+    if (totalStr.isEmpty) return null;
 
     final bool isMarkedToFix = countModel.itemsToFix.containsKey(item.name);
     final bool isFixed = countModel.itemsToFix[item.name] ?? false;
@@ -662,19 +690,6 @@ class _FixPageState extends State<FixPage> {
             softWrap: false,
           ),
         ),
-        const SizedBox(),
-        const SizedBox(),
-        const SizedBox(),
-        const SizedBox(),
-      ],
-    );
-  }
-
-  TableRow _buildPlaceholderRow(BuildContext context, ExportItem placeholder) {
-    return TableRow(
-      decoration: BoxDecoration(color: Colors.yellow.withValues(alpha: 0.2)),
-      children: [
-        _buildDataCell(context, placeholder.name, TextAlign.left),
         const SizedBox(),
         const SizedBox(),
         const SizedBox(),

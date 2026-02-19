@@ -183,12 +183,14 @@ class ExportListBody extends StatelessWidget {
     AreaModel areaModel,
   ) {
     var titleHidden = false;
+    var titleNotCounted = false;
 
     return exportList.indexed.map((record) {
       final (index, exportEntry) = record;
 
       if (exportEntry is ExportTitle) {
         titleHidden = exportEntry.isHidden;
+        titleNotCounted = exportEntry.isNotCounted;
       }
 
       return ExportTile(
@@ -196,6 +198,7 @@ class ExportListBody extends StatelessWidget {
         exportEntry: exportEntry,
         index: index,
         titleHidden: titleHidden,
+        titleNotCounted: titleNotCounted,
         paths: exportEntry is ExportItem
             ? areaModel.getPathsForItem(exportEntry.name).join('\n')
             : null,
@@ -313,16 +316,19 @@ class ExportTile extends StatelessWidget {
     required ExportEntry exportEntry,
     required int index,
     required bool titleHidden,
+    required bool titleNotCounted,
     String? paths,
     super.key,
   }) : _exportEntry = exportEntry,
        _index = index,
        _titleHidden = titleHidden,
+       _titleNotCounted = titleNotCounted,
        _paths = paths;
 
   final ExportEntry _exportEntry;
   final int _index;
   final bool _titleHidden;
+  final bool _titleNotCounted;
   final String? _paths;
 
   Future<void> showRenameDialog({
@@ -373,6 +379,7 @@ class ExportTile extends StatelessWidget {
     required String? paths,
     required int index,
     required bool titleHidden,
+    required bool titleNotCounted,
     required ColorScheme colorScheme,
   }) {
     final String entryType = switch (_exportEntry) {
@@ -383,6 +390,20 @@ class ExportTile extends StatelessWidget {
     };
 
     return [
+      SlidableAction(
+        onPressed: (_) async {
+          await exportModel.editEntry(
+            _index,
+            isNotCounted: !_exportEntry.isNotCounted,
+          );
+        },
+        backgroundColor: Colors.yellow.withValues(alpha: 0.3),
+        foregroundColor: colorScheme.onSurface,
+        icon: _exportEntry.isNotCounted
+            ? Icons.block
+            : Icons.check_circle_outline,
+        label: _exportEntry.isNotCounted ? 'Skip' : 'Count',
+      ),
       SlidableAction(
         onPressed: (_) async {
           await exportModel.editEntry(_index, isHidden: !_exportEntry.isHidden);
@@ -460,6 +481,7 @@ class ExportTile extends StatelessWidget {
                 paths: _paths,
                 index: _index,
                 titleHidden: _titleHidden,
+                titleNotCounted: _titleNotCounted,
                 colorScheme: colorScheme,
               ),
             ),
@@ -469,13 +491,22 @@ class ExportTile extends StatelessWidget {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (_exportEntry.isHidden)
+                  if (_exportEntry.isNotCounted) ...[
+                    Icon(
+                      Icons.block,
+                      color: Colors.yellow.withAlpha(160),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  if (_exportEntry.isHidden) ...[
                     Icon(
                       Icons.visibility_off,
                       color: Colors.red.withAlpha(160),
                       size: 20,
                     ),
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
+                  ],
                   const Icon(Icons.drag_handle),
                 ],
               ),

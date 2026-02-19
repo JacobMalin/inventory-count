@@ -12,21 +12,27 @@ class ExportItemAdapter extends TypeAdapter<ExportItem> {
 
   @override
   ExportItem read(BinaryReader reader) {
-    final int numOfFields = reader.readByte();
+    final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return ExportItem(fields[0] as String, isHidden: fields[1] as bool?);
+    return ExportItem(
+      fields[0] as String,
+      isHidden: fields[1] as bool?,
+      isNotCounted: fields[2] as bool?,
+    );
   }
 
   @override
   void write(BinaryWriter writer, ExportItem obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.isHidden);
+      ..write(obj.isHidden)
+      ..writeByte(2)
+      ..write(obj.isNotCounted);
   }
 
   @override
@@ -46,21 +52,27 @@ class ExportTitleAdapter extends TypeAdapter<ExportTitle> {
 
   @override
   ExportTitle read(BinaryReader reader) {
-    final int numOfFields = reader.readByte();
+    final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return ExportTitle(fields[0] as String, isHidden: fields[1] as bool?);
+    return ExportTitle(
+      fields[0] as String,
+      isHidden: fields[1] as bool?,
+      isNotCounted: fields[2] as bool?,
+    );
   }
 
   @override
   void write(BinaryWriter writer, ExportTitle obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.isHidden);
+      ..write(obj.isHidden)
+      ..writeByte(2)
+      ..write(obj.isNotCounted);
   }
 
   @override

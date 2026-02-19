@@ -223,6 +223,10 @@ class CountModel with ChangeNotifier {
     return _thisCount.getItemExportJson(name);
   }
 
+  Map<String, dynamic> getItemNotCountedJson() {
+    return Count.getItemNotCountedJson();
+  }
+
   void removeFromCountList(Item data) {
     final Count currentCount = _thisCount;
     currentCount.itemCounts.remove(data.id);
