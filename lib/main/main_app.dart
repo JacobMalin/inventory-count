@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'count_page.dart';
+import 'dependencies/app_dependencies.dart';
 import 'export_page.dart';
 import 'fix_page.dart';
 import 'models/area_model.dart';
@@ -14,18 +15,63 @@ import 'widgets/date_picker.dart';
 import 'widgets/profile_selection.dart';
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+  const MainApp({super.key, AppDependencies? dependencies})
+    : _dependencies = dependencies;
+
+  final AppDependencies? _dependencies;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<AppDependencies>(
+          create: (context) => _dependencies ?? AppDependencies(),
+        ),
         ChangeNotifierProvider<CountModel>(create: (context) => CountModel()),
-        ChangeNotifierProvider<ExportModel>(create: (context) => ExportModel()),
+        ChangeNotifierProvider<ExportModel>(
+          create: (context) {
+            final AppDependencies appDependencies = context
+                .read<AppDependencies>();
+
+            return ExportModel(
+              localRepository: appDependencies.exportLocalRepository,
+              syncRepository: appDependencies.exportSyncRepository,
+              deviceIdRepository: appDependencies.deviceIdRepository,
+              syncCoordinator: appDependencies.syncCoordinator,
+              syncRuntime: appDependencies.syncRuntime,
+            );
+          },
+        ),
         ChangeNotifierProxyProvider<CountModel, AreaModel>(
-          create: (context) => AreaModel(context.read<CountModel>()),
+          create: (context) {
+            final AppDependencies appDependencies = context
+                .read<AppDependencies>();
+
+            return AreaModel(
+              countModel: context.read<CountModel>(),
+              localRepository: appDependencies.areaLocalRepository,
+              syncRepository: appDependencies.areaSyncRepository,
+              deviceIdRepository: appDependencies.deviceIdRepository,
+              syncCoordinator: appDependencies.syncCoordinator,
+              syncRuntime: appDependencies.syncRuntime,
+            );
+          },
           update: (context, countModel, areaModel) {
-            return areaModel ?? AreaModel(countModel);
+            areaModel?.countModel = countModel;
+            if (areaModel != null) {
+              return areaModel;
+            }
+
+            final AppDependencies appDependencies = context
+                .read<AppDependencies>();
+            return AreaModel(
+              countModel: countModel,
+              localRepository: appDependencies.areaLocalRepository,
+              syncRepository: appDependencies.areaSyncRepository,
+              deviceIdRepository: appDependencies.deviceIdRepository,
+              syncCoordinator: appDependencies.syncCoordinator,
+              syncRuntime: appDependencies.syncRuntime,
+            );
           },
         ),
       ],

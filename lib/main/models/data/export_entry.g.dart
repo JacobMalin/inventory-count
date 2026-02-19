@@ -18,8 +18,8 @@ class ExportItemAdapter extends TypeAdapter<ExportItem> {
     };
     return ExportItem(
       fields[0] as String,
-      isHidden: fields[1] as bool?,
-      isNotCounted: fields[2] as bool?,
+      isHidden: fields[1] as bool,
+      isNotCounted: fields[2] as bool,
     );
   }
 
@@ -58,8 +58,8 @@ class ExportTitleAdapter extends TypeAdapter<ExportTitle> {
     };
     return ExportTitle(
       fields[0] as String,
-      isHidden: fields[1] as bool?,
-      isNotCounted: fields[2] as bool?,
+      isHidden: fields[1] as bool,
+      isNotCounted: fields[2] as bool,
     );
   }
 

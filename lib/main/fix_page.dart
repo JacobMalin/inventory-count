@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'count_page.dart';
 import 'models/area_model.dart';
 import 'models/count_model.dart';
 import 'models/data/export_entry.dart';
 import 'models/data/inventory_models.dart';
 import 'models/export_model.dart';
+import 'models/item_location_data.dart';
 
 class FixPage extends StatefulWidget {
   const FixPage({super.key});
@@ -120,7 +120,10 @@ class _FixPageState extends State<FixPage> {
     bool isNotCounted,
     AreaModel areaModel,
   ) async {
-    final List<ItemTreeData> items = areaModel.findItemsByName(itemName, phase);
+    final List<ItemLocationData> items = areaModel.findItemsByName(
+      itemName,
+      phase,
+    );
     if (items.isEmpty) return;
 
     await showDialog(

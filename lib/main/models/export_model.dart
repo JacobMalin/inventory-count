@@ -1,115 +1,87 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter_udid/flutter_udid.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../repositories/device_id_repository.dart';
+import '../repositories/export_local_repository.dart';
+import '../repositories/export_sync_repository.dart';
 import 'count_model.dart';
 import 'data/export_entry.dart';
+import 'sync_change_notifier.dart';
+import 'sync_coordinator.dart';
 
-class ExportModel with ChangeNotifier {
-  ExportModel() {
-    final Box<dynamic> box = Hive.box('settings');
-    if (box.get('exportList') == null) {
-      unawaited(box.put('exportList', <ExportEntry>[]));
-    }
+class ExportModel extends SyncChangeNotifier {
+  ExportModel({
+    required DeviceIdRepository deviceIdRepository,
+    required SyncCoordinator syncCoordinator,
+    ExportLocalRepository? localRepository,
+    ExportSyncRepository? syncRepository,
+    super.syncRuntime,
+  }) : _localRepository = localRepository ?? HiveExportLocalRepository(),
+       _syncRepository = syncRepository ?? SupabaseExportSyncRepository(),
+       _deviceIdRepository = deviceIdRepository,
+       _syncCoordinator = syncCoordinator {
+    unawaited(_localRepository.ensureInitialized());
 
-    unawaited(() async {
-      await _fetch();
-      _listenForChanges();
-    }());
+    initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
   }
 
-  StreamSubscription<List<Map<String, dynamic>>>? _setupsSubscription;
-  StreamSubscription<InternetConnectionStatus>? _connectionSubscription;
+  final ExportLocalRepository _localRepository;
+  final ExportSyncRepository _syncRepository;
+  final DeviceIdRepository _deviceIdRepository;
+  final SyncCoordinator _syncCoordinator;
+
+  StreamSubscription<ExportSyncRecord?>? _setupsSubscription;
   DateTime? _lastTimestamp;
 
   Future<void> _fetch() async {
     try {
-      final PostgrestList response = await Supabase.instance.client
-          .from('setups')
-          .select()
-          .order('updated_at')
-          .limit(1);
-
+      final ExportSyncRecord? response = await _syncRepository.fetchLatest();
       await _updateFromResponse(response);
     } on Exception catch (e) {
-      if (kDebugMode) print('Failed to fetch setups from Supabase: $e');
+      logSyncError('Failed to fetch setups from Supabase', e);
     }
   }
 
-  void _listenForChanges() {
+  Future<void> _listenForChanges() async {
     try {
-      _setupsSubscription = Supabase.instance.client
-          .from('setups')
-          .stream(primaryKey: ['updated_at'])
-          .order('updated_at')
-          .limit(1)
-          .listen(
-            _updateFromResponse,
-            onError: (e) {
-              if (kDebugMode) print('Error listening to Supabase changes: $e');
-            },
-          );
-    } on Exception catch (e) {
-      if (kDebugMode) print('Failed to subscribe to Supabase changes: $e');
-    }
+      Future<void> reconnect() async {
+        await _setupsSubscription?.cancel();
+        _setupsSubscription = _syncRepository.watchLatest().listen(
+          _updateFromResponse,
+          onError: (e) {
+            logSyncError('Error listening to Supabase changes', e);
+          },
+        );
+      }
 
-    // TODO: If app starts offline, it stays offline
-    // Listen for connectivity changes
-    try {
-      _connectionSubscription = InternetConnectionChecker
-          .instance
-          .onStatusChange
-          .listen((status) async {
-            if (status != InternetConnectionStatus.connected) return;
-
-            await _fetch();
-          });
+      registerReconnectCallback(reconnect);
     } on Exception catch (e) {
-      if (kDebugMode) print('Failed to listen for connectivity changes: $e');
+      logSyncError('Failed to register reconnect callback', e);
     }
   }
 
-  Future<void> _updateFromResponse(List<Map<String, dynamic>> response) async {
-    if (response.isEmpty) return;
-
-    final Map<String, dynamic> setup = response.first;
-
-    if (setup['udid'] == await FlutterUdid.udid) {
-      // Don't update from our own changes
-      return;
-    }
-
-    DateTime? updatedTimestamp;
-    if (setup['updated_at'] != null) {
-      updatedTimestamp = DateTime.tryParse(
-        setup['updated_at'].toString(),
-      )?.toUtc();
-    }
-
-    if (updatedTimestamp == null) return; // Should not be possible
-
-    if (_lastTimestamp == null || _lastTimestamp!.isBefore(updatedTimestamp)) {
-      final String jsonData = setup['json'] is String
-          ? setup['json'] as String
-          : jsonEncode(setup['json']);
-      await importFromJson(jsonData);
-
-      _lastTimestamp = updatedTimestamp;
-    } else if (_lastTimestamp!.isAfter(updatedTimestamp)) {
-      _updateSupabase();
-    }
+  Future<void> _updateFromResponse(ExportSyncRecord? response) async {
+    await _syncCoordinator.reconcileSingle<ExportSyncRecord>(
+      remoteRecord: response,
+      remoteUdid: (record) => record.udid,
+      remoteUpdatedAt: (record) => record.updatedAt,
+      localUpdatedAt: _lastTimestamp,
+      onPullRemote: (record, remoteUpdatedAt) async {
+        await importFromJson(record.json);
+        _lastTimestamp = remoteUpdatedAt;
+      },
+      onPushLocal: () async {
+        _updateSupabase();
+      },
+    );
   }
 
   @override
   Future<void> dispose() async {
+    await unregisterReconnectCallbacks();
     await _setupsSubscription?.cancel();
-    await _connectionSubscription?.cancel();
     super.dispose();
   }
 
@@ -122,30 +94,28 @@ class ExportModel with ChangeNotifier {
     _lastTimestamp = now;
 
     unawaited(() async {
-      await Supabase.instance.client
-          .from('setups')
-          .upsert({
-            'id': id,
-            'updated_at': now.toIso8601String(),
-            'json': jsonString,
-            'udid': await FlutterUdid.udid,
-          })
+      final String ownUdid = await _deviceIdRepository.getDeviceId();
+
+      await _syncRepository
+          .upsertLatest(
+            ExportSyncRecord(
+              id: id,
+              updatedAt: now,
+              json: jsonString,
+              udid: ownUdid,
+            ),
+          )
           .catchError((error) {
-            if (kDebugMode) print('Failed to upsert to Supabase: $error');
+            logSyncError('Failed to upsert to Supabase', error);
           });
     }());
   }
 
-  List<ExportEntry> get exportList {
-    final List<dynamic> rawList = Hive.box(
-      'settings',
-    ).get('exportList', defaultValue: <ExportEntry>[]);
-    return rawList.cast<ExportEntry>().toList();
-  }
+  List<ExportEntry> get exportList => _localRepository.readExportList();
 
   Future<void> add(ExportEntry value) async {
     final List<ExportEntry> currentExportList = exportList..add(value);
-    await Hive.box('settings').put('exportList', currentExportList);
+    await _localRepository.writeExportList(currentExportList);
     _updateSupabase();
     notifyListeners();
   }
@@ -154,7 +124,7 @@ class ExportModel with ChangeNotifier {
     final List<ExportEntry> currentExportList = exportList;
     final ExportEntry item = currentExportList.removeAt(oldIndex);
     currentExportList.insert(newIndex, item);
-    await Hive.box('settings').put('exportList', currentExportList);
+    await _localRepository.writeExportList(currentExportList);
     _updateSupabase();
     notifyListeners();
   }
@@ -172,14 +142,14 @@ class ExportModel with ChangeNotifier {
     if (isHidden != null) entry.isHidden = isHidden;
     if (isNotCounted != null) entry.isNotCounted = isNotCounted;
 
-    await Hive.box('settings').put('exportList', currentExportList);
+    await _localRepository.writeExportList(currentExportList);
     _updateSupabase();
     notifyListeners();
   }
 
   Future<void> removeAt(int index) async {
     final List<ExportEntry> currentExportList = exportList..removeAt(index);
-    await Hive.box('settings').put('exportList', currentExportList);
+    await _localRepository.writeExportList(currentExportList);
     _updateSupabase();
     notifyListeners();
   }
@@ -250,7 +220,7 @@ class ExportModel with ChangeNotifier {
           .map((json) => ExportEntry.fromJson(json as Map<String, dynamic>))
           .toList();
 
-      await Hive.box('settings').put('exportList', exportListData);
+      await _localRepository.writeExportList(exportListData);
     }
 
     notifyListeners();

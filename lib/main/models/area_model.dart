@@ -3,165 +3,109 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter_udid/flutter_udid.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../count_page.dart';
+import '../repositories/area_local_repository.dart';
+import '../repositories/area_sync_repository.dart';
+import '../repositories/device_id_repository.dart';
 import 'count_model.dart';
 import 'data/count_strategy.dart';
 import 'data/inventory_models.dart';
+import 'item_location_data.dart';
+import 'sync_change_notifier.dart';
+import 'sync_coordinator.dart';
 
-class AreaModel with ChangeNotifier {
-  AreaModel(this.countModel) {
-    if (_areasBox.get('profiles') == null) {
-      unawaited(_areasBox.put('profiles', <Profile, List<Area>>{}));
-    }
-    if (_areasBox.get('itemIdCounter') == null) {
-      unawaited(_areasBox.put('itemIdCounter', 0));
-    }
+class AreaModel extends SyncChangeNotifier {
+  AreaModel({
+    required this.countModel,
+    required DeviceIdRepository deviceIdRepository,
+    required SyncCoordinator syncCoordinator,
+    AreaLocalRepository? localRepository,
+    AreaSyncRepository? syncRepository,
+    super.syncRuntime,
+  }) : _localRepository = localRepository ?? HiveAreaLocalRepository(),
+       _syncRepository = syncRepository ?? SupabaseAreaSyncRepository(),
+       _deviceIdRepository = deviceIdRepository,
+       _syncCoordinator = syncCoordinator {
+    unawaited(_localRepository.ensureInitialized());
 
-    unawaited(() async {
-      await _fetch();
-      await _listenForChanges();
-    }());
+    initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
   }
 
   RealtimeChannel? _setupsSubscription;
-  StreamSubscription<InternetConnectionStatus>? _connectionSubscription;
 
-  final Box<dynamic> _areasBox = Hive.box('areas');
+  final AreaLocalRepository _localRepository;
+  final AreaSyncRepository _syncRepository;
+  final DeviceIdRepository _deviceIdRepository;
+  final SyncCoordinator _syncCoordinator;
+
   CountModel countModel;
 
   final _notYetDeletedProfiles = <Profile>{};
 
   Future<void> _fetch() async {
     try {
-      final PostgrestList response = await Supabase.instance.client
-          .from('profiles')
-          .select();
+      final List<AreaSyncRecord> response = await _syncRepository
+          .fetchProfiles();
 
       await _updateFromResponse(response);
     } on Exception catch (e) {
-      if (kDebugMode) print('Failed to fetch profiles from Supabase: $e');
+      logSyncError('Failed to fetch profiles from Supabase', e);
     }
   }
 
   Future<void> _listenForChanges() async {
     try {
-      _setupsSubscription = Supabase.instance.client
-          .channel('public:profiles')
-          .onPostgresChanges(
-            event: PostgresChangeEvent.insert,
-            schema: 'public',
-            table: 'profiles',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.neq,
-              column: 'udid',
-              value: await FlutterUdid.udid,
-            ),
-            callback: (payload) async {
-              await _updateSingleFromResponse(payload);
-            },
-          )
-          .onPostgresChanges(
-            event: PostgresChangeEvent.update,
-            schema: 'public',
-            table: 'profiles',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.neq,
-              column: 'udid',
-              value: await FlutterUdid.udid,
-            ),
-            callback: (payload) async {
-              await _updateSingleFromResponse(payload);
-            },
-          )
-          .onPostgresChanges(
-            event: PostgresChangeEvent.delete,
-            schema: 'public',
-            table: 'profiles',
-            callback: (payload) async {
-              await _updateSingleFromResponse(payload);
-            },
-          )
-          .subscribe();
-    } on Exception catch (e) {
-      if (kDebugMode) print('Failed to subscribe to Supabase changes: $e');
-    }
+      Future<void> reconnect() async {
+        for (final profile in List<Profile>.from(_notYetDeletedProfiles)) {
+          _notYetDeletedProfiles.remove(profile);
+          await deleteProfileFromSupabase(profile);
+        }
 
-    // Listen for connectivity changes
-    try {
-      _connectionSubscription = InternetConnectionChecker
-          .instance
-          .onStatusChange
-          .listen((status) async {
-            if (status != InternetConnectionStatus.connected) return;
+        await _fetch();
+        await _setupsSubscription?.unsubscribe();
+        final String ownUdid = await _deviceIdRepository.getDeviceId();
+        _setupsSubscription = _syncRepository.subscribeProfileChanges(
+          excludedUdid: ownUdid,
+          onChange: _updateSingleFromResponse,
+        );
+      }
 
-            for (final profile in List<Profile>.from(_notYetDeletedProfiles)) {
-              _notYetDeletedProfiles.remove(profile);
-              await deleteProfileFromSupabase(profile);
-            }
-            await _fetch();
-          });
+      registerReconnectCallback(reconnect);
     } on Exception catch (e) {
-      if (kDebugMode) print('Failed to listen for connectivity changes: $e');
+      logSyncError('Failed to register reconnect callback', e);
     }
   }
 
-  Future<void> _updateFromResponse(List<Map<String, dynamic>> response) async {
+  Future<void> _updateFromResponse(List<AreaSyncRecord> response) async {
     if (response.isEmpty) return;
 
-    final List<String> remoteProfiles = response
-        .map((entry) => entry['name'] as String)
-        .toList();
+    final Map<String, AreaSyncRecord> profilesByName = {
+      for (final AreaSyncRecord entry in response) entry.name: entry,
+    };
+
+    final List<String> remoteProfiles = profilesByName.keys.toList();
 
     // Batch jobs to push at end
     final Map<Profile, DateTime> profilesToUpdateRemote = {};
 
-    // Compare timestamps for each profile
-    for (final profileName in remoteProfiles) {
-      // Get remote data for this profile
-      Map<String, dynamic>? remoteEntry;
-      DateTime? remoteUpdatedAt;
-      String? remoteUdid;
-      for (final entry in response) {
-        if (entry['name'] == profileName) {
-          remoteUdid = entry['udid'];
-          remoteEntry = entry;
-          remoteUpdatedAt = entry['updated_at'] != null
-              ? DateTime.tryParse(entry['updated_at'].toString())
-              : null;
-          break;
-        }
-      }
-
-      if (remoteUdid == await FlutterUdid.udid) {
-        // Don't update from our own changes
-        continue;
-      }
-
-      if (remoteUpdatedAt == null) continue; // Should not be possible
-
-      final targetProfile = Profile(profileName);
-      final DateTime? localUpdatedAt = _updatedAtMap[targetProfile];
-
-      if (localUpdatedAt == null || localUpdatedAt.isBefore(remoteUpdatedAt)) {
-        // Remote is newer, import from remote
-        final String jsonData = remoteEntry!['json'] is String
-            ? remoteEntry['json'] as String
-            : jsonEncode(remoteEntry['json']);
-        importProfileFromJson(targetProfile, jsonData);
+    await _syncCoordinator.reconcileCollection<AreaSyncRecord, Profile>(
+      remoteRecords: profilesByName.values,
+      keyOf: (record) => Profile(record.name),
+      remoteUdid: (record) => record.udid,
+      remoteUpdatedAt: (record) => record.updatedAt,
+      localUpdatedAtOf: (profile) => _updatedAtMap[profile],
+      onPullRemote: (profile, record, remoteUpdatedAt) async {
+        importProfileFromJson(profile, record.json);
 
         final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap;
-        newUpdatedAtMap[Profile(profileName)] = remoteUpdatedAt;
+        newUpdatedAtMap[profile] = remoteUpdatedAt;
         _updatedAtMap = newUpdatedAtMap;
-      } else if (localUpdatedAt.isAfter(remoteUpdatedAt)) {
-        // Local is newer, queue for remote update
-        profilesToUpdateRemote[targetProfile] = localUpdatedAt;
-      }
-    }
+      },
+      onPushLocal: (profile, localUpdatedAt) async {
+        profilesToUpdateRemote[profile] = localUpdatedAt;
+      },
+    );
 
     // Batch push all changes at the end
     await _batchUpdateSupabase(profilesToUpdateRemote);
@@ -186,18 +130,11 @@ class AreaModel with ChangeNotifier {
     }
   }
 
-  Future<void> _updateSingleFromResponse(PostgresChangePayload payload) async {
-    Map<String, dynamic>? deleteRecord;
-    Map<String, dynamic>? newRecord;
-    if (payload.eventType == PostgresChangeEvent.delete) {
-      deleteRecord = payload.oldRecord;
-    } else if (payload.eventType == PostgresChangeEvent.insert ||
-        payload.eventType == PostgresChangeEvent.update) {
-      newRecord = payload.newRecord;
-    }
+  Future<void> _updateSingleFromResponse(AreaSyncChange payload) async {
+    if (payload.type == AreaSyncChangeType.delete) {
+      final String? profileName = payload.deletedName;
+      if (profileName == null) return;
 
-    if (deleteRecord != null) {
-      final profileName = deleteRecord['name'] as String;
       final targetProfile = Profile(profileName);
 
       final Map<Profile, List<Area>> currentProfiles = profiles
@@ -211,34 +148,26 @@ class AreaModel with ChangeNotifier {
       return;
     }
 
+    final AreaSyncRecord? newRecord = payload.record;
     if (newRecord != null) {
-      final profileName = newRecord['name'] as String;
-      final DateTime? remoteUpdatedAt = newRecord['updated_at'] != null
-          ? DateTime.tryParse(newRecord['updated_at'].toString())
-          : null;
-      final String? remoteUdid = newRecord['udid'];
+      await _syncCoordinator.reconcileSingle<AreaSyncRecord>(
+        remoteRecord: newRecord,
+        remoteUdid: (record) => record.udid,
+        remoteUpdatedAt: (record) => record.updatedAt,
+        localUpdatedAt: _updatedAtMap[Profile(newRecord.name)],
+        onPullRemote: (record, remoteUpdatedAt) async {
+          final targetProfile = Profile(record.name);
+          importProfileFromJson(targetProfile, record.json);
 
-      if (remoteUdid == await FlutterUdid.udid) {
-        // Don't update from our own changes
-        return;
-      }
-
-      if (remoteUpdatedAt == null) return; // Should not be possible
-
-      final targetProfile = Profile(profileName);
-      final DateTime? localUpdatedAt = _updatedAtMap[targetProfile];
-
-      if (localUpdatedAt == null || localUpdatedAt.isBefore(remoteUpdatedAt)) {
-        // Remote is newer, import from remote
-        final String jsonData = newRecord['json'] is String
-            ? newRecord['json'] as String
-            : jsonEncode(newRecord['json']);
-        importProfileFromJson(targetProfile, jsonData);
-
-        final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap;
-        newUpdatedAtMap[Profile(profileName)] = remoteUpdatedAt;
-        _updatedAtMap = newUpdatedAtMap;
-      }
+          final Map<Profile, DateTime?> newUpdatedAtMap = _updatedAtMap;
+          newUpdatedAtMap[targetProfile] = remoteUpdatedAt;
+          _updatedAtMap = newUpdatedAtMap;
+        },
+        onPushLocal: () async {
+          // Single change stream only reflects remote updates; local wins are
+          // already pushed by local mutations.
+        },
+      );
     }
   }
 
@@ -248,32 +177,35 @@ class AreaModel with ChangeNotifier {
     if (profilesToUpdate.isEmpty) return;
 
     try {
-      final List<Map<String, dynamic>> batchData = [];
+      final String ownUdid = await _deviceIdRepository.getDeviceId();
+      final List<AreaSyncRecord> batchData = [];
 
       // Add updates
       for (final MapEntry(key: profile, value: localUpdatedAt)
           in profilesToUpdate.entries) {
         final String jsonString = exportProfileToJson(profile);
 
-        batchData.add({
-          'name': profile.name,
-          'updated_at': localUpdatedAt.toIso8601String(),
-          'json': jsonString,
-          'udid': await FlutterUdid.udid,
-        });
+        batchData.add(
+          AreaSyncRecord(
+            name: profile.name,
+            updatedAt: localUpdatedAt,
+            json: jsonString,
+            udid: ownUdid,
+          ),
+        );
       }
 
       // Single batch upsert call
-      await Supabase.instance.client.from('profiles').upsert(batchData);
+      await _syncRepository.batchUpsertProfiles(batchData);
     } on Exception catch (e) {
-      if (kDebugMode) print('Failed to batch update profiles to Supabase: $e');
+      logSyncError('Failed to batch update profiles to Supabase', e);
     }
   }
 
   @override
   Future<void> dispose() async {
+    await unregisterReconnectCallbacks();
     await _setupsSubscription?.unsubscribe();
-    await _connectionSubscription?.cancel();
     super.dispose();
   }
 
@@ -286,14 +218,17 @@ class AreaModel with ChangeNotifier {
     _updatedAtMap = newUpdatedAtMap;
 
     unawaited(() async {
-      await Supabase.instance.client
-          .from('profiles')
-          .upsert({
-            'name': profile.name,
-            'updated_at': now.toIso8601String(),
-            'json': jsonString,
-            'udid': await FlutterUdid.udid,
-          })
+      final String ownUdid = await _deviceIdRepository.getDeviceId();
+
+      await _syncRepository
+          .upsertProfile(
+            AreaSyncRecord(
+              name: profile.name,
+              updatedAt: now,
+              json: jsonString,
+              udid: ownUdid,
+            ),
+          )
           .onError((error, _) {
             if (kDebugMode) {
               print(
@@ -310,34 +245,23 @@ class AreaModel with ChangeNotifier {
       ..remove(profile);
     _updatedAtMap = newUpdatedAtMap;
 
-    await Supabase.instance.client
-        .from('profiles')
-        .delete()
-        .eq('name', profile.name)
-        .onError((error, _) {
-          _notYetDeletedProfiles.add(profile);
+    try {
+      await _syncRepository.deleteProfile(profile.name);
+    } on Exception catch (error) {
+      _notYetDeletedProfiles.add(profile);
 
-          if (kDebugMode) {
-            print(
-              'Failed to delete profile "${profile.name}" from Supabase: '
-              '$error',
-            );
-          }
-        });
+      if (kDebugMode) {
+        print(
+          'Failed to delete profile "${profile.name}" from Supabase: $error',
+        );
+      }
+    }
   }
 
-  Map<Profile, List<Area>> get profiles {
-    final Map<dynamic, dynamic> data = _areasBox.get(
-      'profiles',
-      defaultValue: <Profile, List<Area>>{},
-    );
-    return data.map<Profile, List<Area>>(
-      (k, v) => MapEntry(k as Profile, (v as List<dynamic>).cast<Area>()),
-    );
-  }
+  Map<Profile, List<Area>> get profiles => _localRepository.readProfiles();
 
   set profiles(Map<Profile, List<Area>> value) {
-    unawaited(_areasBox.put('profiles', value));
+    unawaited(_localRepository.writeProfiles(value));
     SchedulerBinding.instance.addPostFrameCallback((_) {
       notifyListeners();
     });
@@ -371,8 +295,10 @@ class AreaModel with ChangeNotifier {
     updateSupabase(countModel.selectedProfile!);
   }
 
-  int get _itemIdCounter => _areasBox.get('itemIdCounter', defaultValue: 0);
-  set _itemIdCounter(int value) => _areasBox.put('itemIdCounter', value);
+  int get _itemIdCounter => _localRepository.readItemIdCounter();
+  set _itemIdCounter(int value) {
+    unawaited(_localRepository.writeItemIdCounter(value));
+  }
 
   int get numAreas => getAreas().length;
 
@@ -693,9 +619,9 @@ class AreaModel with ChangeNotifier {
     return paths;
   }
 
-  List<ItemTreeData> findItemsByName(String name, CountPhase phase) {
+  List<ItemLocationData> findItemsByName(String name, CountPhase phase) {
     final List<int> itemIds = [];
-    final List<ItemTreeData> items = [];
+    final List<ItemLocationData> items = [];
 
     if (countModel.selectedProfile == null) return [];
 
@@ -711,12 +637,12 @@ class AreaModel with ChangeNotifier {
       for (final StorageObject shelfOrItem in area.shelvesAndItems) {
         if (shelfOrItem is Item) {
           if (itemIds.contains(shelfOrItem.id)) {
-            items.add(ItemTreeData(shelfOrItem, area: area));
+            items.add(ItemLocationData(shelfOrItem, area: area));
           }
         } else if (shelfOrItem is Shelf) {
           for (final Item item in shelfOrItem.items) {
             if (itemIds.contains(item.id)) {
-              items.add(ItemTreeData(item, area: area, shelf: shelfOrItem));
+              items.add(ItemLocationData(item, area: area, shelf: shelfOrItem));
             }
           }
         }

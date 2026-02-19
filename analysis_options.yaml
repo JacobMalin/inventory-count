@@ -17,7 +17,7 @@ linter:
     - avoid_bool_literals_in_conditional_expressions
     - avoid_catches_without_on_clauses
     - avoid_catching_errors
-    - avoid_classes_with_only_static_members
+    # - avoid_classes_with_only_static_members # Classes look good
     - avoid_double_and_int_checks
     - avoid_dynamic_calls
     - avoid_empty_else
@@ -115,7 +115,7 @@ linter:
     # - omit_local_variable_types # superset of omit_obvious_local_variable_types
     - omit_obvious_local_variable_types
     # - omit_obvious_property_types # Do not like
-    - one_member_abstracts
+    # - one_member_abstracts # Abstracts look good
     - only_throw_errors
     - overridden_fields
     - package_names
