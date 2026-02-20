@@ -167,9 +167,7 @@ class _HiveErrorPageState extends State<HiveErrorPage> {
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: ListView(
               children: [
                 Icon(Icons.error_outline, size: 80, color: Colors.red.shade400),
                 const SizedBox(height: 16),

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
@@ -56,7 +56,7 @@ class CountModel with ChangeNotifier {
       Count(profile: isProfileRemembered ? rememberedProfile : null);
   set _thisCount(Count count) {
     unawaited(_countBox.put(date, count));
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
   }
 
   Profile? get selectedProfile => _thisCount.profile;

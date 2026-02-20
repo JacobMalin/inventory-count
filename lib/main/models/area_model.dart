@@ -278,11 +278,9 @@ class AreaModel extends SyncChangeNotifier {
       return currentProfiles[countModel.selectedProfile]!;
     }
 
-    currentProfiles[countModel.selectedProfile!] = <Area>[];
-    _updatedAtMap[countModel.selectedProfile!] = DateTime.now().toUtc();
-    profiles = currentProfiles;
+    countModel.selectedProfile = null;
 
-    return currentProfiles[countModel.selectedProfile]!;
+    return [];
   }
 
   void setAreas(List<Area> areas) {

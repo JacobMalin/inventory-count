@@ -93,6 +93,12 @@ class _CountPageState extends State<CountPage> {
                       countModel.setCountPhase(
                         CountPhase.values[value.toInt()],
                       );
+
+                      if (_isFullyExpanded) {
+                        Future.delayed(const Duration(milliseconds: 300), () {
+                          _expandUncountedCallback?.call();
+                        });
+                      }
                     },
                   ),
                 ),

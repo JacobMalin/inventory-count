@@ -116,36 +116,39 @@ class _HomePageState extends State<HomePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (currentProfile != null) ...[
-                  NavigationBar(
-                    height: 60,
-                    onDestinationSelected: (index) {
-                      setState(() {
-                        _currentPageIndex = index;
-                      });
-                    },
-                    selectedIndex: _currentPageIndex,
-                    destinations: const <Widget>[
-                      NavigationDestination(
-                        icon: Icon(Icons.list),
-                        label: 'Count',
-                        tooltip: '',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.bug_report),
-                        label: 'Fix',
-                        tooltip: '',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.print),
-                        label: 'Export',
-                        tooltip: '',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.settings),
-                        label: 'Setup',
-                        tooltip: '',
-                      ),
-                    ],
+                  TooltipVisibility(
+                    visible: false,
+                    child: NavigationBar(
+                      height: 60,
+                      onDestinationSelected: (index) {
+                        setState(() {
+                          _currentPageIndex = index;
+                        });
+                      },
+                      selectedIndex: _currentPageIndex,
+                      destinations: const <Widget>[
+                        NavigationDestination(
+                          icon: Icon(Icons.list),
+                          label: 'Count',
+                          tooltip: '',
+                        ),
+                        NavigationDestination(
+                          icon: Icon(Icons.bug_report),
+                          label: 'Fix',
+                          tooltip: '',
+                        ),
+                        NavigationDestination(
+                          icon: Icon(Icons.print),
+                          label: 'Export',
+                          tooltip: '',
+                        ),
+                        NavigationDestination(
+                          icon: Icon(Icons.settings),
+                          label: 'Setup',
+                          tooltip: '',
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                 ],
