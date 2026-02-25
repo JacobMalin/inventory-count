@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
   flutter_udid
   screen_retriever_windows
+  serious_python_windows
   url_launcher_windows
   window_manager
 )

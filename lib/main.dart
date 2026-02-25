@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,9 +10,19 @@ import 'companion/companion_setup.dart';
 import 'main/hive_error_page.dart';
 import 'main/main_app.dart';
 import 'main/models/data/inventory_models.dart';
+import 'python_bridge.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (kDebugMode && Platform.isWindows) {
+    try {
+      final bool out = await OmnitermInteraction.fillOutCount();
+      if (kDebugMode) print('Python output: $out');
+    } on Exception catch (e) {
+      if (kDebugMode) print('Python integration error: $e');
+    }
+  }
 
   await Supabase.initialize(
     url: 'https://qvlnvdgtmvjgjcsgfiiq.supabase.co',

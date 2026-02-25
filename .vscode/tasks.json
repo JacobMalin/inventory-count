@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run serious_python: package python (Windows)",
+      "type": "shell",
+      "command": "dart run serious_python:main package --asset assets/python.zip python -p Windows --requirements \"-r python/requirements.txt\"",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build with build_runner",
+      "type": "shell",
+      "command": "dart run build_runner build",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
