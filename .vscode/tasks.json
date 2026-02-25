@@ -4,7 +4,21 @@
     {
       "label": "Run serious_python: package python (Windows)",
       "type": "shell",
-      "command": "dart run serious_python:main package --asset assets/python.zip python -p Windows --requirements \"-r python/requirements.txt\"",
+      "command": "dart",
+      "args": [
+        "run",
+        "serious_python:main",
+        "package",
+        "--asset",
+        "assets/python.zip",
+        "python",
+        "-p",
+        "Windows",
+        "--requirements",
+        "-r",
+        "--requirements",
+        "python/requirements.txt"
+      ],
       "group": "build",
       "presentation": {
         "reveal": "always",
