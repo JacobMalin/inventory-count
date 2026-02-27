@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 class OmnitermInteraction {
-  static Future<bool> fillOutCount() async {
-    await runPythonScript('assets/omniterm_autofill.exe');
+  static Future<bool> fillOutCount(String json) async {
+    await runPythonScript('assets/omniterm_autofill.exe', args: {'json': json});
 
     return true;
   }
@@ -13,6 +13,12 @@ Future<String> runPythonScript(
   String scriptPath, {
   Map<String, String>? args,
 }) async {
+  if (!Platform.isWindows) {
+    throw UnsupportedError(
+      'Python script execution is only supported on Windows.',
+    );
+  }
+
   final cliArgs = <String>[
     for (final MapEntry<String, String> entry
         in (args ?? <String, String>{}).entries) ...<String>[
