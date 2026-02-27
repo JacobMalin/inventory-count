@@ -32,3 +32,4 @@ flutter:
   assets:
     - assets/PrintCount.vbs
     - assets/VbsJson.vbs
+    - assets/omniterm_autofill.exe

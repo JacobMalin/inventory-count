@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main/models/data/inventory_models.dart';
+import 'omniterm_interaction.dart';
 import 'window_model.dart';
 
 class SupabaseCountsPage extends StatelessWidget {
@@ -182,6 +184,10 @@ class SupabaseCountsPage extends StatelessWidget {
                 }
               }
 
+              final String jsonString = count['json'] is String
+                  ? count['json'] as String
+                  : jsonEncode(count['json']);
+
               return ListTile(
                 title: Text(
                   profile,
@@ -196,69 +202,12 @@ class SupabaseCountsPage extends StatelessWidget {
                   try {
                     if (!context.mounted) return;
                     final hostContext = context;
-                    await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Print this count?'),
-                        content: Text(
-                          'Would you like to print the count '
-                          'updated on $time?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              Navigator.of(context).pop();
-
-                              try {
-                                final bool success = await printJson(
-                                  hostContext,
-                                  count['json'] is String
-                                      ? count['json'] as String
-                                      : jsonEncode(count['json']),
-                                );
-
-                                if (hostContext.mounted) {
-                                  ScaffoldMessenger.of(
-                                    hostContext,
-                                  ).showSnackBar(
-                                    SnackBar(
-                                      content: success
-                                          ? const Text(
-                                              'Print completed. Exiting...',
-                                            )
-                                          : const Text('Print canceled.'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-
-                                if (success) {
-                                  await Future.delayed(
-                                    const Duration(seconds: 2),
-                                  );
-                                  exit(0);
-                                }
-                              } on Exception catch (e) {
-                                if (hostContext.mounted) {
-                                  ScaffoldMessenger.of(
-                                    hostContext,
-                                  ).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Print failed: $e'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            child: const Text('Print'),
-                          ),
-                        ],
-                      ),
+                    await showItemDialogue(
+                      context,
+                      time,
+                      profile,
+                      jsonString,
+                      hostContext,
                     );
                   } on Exception catch (e) {
                     if (!context.mounted) return;
@@ -271,6 +220,191 @@ class SupabaseCountsPage extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+
+  Future<dynamic> showItemDialogue(
+    BuildContext context,
+    String time,
+    String profile,
+    String jsonString,
+    BuildContext hostContext,
+  ) {
+    var isFillingOut = false;
+    var isPrinting = false;
+
+    return showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 16,
+          ),
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(time),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Profile(profile).icon,
+                    size: 16,
+                    color: Profile(profile).color,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    profile,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Profile(profile).color,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          content: isFillingOut
+              ? const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 10),
+                    Flexible(child: Text('Filling out Omniterm...')),
+                  ],
+                )
+              : isPrinting
+              ? const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 10),
+                    Flexible(child: Text('Printing count...')),
+                  ],
+                )
+              : Text(
+                  'Would you like to print the count or fill '
+                  'out Omniterm with the count '
+                  'updated on $time?',
+                ),
+          actions: [
+            TextButton(
+              onPressed: isFillingOut || isPrinting
+                  ? null
+                  : () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: isFillingOut || isPrinting
+                  ? null
+                  : () async {
+                      setDialogState(() {
+                        isFillingOut = true;
+                      });
+
+                      try {
+                        final bool success =
+                            await OmnitermInteraction.fillOutCount(jsonString);
+
+                        if (dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+
+                        if (hostContext.mounted) {
+                          ScaffoldMessenger.of(hostContext).showSnackBar(
+                            SnackBar(
+                              content: success
+                                  ? const Text('Omniterm autofill completed.')
+                                  : const Text('Omniterm autofill canceled.'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } on Exception catch (e) {
+                        if (hostContext.mounted) {
+                          ScaffoldMessenger.of(hostContext).showSnackBar(
+                            SnackBar(
+                              content: Text('Omniterm autofill failed: $e'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          if (kDebugMode) print('Omniterm autofill failed: $e');
+                        }
+                      } finally {
+                        if (dialogContext.mounted) {
+                          setDialogState(() {
+                            isFillingOut = false;
+                          });
+                        }
+                      }
+                    },
+              child: const Text('Fill Out Omniterm'),
+            ),
+            TextButton(
+              onPressed: isFillingOut || isPrinting
+                  ? null
+                  : () async {
+                      setDialogState(() {
+                        isPrinting = true;
+                      });
+
+                      try {
+                        final bool success = await printJson(
+                          hostContext,
+                          jsonString,
+                        );
+
+                        if (dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+
+                        if (hostContext.mounted) {
+                          ScaffoldMessenger.of(hostContext).showSnackBar(
+                            SnackBar(
+                              content: success
+                                  ? const Text('Print completed. Exiting...')
+                                  : const Text('Print canceled.'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+
+                        if (success) {
+                          await Future.delayed(const Duration(seconds: 2));
+                          exit(0);
+                        }
+                      } on Exception catch (e) {
+                        if (hostContext.mounted) {
+                          ScaffoldMessenger.of(hostContext).showSnackBar(
+                            SnackBar(
+                              content: Text('Print failed: $e'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (dialogContext.mounted) {
+                          setDialogState(() {
+                            isPrinting = false;
+                          });
+                        }
+                      }
+                    },
+              child: const Text('Print'),
+            ),
+          ],
+        ),
       ),
     );
   }

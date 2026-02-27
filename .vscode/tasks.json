@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build python exe",
+      "type": "shell",
+      "command": "py",
+      "args": [
+        "-m",
+        "PyInstaller",
+        "--onefile",
+        "python/omniterm_autofill.py",
+        "--distpath",
+        "assets"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build with build_runner",
+      "type": "shell",
+      "command": "dart run build_runner build",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
