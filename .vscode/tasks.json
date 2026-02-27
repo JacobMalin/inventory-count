@@ -2,22 +2,16 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Run serious_python: package python (Windows)",
+      "label": "Build python exe",
       "type": "shell",
-      "command": "dart",
+      "command": "py",
       "args": [
-        "run",
-        "serious_python:main",
-        "package",
-        "--asset",
-        "assets/python.zip",
-        "python",
-        "-p",
-        "Windows",
-        "--requirements",
-        "-r",
-        "--requirements",
-        "python/requirements.txt"
+        "-m",
+        "PyInstaller",
+        "--onefile",
+        "python/omniterm_autofill.py",
+        "--distpath",
+        "assets"
       ],
       "group": "build",
       "presentation": {
