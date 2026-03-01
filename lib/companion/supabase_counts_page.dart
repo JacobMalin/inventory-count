@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,6 +12,15 @@ import 'window_model.dart';
 
 class SupabaseCountsPage extends StatelessWidget {
   const SupabaseCountsPage({super.key});
+
+  String _formatCountName(String rawName) {
+    final DateTime? isoParsed = DateTime.tryParse(rawName);
+    if (isoParsed != null) {
+      return DateFormat.yMMMMd().format(isoParsed);
+    }
+
+    return rawName;
+  }
 
   Future<bool> printJson(BuildContext context, String json) async {
     final windowModel = WindowModel();
@@ -164,12 +172,16 @@ class SupabaseCountsPage extends StatelessWidget {
             return const Center(child: Text('No counts found.'));
           }
 
-          return ListView.builder(
+          return ListView.separated(
             itemCount: counts.length,
+            separatorBuilder: (context, index) =>
+                const Divider(height: 1, indent: 36, endIndent: 36),
             itemBuilder: (context, index) {
               final Map<String, dynamic> count = counts[index];
 
               final String profile = count['profile'] ?? 'Default';
+              final countName = (count['name'] ?? '').toString();
+              final String countId = _formatCountName(countName);
 
               var time = '';
               if (count['updated_at'] != null) {
@@ -190,20 +202,34 @@ class SupabaseCountsPage extends StatelessWidget {
 
               return ListTile(
                 title: Text(
-                  profile,
-                  style: TextStyle(color: Profile(profile).color),
+                  countId.isNotEmpty ? countId : 'Count',
+                  overflow: TextOverflow.ellipsis,
                 ),
                 leading: Icon(
                   Profile(profile).icon,
                   color: Profile(profile).color,
                 ),
-                subtitle: Text('Last updated: $time'),
+                subtitle: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: profile,
+                        style: TextStyle(color: Profile(profile).color),
+                      ),
+                      TextSpan(
+                        text: ' • Last updated: $time',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
                 onTap: () async {
                   try {
                     if (!context.mounted) return;
                     final hostContext = context;
                     await showItemDialogue(
                       context,
+                      countId,
                       time,
                       profile,
                       jsonString,
@@ -226,6 +252,7 @@ class SupabaseCountsPage extends StatelessWidget {
 
   Future<dynamic> showItemDialogue(
     BuildContext context,
+    String countName,
     String time,
     String profile,
     String jsonString,
@@ -246,7 +273,7 @@ class SupabaseCountsPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(time),
+              Text(countName.isNotEmpty ? countName : time),
               const SizedBox(height: 4),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -332,14 +359,17 @@ class SupabaseCountsPage extends StatelessWidget {
                           );
                         }
                       } on Exception catch (e) {
+                        if (dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+
                         if (hostContext.mounted) {
                           ScaffoldMessenger.of(hostContext).showSnackBar(
                             SnackBar(
-                              content: Text('Omniterm autofill failed: $e'),
+                              content: Text('Omniterm autofill failed:\n$e'),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
-                          if (kDebugMode) print('Omniterm autofill failed: $e');
                         }
                       } finally {
                         if (dialogContext.mounted) {
@@ -385,6 +415,10 @@ class SupabaseCountsPage extends StatelessWidget {
                           exit(0);
                         }
                       } on Exception catch (e) {
+                        if (dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+
                         if (hostContext.mounted) {
                           ScaffoldMessenger.of(hostContext).showSnackBar(
                             SnackBar(

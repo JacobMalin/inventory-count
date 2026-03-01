@@ -20,19 +20,22 @@ class ExportItemAdapter extends TypeAdapter<ExportItem> {
       fields[0] as String,
       isHidden: fields[1] as bool,
       isNotCounted: fields[2] as bool,
+      omniName: fields[3] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ExportItem obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
       ..write(obj.isHidden)
       ..writeByte(2)
-      ..write(obj.isNotCounted);
+      ..write(obj.isNotCounted)
+      ..writeByte(3)
+      ..write(obj.omniName);
   }
 
   @override

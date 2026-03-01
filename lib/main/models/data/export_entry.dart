@@ -34,24 +34,20 @@ abstract class ExportEntry {
 
   static ({String name, bool isHidden, bool isNotCounted}) parseCommonFields(
     Map<String, dynamic> json,
-  ) {
-    return (
-      name: json['name'] as String? ?? '',
-      isHidden: json['isHidden'] as bool? ?? false,
-      isNotCounted: json['isNotCounted'] as bool? ?? false,
-    );
-  }
+  ) => (
+    name: json['name'] as String? ?? '',
+    isHidden: json['isHidden'] as bool? ?? false,
+    isNotCounted: json['isNotCounted'] as bool? ?? false,
+  );
 
   Map<String, dynamic> toJson();
 
-  static Map<String, dynamic> toJsonFrom(ExportEntry entry) {
-    return {
-      'type': entry.entryType,
-      'name': entry.name,
-      'isHidden': entry.isHidden,
-      'isNotCounted': entry.isNotCounted,
-    };
-  }
+  static Map<String, dynamic> toJsonFrom(ExportEntry entry) => {
+    'type': entry.entryType,
+    'name': entry.name,
+    'isHidden': entry.isHidden,
+    'isNotCounted': entry.isNotCounted,
+  };
 
   static final Map<String, ExportEntry Function(Map<String, dynamic>)>
   _registry = {
@@ -63,7 +59,12 @@ abstract class ExportEntry {
 
 @HiveType(typeId: 7)
 class ExportItem extends HiveObject implements ExportEntry {
-  ExportItem(this.name, {this.isHidden = false, this.isNotCounted = false});
+  ExportItem(
+    this.name, {
+    this.isHidden = false,
+    this.isNotCounted = false,
+    this.omniName,
+  });
 
   factory ExportItem.fromJson(Map<String, dynamic> json) {
     final ({bool isHidden, bool isNotCounted, String name}) fields =
@@ -72,6 +73,7 @@ class ExportItem extends HiveObject implements ExportEntry {
       fields.name,
       isHidden: fields.isHidden,
       isNotCounted: fields.isNotCounted,
+      omniName: json['omniName'] as String?,
     );
   }
 
@@ -87,8 +89,14 @@ class ExportItem extends HiveObject implements ExportEntry {
   @HiveField(2)
   bool isNotCounted = false;
 
+  @HiveField(3)
+  String? omniName;
+
   @override
-  Map<String, dynamic> toJson() => ExportEntry.toJsonFrom(this);
+  Map<String, dynamic> toJson() => {
+    ...ExportEntry.toJsonFrom(this),
+    'omniName': omniName,
+  };
 
   @override
   String get entryType => 'ExportItem';

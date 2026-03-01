@@ -37,12 +37,19 @@ Future<String> runPythonScript(
   final String stderrText = (result.stderr ?? '').toString().trim();
 
   if (result.exitCode != 0) {
-    throw ProcessException(
-      scriptPath,
-      cliArgs,
-      stderrText.isEmpty ? stdoutText : stderrText,
-      result.exitCode,
+    final rawError = stderrText.isNotEmpty ? stderrText : stdoutText;
+
+    final runtimeErrorRegex = RegExp(r'^\s*(.+Error:\s*.+)$', multiLine: true);
+    final RegExpMatch? runtimeErrorMatch = runtimeErrorRegex.firstMatch(
+      rawError,
     );
+
+    final String conciseMessage =
+        runtimeErrorMatch?.group(1)?.trim().isNotEmpty ?? false
+        ? runtimeErrorMatch!.group(1)!.trim()
+        : 'RuntimeError: Omniterm autofill failed.';
+
+    throw Exception(conciseMessage);
   }
 
   return stdoutText;

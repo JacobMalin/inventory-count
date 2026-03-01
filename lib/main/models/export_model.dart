@@ -134,6 +134,8 @@ class ExportModel extends SyncChangeNotifier {
     String? name,
     bool? isHidden,
     bool? isNotCounted,
+    String? omniName,
+    bool updateOmniName = false,
   }) async {
     final List<ExportEntry> currentExportList = exportList;
     final ExportEntry entry = currentExportList[index];
@@ -141,6 +143,9 @@ class ExportModel extends SyncChangeNotifier {
     if (name != null) entry.name = name;
     if (isHidden != null) entry.isHidden = isHidden;
     if (isNotCounted != null) entry.isNotCounted = isNotCounted;
+    if (entry is ExportItem && updateOmniName) {
+      entry.omniName = omniName;
+    }
 
     await _localRepository.writeExportList(currentExportList);
     _updateSupabase();
@@ -189,8 +194,8 @@ class ExportModel extends SyncChangeNotifier {
 
         final currentBucket = data[currentTitle] as Map<dynamic, dynamic>;
         currentBucket[entry.name] = useNotCountedJson
-            ? countModel.getItemNotCountedJson()
-            : countModel.getItemExportJson(entry.name);
+            ? countModel.getItemNotCountedJson(entry.omniName)
+            : countModel.getItemExportJson(entry.name, entry.omniName);
       } else if (entry is ExportTitle) {
         currentTitle = entry.name;
         titleHidden = entry.isHidden;

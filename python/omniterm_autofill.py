@@ -18,7 +18,7 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_json_payload(args: argparse.Namespace):
+def _load_json(args: argparse.Namespace):
     if args.json_text:
         return json.loads(args.json_text)
 
@@ -30,40 +30,83 @@ def _load_json_payload(args: argparse.Namespace):
     raise ValueError("No JSON input provided. Pass --json or pipe JSON via stdin.")
 
 
-def _extract_total_values(payload) -> list[str]:
-    export_totals: list[str] = []
+def _extract_total_values(json):
+    export_totals = {}
 
-    for section in payload.values():
-        for item_payload in section.values():
-            if "Total" in item_payload and item_payload["Total"] is not None:
-                total = item_payload["Total"]
-                if total == "-": total = "0"
-                export_totals.append(total)
+    for section in json.values():
+        for item_name, item_value in section.items():
+            if "Total" in item_value and item_value["Total"] is not None:
+                total = item_value["Total"]
+                if total == "-": total = ""
+                omni_name = item_value.get("omniName")
+                normalized_name = (
+                    omni_name.lower()
+                    if isinstance(omni_name, str)
+                    else item_name.lower()
+                )
+                export_totals[normalized_name] = total
 
     return export_totals
 
 
 def main():
     args = _parse_args()
-    payload = _load_json_payload(args)
-    totals = _extract_total_values(payload)
+    json = _load_json(args)
+    totals = _extract_total_values(json)
 
     if not totals:
         raise ValueError("No total values found in JSON input.")
 
-    app = pywinauto.Application(backend="uia").connect(title_re="Conc Inventory Count.xlsm - Excel")
-    window = app['Conc Inventory Count.xlsm - Excel']
-    actionable_f3 = window['Conc Inventory Count'] \
-        .child_window(title="Grid", auto_id="Grid", control_type="DataGrid") \
-        .child_window(auto_id="F3") \
-        .wait('visible')
-    
-    window.set_focus()
-        
-    actionable_f3.select()
+    try:
+        app = pywinauto.Application(backend="uia").connect(title_re="Concessions Manager.*")
+    except pywinauto.findwindows.ElementNotFoundError:
+        raise RuntimeError("Concessions Manager application not found. Please ensure it is running.") from None
 
-    for total in totals:
-        pywinauto.keyboard.send_keys(f"{total}{{DOWN}}")
+    try:
+        window = app.top_window()
+    except RuntimeError:
+        desktop = pywinauto.Desktop(backend='uia')
+        taskbar = desktop.Taskbar
+        running_apps_toolbar = taskbar.child_window(title="Running applications", control_type="ToolBar")
+
+        print(running_apps_toolbar)
+        print(dir(running_apps_toolbar))
+        program_button = running_apps_toolbar.child_window(title_re="Concession Manager.*")
+        program_button.click_input()
+
+        window = app.top_window()
+
+    window.set_focus()
+
+    try:
+        stock_count = window['Revenue CentrePane'] \
+            .child_window(title="Stock Count", auto_id="FormStockCount", control_type="Window")
+    except pywinauto.findwindows.ElementNotFoundError:
+        raise RuntimeError("Stock Count form not found. Please navigate to the Stock Count screen in Concessions Manager.") from None
+
+    data_grid = stock_count \
+        .child_window(title="DataGrid", auto_id="dgStock", control_type="Table") \
+        .wait('visible')
+    rows = [item for item in data_grid.children() if item.friendly_class_name() == "Custom"]
+
+    rect = data_grid.rectangle()
+    x = (rect.left + rect.right) // 2
+    y = (rect.top + rect.bottom) // 2
+    pywinauto.mouse.scroll((x,y), 100)
+
+    count_field = next((item for item in rows[0].children() if item.texts()[0] == "Phys. Count"), None)
+    count_field.click_input()
+
+    for row in rows:
+        children = row.children()
+        name_field = next((item for item in children if item.texts()[0] == "Name"), None)
+        name = name_field.legacy_properties()['Value'].lower()
+
+        if name in totals:
+            total = totals[name]
+            pywinauto.keyboard.send_keys(f"{total}")
+        
+        pywinauto.keyboard.send_keys("{DOWN}")
 
 if __name__ == '__main__':
     main()

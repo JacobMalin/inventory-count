@@ -211,42 +211,61 @@ class ExportListBody extends StatelessWidget {
     required String title,
     required String inputLabel,
     required ExportModel exportModel,
-    required ExportEntry Function(String) createEntry,
+    required ExportEntry Function(String, String?) createEntry,
+    bool includeOmniName = false,
   }) async {
     await showDialog(
       context: context,
       builder: (context) {
-        final controller = TextEditingController();
+        final nameController = TextEditingController();
+        final omniNameController = TextEditingController();
+
+        Future<void> submit() async {
+          if (nameController.text.isNotEmpty) {
+            final String? omniName = includeOmniName
+                ? (omniNameController.text.trim().isEmpty
+                      ? null
+                      : omniNameController.text.trim())
+                : null;
+
+            await exportModel.add(
+              createEntry(nameController.text.trim(), omniName),
+            );
+            await _scrollToBottom();
+            if (!context.mounted) return;
+            Navigator.pop(context);
+          }
+        }
+
         return AlertDialog(
           title: Text(title),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            onSubmitted: (value) async {
-              if (value.isNotEmpty) {
-                await exportModel.add(createEntry(value));
-                await _scrollToBottom();
-                if (!context.mounted) return;
-                Navigator.pop(context);
-              }
-            },
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                autofocus: true,
+                decoration: InputDecoration(labelText: inputLabel),
+                onSubmitted: (_) => submit(),
+              ),
+              if (includeOmniName) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: omniNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Alternate Name (optional)',
+                  ),
+                  onSubmitted: (_) => submit(),
+                ),
+              ],
+            ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
-            TextButton(
-              onPressed: () async {
-                if (controller.text.isNotEmpty) {
-                  await exportModel.add(createEntry(controller.text));
-                  await _scrollToBottom();
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Add'),
-            ),
+            TextButton(onPressed: submit, child: const Text('Add')),
           ],
         );
       },
@@ -271,7 +290,7 @@ class ExportListBody extends StatelessWidget {
                         title: 'Enter Title',
                         inputLabel: 'Title',
                         exportModel: exportModel,
-                        createEntry: ExportTitle.new,
+                        createEntry: (name, _) => ExportTitle(name),
                       ),
                     ),
                   ),
@@ -284,7 +303,9 @@ class ExportListBody extends StatelessWidget {
                         title: 'Enter Name',
                         inputLabel: 'Name',
                         exportModel: exportModel,
-                        createEntry: ExportItem.new,
+                        createEntry: (name, omniName) =>
+                            ExportItem(name, omniName: omniName),
+                        includeOmniName: true,
                       ),
                     ),
                   ),
@@ -336,39 +357,67 @@ class ExportTile extends StatelessWidget {
     required String title,
     required String initialValue,
     required void Function(String) onChanged,
-    required void Function(String) onSaved,
+    required Future<void> Function(String, String?) onSaved,
+    bool includeOmniName = false,
+    String? initialOmniName,
   }) {
-    final controller = TextEditingController(text: initialValue);
-    controller.selection = TextSelection(
+    final nameController = TextEditingController(text: initialValue);
+    final omniNameController = TextEditingController(
+      text: initialOmniName ?? '',
+    );
+    nameController.selection = TextSelection(
       baseOffset: 0,
-      extentOffset: controller.text.length,
+      extentOffset: nameController.text.length,
     );
     return showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          onChanged: onChanged,
-          onSubmitted: (_) => Navigator.pop(context),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      builder: (context) {
+        Future<void> submit() async {
+          if (nameController.text.isNotEmpty) {
+            final String? omniName = includeOmniName
+                ? (omniNameController.text.trim().isEmpty
+                      ? null
+                      : omniNameController.text.trim())
+                : null;
+            await onSaved(nameController.text, omniName);
+
+            if (!context.mounted) return;
+            Navigator.pop(context);
+          }
+        }
+
+        return AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                autofocus: true,
+                onChanged: onChanged,
+                onSubmitted: (_) => submit(),
+              ),
+              if (includeOmniName) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: omniNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Alternate Name (optional)',
+                  ),
+                  onSubmitted: (_) => submit(),
+                ),
+              ],
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                onSaved(controller.text);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(onPressed: submit, child: const Text('Save')),
+          ],
+        );
+      },
     );
   }
 
@@ -415,6 +464,10 @@ class ExportTile extends StatelessWidget {
       ),
       SlidableAction(
         onPressed: (_) async {
+          final ExportItem? exportItem = _exportEntry is ExportItem
+              ? _exportEntry
+              : null;
+
           await showRenameDialog(
             context: context,
             title: 'Rename $entryType',
@@ -422,8 +475,15 @@ class ExportTile extends StatelessWidget {
             onChanged: (value) async {
               await exportModel.editEntry(_index, name: value);
             },
-            onSaved: (value) async {
-              await exportModel.editEntry(_index, name: value);
+            includeOmniName: exportItem != null,
+            initialOmniName: exportItem?.omniName,
+            onSaved: (name, omniName) async {
+              await exportModel.editEntry(
+                _index,
+                name: name,
+                omniName: omniName,
+                updateOmniName: exportItem != null,
+              );
             },
           );
         },
@@ -453,6 +513,13 @@ class ExportTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String displayName = switch (_exportEntry) {
+      ExportItem(:final String name, :final String? omniName)
+          when omniName != null && omniName.trim().isNotEmpty =>
+        '$name (${omniName.trim()})',
+      _ => _exportEntry.name,
+    };
+
     final contentPadding = _exportEntry is ExportTitle
         ? const EdgeInsets.symmetric(horizontal: 16)
         : const EdgeInsets.only(left: 32, right: 16);
@@ -512,7 +579,7 @@ class ExportTile extends StatelessWidget {
               ),
               onTap: () {},
               title: Text(
-                _exportEntry.name,
+                displayName,
                 style: _exportEntry.isHidden || _titleHidden
                     ? TextStyle(
                         decoration: TextDecoration.lineThrough,

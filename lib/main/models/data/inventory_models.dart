@@ -471,7 +471,7 @@ class Count extends HiveObject {
     return notations.join(' + ');
   }
 
-  static Map<String, dynamic> getItemNotCountedJson() {
+  static Map<String, dynamic> getItemNotCountedJson(String? omniName) {
     final Map<String, dynamic> exportData = {};
 
     for (final CountPhase phase in CountPhase.values) {
@@ -479,11 +479,12 @@ class Count extends HiveObject {
     }
 
     exportData['Total'] = '-';
+    exportData['omniName'] = omniName;
 
     return exportData;
   }
 
-  Map<String, dynamic> getItemExportJson(String countName) {
+  Map<String, dynamic> getItemExportJson(String countName, String? omniName) {
     final Map<String, dynamic> exportData = {};
 
     for (final CountPhase phase in CountPhase.values) {
@@ -528,6 +529,7 @@ class Count extends HiveObject {
     }
 
     exportData['Total'] = totalStr;
+    exportData['omniName'] = omniName;
 
     return exportData;
   }

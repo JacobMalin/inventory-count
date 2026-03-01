@@ -18,6 +18,7 @@ class CompanionApp extends StatelessWidget {
         useMaterial3: true,
       ),
       builder: (context, child) => WindowSetupWatcher(child!),
+
       home: const Scaffold(body: SupabaseCountsPage()),
     );
   }

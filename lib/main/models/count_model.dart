@@ -219,12 +219,12 @@ class CountModel with ChangeNotifier {
     return _thisCount.getCountSumNotationByName(name, phase);
   }
 
-  Map<String, dynamic> getItemExportJson(String name) {
-    return _thisCount.getItemExportJson(name);
+  Map<String, dynamic> getItemExportJson(String name, String? omniName) {
+    return _thisCount.getItemExportJson(name, omniName);
   }
 
-  Map<String, dynamic> getItemNotCountedJson() {
-    return Count.getItemNotCountedJson();
+  Map<String, dynamic> getItemNotCountedJson(String? omniName) {
+    return Count.getItemNotCountedJson(omniName);
   }
 
   void removeFromCountList(Item data) {
