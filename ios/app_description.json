@@ -7,13 +7,19 @@
       "name": "Inventory Count",
       "bundleIdentifier": "com.rexvos.inventoryCount",
       "developerName": "RexVos",
-      "version": "0.1.27",
-      "versionDate": "2026-02-27T11:16:41.637Z",
-      "size": 23924719,
+      "version": "0.1.28",
+      "versionDate": "2026-03-01T08:13:33.753Z",
+      "size": 23842174,
       "localizedDescription": "A simple inventory counting app.",
       "iconURL": "https://raw.githubusercontent.com/JacobMalin/inventory-count/refs/heads/main/ios/Runner/Assets.xcassets/AppIcon.appiconset/AppIcon-83.5@2x~ipad.png",
-      "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.27/InventoryCount.ipa",
+      "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.28/InventoryCount.ipa",
       "versions": [
+        {
+          "version": "0.1.28",
+          "date": "2026-03-01T08:13:33.753Z",
+          "size": 23842174,
+          "downloadURL": "https://github.com/JacobMalin/inventory-count/releases/download/v0.1.28/InventoryCount.ipa"
+        },
         {
           "version": "0.1.27",
           "date": "2026-02-27T11:16:41.637Z",
