@@ -3,6 +3,7 @@ import 'dart:io';
 
 class OmnitermInteraction {
   static Future<bool> fillOutCount(String json) async {
+    json = json.replaceAll('&', '')
     await runPythonScript('assets/omniterm_autofill.exe', args: {'json': json});
 
     return true;
