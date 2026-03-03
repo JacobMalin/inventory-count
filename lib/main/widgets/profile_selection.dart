@@ -1,5 +1,6 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../models/area_model.dart';
@@ -16,6 +17,11 @@ class SelectProfile extends StatefulWidget {
 class _SelectProfileState extends State<SelectProfile> {
   final TextEditingController _newProfileController = TextEditingController();
   Profile? _baseProfile;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -556,7 +562,29 @@ class _SelectProfileState extends State<SelectProfile> {
                           style: Theme.of(context).textTheme.headlineSmall,
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
+                        FutureBuilder<PackageInfo>(
+                          future: PackageInfo.fromPlatform(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                    ConnectionState.waiting ||
+                                snapshot.hasError) {
+                              return const SizedBox.shrink();
+                            }
+                            final PackageInfo info = snapshot.data!;
+                            return Text(
+                              'v${info.version}',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.6,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 4),
                         Text(
                           'Pick a profile to start counting items.',
                           style: Theme.of(context).textTheme.bodyMedium,

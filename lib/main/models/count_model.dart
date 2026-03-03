@@ -14,9 +14,9 @@ class CountModel with ChangeNotifier {
   final DateFormat _dateFormat = DateFormat('EEEE, MMMM d, yyyy');
   static const int _lastCountLookbackDays = 14;
 
-  String get date => _dateFormat.format(_selectedDate);
+  String get date => _dateFormat.format(selectedDate);
 
-  DateTime _selectedDate = DateTime.now();
+  DateTime selectedDate = DateTime.now().subtract(const Duration(hours: 3));
 
   bool get hideCountedItems =>
       _settingsBox.get('hideCountedItems', defaultValue: false);
@@ -25,29 +25,29 @@ class CountModel with ChangeNotifier {
   }
 
   void setSelectedDate(DateTime date) {
-    _selectedDate = date;
+    selectedDate = date;
     notifyListeners();
   }
 
   void incrementDate() {
-    _selectedDate = _selectedDate.add(const Duration(days: 1));
+    selectedDate = selectedDate.add(const Duration(days: 1));
     notifyListeners();
   }
 
   void decrementDate() {
-    _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+    selectedDate = selectedDate.subtract(const Duration(days: 1));
     notifyListeners();
   }
 
   bool get isToday {
     final now = DateTime.now();
-    return _selectedDate.year == now.year &&
-        _selectedDate.month == now.month &&
-        _selectedDate.day == now.day;
+    return selectedDate.year == now.year &&
+        selectedDate.month == now.month &&
+        selectedDate.day == now.day;
   }
 
   void goToToday() {
-    _selectedDate = DateTime.now();
+    selectedDate = DateTime.now();
     notifyListeners();
   }
 
@@ -180,7 +180,7 @@ class CountModel with ChangeNotifier {
 
     // Look back through the last 'days' days to find a count
     for (var i = 1; i <= _lastCountLookbackDays; i++) {
-      final DateTime pastDate = _selectedDate.subtract(Duration(days: i));
+      final DateTime pastDate = selectedDate.subtract(Duration(days: i));
       final String dateKey = _dateFormat.format(pastDate);
 
       final Count? pastCount = countBox.get(dateKey);

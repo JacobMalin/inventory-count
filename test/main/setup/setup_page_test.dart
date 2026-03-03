@@ -90,6 +90,13 @@ class _FakeExportSyncRepository implements ExportSyncRepository {
   Future<ExportSyncRecord?> fetchLatest() async => null;
 
   @override
+  Future<void> upsertCountExport({
+    required DateTime when,
+    required String profile,
+    required String json,
+  }) async {}
+
+  @override
   Future<void> upsertLatest(ExportSyncRecord record) async {}
 
   @override

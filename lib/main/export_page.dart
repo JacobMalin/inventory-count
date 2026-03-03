@@ -1,8 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/area_model.dart';
 import 'models/count_model.dart';
@@ -232,21 +230,7 @@ class _ExportPageState extends State<ExportPage> {
                         ScaffoldMessenger.of(context);
 
                     try {
-                      final String jsonString = exportModel.exportInExportOrder(
-                        countModel,
-                      );
-
-                      final DateTime now = DateTime.now().toLocal();
-                      final String exportName = DateFormat(
-                        'yyyy-MM-dd',
-                      ).format(now.subtract(const Duration(hours: 3)));
-                      await Supabase.instance.client.from('counts').upsert({
-                        'name': exportName,
-                        'profile':
-                            countModel.selectedProfile?.name ?? 'Default',
-                        'json': jsonString,
-                        'updated_at': now.toUtc().toIso8601String(),
-                      });
+                      await exportModel.upsertCountExport(countModel);
 
                       messenger.showSnackBar(
                         SnackBar(

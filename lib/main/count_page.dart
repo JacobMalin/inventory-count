@@ -254,6 +254,7 @@ class _CountListState extends State<CountList> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       widget._onExpandCallbackChanged(_toggleUncountedItems, isExpanded: false);
       await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
       _onScroll();
     });
   }
@@ -450,20 +451,135 @@ class _CountListState extends State<CountList> {
                 );
 
             if (treeIsEmpty) {
+              _treeController = null;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                widget._onExpandCallbackChanged(null, isExpanded: false);
+              });
+
               // Check if there are any items at all for the current phase
               final bool hasAnyItems = areaModel.hasAnyItems();
 
-              final message = hasAnyItems
-                  ? 'All items counted!'
-                  : 'Add items in Setup to begin counting!';
+              final String message;
+              final String title;
+              final IconData icon;
+              var showNextPhaseButton = false;
 
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge,
+              if (!hasAnyItems) {
+                title = 'No items to count';
+                message = 'Add items in Setup to begin counting!';
+                icon = Icons.inventory_2_outlined;
+              } else {
+                switch (countModel.countPhase) {
+                  case CountPhase.back:
+                    title = 'Back count complete';
+                    message = 'All items counted in the back!';
+                    icon = Icons.task_alt_rounded;
+                    showNextPhaseButton = true;
+                  case CountPhase.cabinet:
+                    title = 'Cabinet count complete';
+                    message = 'All items in cabinets counted!';
+                    icon = Icons.task_alt_rounded;
+                    showNextPhaseButton = true;
+                  case CountPhase.out:
+                    title = 'Count complete';
+                    message = 'All items counted!';
+                    icon = Icons.emoji_events_outlined;
+                }
+              }
+
+              return SafeArea(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
+                        color: Theme.of(context).colorScheme.surfaceContainer,
+                        elevation: 0,
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                                ),
+                                child: Icon(
+                                  icon,
+                                  size: 32,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                title,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineSmall,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                message,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                              if (showNextPhaseButton) ...[
+                                const SizedBox(height: 24),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: FilledButton.icon(
+                                    iconAlignment: IconAlignment.end,
+                                    onPressed: () {
+                                      countModel.setCountPhase(
+                                        CountPhase.values[countModel
+                                                .countPhase
+                                                .index +
+                                            1],
+                                      );
+                                    },
+                                    icon: const Icon(
+                                      Icons.arrow_forward_rounded,
+                                    ),
+                                    label: const Text('Go to next phase'),
+                                    style: FilledButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(50),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      padding: const EdgeInsets.only(
+                                        left: 30,
+                                        right: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -800,6 +916,14 @@ class _CountDialogState extends State<CountDialog> {
     }
   }
 
+  void _navigateNextOrClose(bool hasNext) {
+    if (hasNext) {
+      _navigate(1);
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -935,11 +1059,7 @@ class _CountDialogState extends State<CountDialog> {
                                         countModel.setLastCount(
                                           _currentData.item,
                                         );
-                                        if (hasNext) {
-                                          _navigate(1);
-                                        } else {
-                                          Navigator.pop(context);
-                                        }
+                                        _navigateNextOrClose(hasNext);
                                       }
                                     : null,
                                 style: TextButton.styleFrom(
@@ -976,11 +1096,7 @@ class _CountDialogState extends State<CountDialog> {
                                         countModel.setDefaultCount(
                                           _currentData.item,
                                         );
-                                        if (hasNext) {
-                                          _navigate(1);
-                                        } else {
-                                          Navigator.pop(context);
-                                        }
+                                        _navigateNextOrClose(hasNext);
                                       }
                                     : null,
                                 style: TextButton.styleFrom(
@@ -1031,11 +1147,7 @@ class _CountDialogState extends State<CountDialog> {
                               } else {
                                 countModel.setField1(_currentData.item, 0);
                               }
-                              if (hasNext) {
-                                _navigate(1);
-                              } else {
-                                Navigator.pop(context);
-                              }
+                              _navigateNextOrClose(hasNext);
                             },
                             style: TextButton.styleFrom(
                               minimumSize: const Size(56, 56),
@@ -1053,11 +1165,7 @@ class _CountDialogState extends State<CountDialog> {
                           TextButton(
                             onPressed: () {
                               countModel.setNotCounted(_currentData.item);
-                              if (hasNext) {
-                                _navigate(1);
-                              } else {
-                                Navigator.pop(context);
-                              }
+                              _navigateNextOrClose(hasNext);
                             },
                             style: TextButton.styleFrom(
                               minimumSize: const Size(56, 56),
@@ -1073,8 +1181,10 @@ class _CountDialogState extends State<CountDialog> {
                           ),
                           const SizedBox(width: 12),
                           IconButton(
-                            onPressed: hasNext ? () => _navigate(1) : null,
-                            icon: const Icon(Icons.chevron_right),
+                            onPressed: () => _navigateNextOrClose(hasNext),
+                            icon: hasNext
+                                ? const Icon(Icons.chevron_right)
+                                : const Icon(Icons.last_page),
                             style: IconButton.styleFrom(
                               minimumSize: const Size(56, 56),
                               shape: RoundedRectangleBorder(

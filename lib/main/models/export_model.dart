@@ -24,6 +24,7 @@ class ExportModel extends SyncChangeNotifier {
        _syncCoordinator = syncCoordinator {
     unawaited(_localRepository.ensureInitialized());
 
+    // TODO: Figure out why this causes debugging disconnection
     initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
   }
 
@@ -204,6 +205,16 @@ class ExportModel extends SyncChangeNotifier {
       }
     }
     return jsonEncode(data);
+  }
+
+  Future<void> upsertCountExport(CountModel countModel) async {
+    final String jsonString = exportInExportOrder(countModel);
+
+    await _syncRepository.upsertCountExport(
+      when: countModel.selectedDate,
+      profile: countModel.selectedProfile?.name ?? 'Default',
+      json: jsonString,
+    );
   }
 
   String exportToJson() {
