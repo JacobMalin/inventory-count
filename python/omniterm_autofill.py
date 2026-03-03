@@ -44,6 +44,7 @@ def _extract_total_values(json):
                     if isinstance(omni_name, str)
                     else item_name.lower()
                 )
+                normalized_name = normalized_name.replace("&", "")
                 export_totals[normalized_name] = total
 
     return export_totals
@@ -69,8 +70,6 @@ def main():
         taskbar = desktop.Taskbar
         running_apps_toolbar = taskbar.child_window(title="Running applications", control_type="ToolBar")
 
-        print(running_apps_toolbar)
-        print(dir(running_apps_toolbar))
         program_button = running_apps_toolbar.child_window(title_re="Concession Manager.*")
         program_button.click_input()
 
@@ -101,6 +100,7 @@ def main():
         children = row.children()
         name_field = next((item for item in children if item.texts()[0] == "Name"), None)
         name = name_field.legacy_properties()['Value'].lower()
+        name = name.replace("&", "")
 
         if name in totals:
             total = totals[name]

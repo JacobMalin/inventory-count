@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 class OmnitermInteraction {
   static Future<bool> fillOutCount(String json) async {
     json = json.replaceAll('&', '');
@@ -28,11 +30,13 @@ Future<String> runPythonScript(
     ],
   ];
 
-  if (!File(scriptPath).existsSync()) {
+  final String resolvedScriptPath = _resolveWindowsAssetPath(scriptPath);
+
+  if (!File(resolvedScriptPath).existsSync()) {
     throw ArgumentError('The specified script does not exist: $scriptPath');
   }
 
-  final ProcessResult result = await Process.run(scriptPath, cliArgs);
+  final ProcessResult result = await Process.run(resolvedScriptPath, cliArgs);
 
   final String stdoutText = (result.stdout ?? '').toString().trim();
   final String stderrText = (result.stderr ?? '').toString().trim();
@@ -54,4 +58,28 @@ Future<String> runPythonScript(
   }
 
   return stdoutText;
+}
+
+String _resolveWindowsAssetPath(String scriptPath) {
+  final inputFile = File(scriptPath);
+  if (inputFile.existsSync()) {
+    return inputFile.absolute.path;
+  }
+
+  final String normalizedPath = scriptPath.replaceAll('/', p.separator);
+  final String executableDir = File(Platform.resolvedExecutable).parent.path;
+
+  final candidates = <String>[
+    p.join(Directory.current.path, normalizedPath),
+    p.join(executableDir, normalizedPath),
+    p.join(executableDir, 'data', 'flutter_assets', normalizedPath),
+  ];
+
+  for (final candidate in candidates) {
+    if (File(candidate).existsSync()) {
+      return candidate;
+    }
+  }
+
+  return scriptPath;
 }
