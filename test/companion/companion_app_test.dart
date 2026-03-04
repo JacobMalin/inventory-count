@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_count/companion/companion_app.dart';
-import 'package:inventory_count/companion/supabase_counts_page.dart';
+import 'package:inventory_count/companion/inventory_counts_page.dart';
 import 'package:inventory_count/companion/window_model.dart';
 
 void main() {
@@ -29,7 +29,7 @@ void main() {
       expect(built.theme?.colorScheme.brightness, Brightness.dark);
 
       final home = built.home! as Scaffold;
-      expect(home.body, isA<SupabaseCountsPage>());
+      expect(home.body, isA<InventoryCountsPage>());
 
       final Widget wrapped = built.builder!(
         tester.element(find.byType(Builder)),

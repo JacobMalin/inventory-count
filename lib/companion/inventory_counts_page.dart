@@ -10,8 +10,8 @@ import '../main/models/data/inventory_models.dart';
 import 'omniterm_interaction.dart';
 import 'window_model.dart';
 
-class SupabaseCountsPage extends StatelessWidget {
-  const SupabaseCountsPage({super.key});
+class InventoryCountsPage extends StatelessWidget {
+  const InventoryCountsPage({super.key});
 
   String _formatCountName(String rawName) {
     final DateTime? isoParsed = DateTime.tryParse(rawName);
