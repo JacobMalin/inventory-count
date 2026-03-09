@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main/models/data/inventory_models.dart';
-import 'omniterm_interaction.dart';
+import 'inventory_count_actions_dialog.dart';
 import 'window_model.dart';
 
 class InventoryCountsPage extends StatelessWidget {
@@ -227,13 +227,16 @@ class InventoryCountsPage extends StatelessWidget {
                   try {
                     if (!context.mounted) return;
                     final hostContext = context;
-                    await showItemDialogue(
-                      context,
-                      countId,
-                      time,
-                      profile,
-                      jsonString,
-                      hostContext,
+                    await showDialog(
+                      context: context,
+                      builder: (context) => InventoryCountActionsDialog(
+                        countName: countName,
+                        time: time,
+                        profile: profile,
+                        jsonString: jsonString,
+                        hostContext: hostContext,
+                        onPrintJson: printJson,
+                      ),
                     );
                   } on Exception catch (e) {
                     if (!context.mounted) return;
@@ -246,199 +249,6 @@ class InventoryCountsPage extends StatelessWidget {
             },
           );
         },
-      ),
-    );
-  }
-
-  Future<dynamic> showItemDialogue(
-    BuildContext context,
-    String countName,
-    String time,
-    String profile,
-    String jsonString,
-    BuildContext hostContext,
-  ) {
-    var isFillingOut = false;
-    var isPrinting = false;
-
-    return showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 16,
-          ),
-          title: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(countName.isNotEmpty ? countName : time),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Profile(profile).icon,
-                    size: 16,
-                    color: Profile(profile).color,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    profile,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Profile(profile).color,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          content: isFillingOut
-              ? const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      height: 16,
-                      width: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 10),
-                    Flexible(child: Text('Filling out Omniterm...')),
-                  ],
-                )
-              : isPrinting
-              ? const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      height: 16,
-                      width: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 10),
-                    Flexible(child: Text('Printing count...')),
-                  ],
-                )
-              : Text(
-                  'Would you like to print the count or fill '
-                  'out Omniterm with the count '
-                  'updated on $time?',
-                ),
-          actions: [
-            TextButton(
-              onPressed: isFillingOut || isPrinting
-                  ? null
-                  : () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: isFillingOut || isPrinting
-                  ? null
-                  : () async {
-                      setDialogState(() {
-                        isFillingOut = true;
-                      });
-
-                      try {
-                        final bool success =
-                            await OmnitermInteraction.fillOutCount(jsonString);
-
-                        if (dialogContext.mounted) {
-                          Navigator.of(dialogContext).pop();
-                        }
-
-                        if (hostContext.mounted) {
-                          ScaffoldMessenger.of(hostContext).showSnackBar(
-                            SnackBar(
-                              content: success
-                                  ? const Text('Omniterm autofill completed.')
-                                  : const Text('Omniterm autofill canceled.'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      } on Exception catch (e) {
-                        if (dialogContext.mounted) {
-                          Navigator.of(dialogContext).pop();
-                        }
-
-                        if (hostContext.mounted) {
-                          ScaffoldMessenger.of(hostContext).showSnackBar(
-                            SnackBar(
-                              content: Text('Omniterm autofill failed:\n$e'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      } finally {
-                        if (dialogContext.mounted) {
-                          setDialogState(() {
-                            isFillingOut = false;
-                          });
-                        }
-                      }
-                    },
-              child: const Text('Fill Out Omniterm'),
-            ),
-            TextButton(
-              onPressed: isFillingOut || isPrinting
-                  ? null
-                  : () async {
-                      setDialogState(() {
-                        isPrinting = true;
-                      });
-
-                      try {
-                        final bool success = await printJson(
-                          hostContext,
-                          jsonString,
-                        );
-
-                        if (dialogContext.mounted) {
-                          Navigator.of(dialogContext).pop();
-                        }
-
-                        if (hostContext.mounted) {
-                          ScaffoldMessenger.of(hostContext).showSnackBar(
-                            SnackBar(
-                              content: success
-                                  ? const Text('Print completed. Exiting...')
-                                  : const Text('Print canceled.'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-
-                        if (success) {
-                          await Future.delayed(const Duration(seconds: 2));
-                          exit(0);
-                        }
-                      } on Exception catch (e) {
-                        if (dialogContext.mounted) {
-                          Navigator.of(dialogContext).pop();
-                        }
-
-                        if (hostContext.mounted) {
-                          ScaffoldMessenger.of(hostContext).showSnackBar(
-                            SnackBar(
-                              content: Text('Print failed: $e'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      } finally {
-                        if (dialogContext.mounted) {
-                          setDialogState(() {
-                            isPrinting = false;
-                          });
-                        }
-                      }
-                    },
-              child: const Text('Print'),
-            ),
-          ],
-        ),
       ),
     );
   }

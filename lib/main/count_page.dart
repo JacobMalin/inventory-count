@@ -143,6 +143,7 @@ class _CountListState extends State<CountList> {
   final AutoScrollController _scrollController = AutoScrollController();
   bool _isAtBottom = false;
   bool _hasScrollableContent = false;
+  bool _wasFullyExpanded = false;
 
   TreeNode _buildTree(
     AreaModel areaModel,
@@ -425,6 +426,7 @@ class _CountListState extends State<CountList> {
 
   void _updateExpandedState() {
     final bool isExpanded = _areAllUncountedExpanded();
+    _wasFullyExpanded = isExpanded;
     widget._onExpandCallbackChanged(
       _toggleUncountedItems,
       isExpanded: isExpanded,
@@ -551,12 +553,28 @@ class _CountListState extends State<CountList> {
                                   child: FilledButton.icon(
                                     iconAlignment: IconAlignment.end,
                                     onPressed: () {
+                                      final bool shouldReexpandInNextPhase =
+                                          _wasFullyExpanded;
+
                                       countModel.setCountPhase(
                                         CountPhase.values[countModel
                                                 .countPhase
                                                 .index +
                                             1],
                                       );
+
+                                      if (shouldReexpandInNextPhase) {
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) async {
+                                              await Future.delayed(
+                                                const Duration(
+                                                  milliseconds: 300,
+                                                ),
+                                              );
+                                              if (!mounted) return;
+                                              _expandUncountedItems();
+                                            });
+                                      }
                                     },
                                     icon: const Icon(
                                       Icons.arrow_forward_rounded,
