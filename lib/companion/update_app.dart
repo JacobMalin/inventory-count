@@ -13,6 +13,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:win32/win32.dart';
 
+import '../core/types/json.dart';
+
 class UpdateApp extends StatefulWidget {
   const UpdateApp({super.key});
 
@@ -53,7 +55,7 @@ class _UpdateAppState extends State<UpdateApp> {
       );
       if (response.statusCode != 200) return;
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = jsonDecode(response.body) as Json;
 
       final String latestVersion = _normalizeVersion(
         (data['tag_name'] as String?) ?? '',
@@ -63,7 +65,7 @@ class _UpdateAppState extends State<UpdateApp> {
           (data['assets'] as List<dynamic>?) ?? const <dynamic>[];
       String? companionZipDownloadUrl;
       for (final dynamic asset in assets) {
-        if (asset is! Map<String, dynamic>) {
+        if (asset is! Json) {
           continue;
         }
         final name = asset['name'] as String?;

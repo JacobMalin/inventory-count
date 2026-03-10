@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:intl/intl.dart';
 
+import '../../core/types/json.dart';
 import '../repositories/device_id_repository.dart';
 import '../repositories/export_local_repository.dart';
 import '../repositories/export_sync_repository.dart';
@@ -184,7 +185,7 @@ class ExportModel extends SyncChangeNotifier {
   String exportInExportOrder(CountModel countModel) {
     final List<ExportEntry> currentExportList = exportList;
 
-    final Map<String, dynamic> data = {};
+    final Json data = {};
 
     var currentTitle = '';
     var titleHidden = false;
@@ -220,7 +221,7 @@ class ExportModel extends SyncChangeNotifier {
   String exportToJson() {
     final List<ExportEntry> currentExportList = exportList;
 
-    final Map<String, List<Map<String, dynamic>>> data = {
+    final Map<String, List<Json>> data = {
       'exportList': currentExportList.map((entry) => entry.toJson()).toList(),
     };
 
@@ -228,12 +229,12 @@ class ExportModel extends SyncChangeNotifier {
   }
 
   Future<void> importFromJson(String jsonString) async {
-    final data = jsonDecode(jsonString) as Map<String, dynamic>;
+    final data = jsonDecode(jsonString) as Json;
 
     // Import export list
     if (data['exportList'] != null) {
       final List<ExportEntry> exportListData = (data['exportList'] as List)
-          .map((json) => ExportEntry.fromJson(json as Map<String, dynamic>))
+          .map((json) => ExportEntry.fromJson(json as Json))
           .toList();
 
       await _localRepository.writeExportList(exportListData);

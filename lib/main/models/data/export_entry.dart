@@ -1,5 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../core/types/json.dart';
+
 part 'export_entry.g.dart';
 
 void registerExportEntryAdapters() {
@@ -9,10 +11,9 @@ void registerExportEntryAdapters() {
 }
 
 abstract class ExportEntry {
-  factory ExportEntry.fromJson(Map<String, dynamic> json) {
+  factory ExportEntry.fromJson(Json json) {
     final type = json['type'] as String?;
-    final ExportEntry Function(Map<String, dynamic>)? constructor =
-        _registry[type];
+    final ExportEntry Function(Json)? constructor = _registry[type];
 
     if (constructor == null) {
       throw Exception('Unknown ExportEntry type: $type');
@@ -33,24 +34,23 @@ abstract class ExportEntry {
   String get entryType;
 
   static ({String name, bool isHidden, bool isNotCounted}) parseCommonFields(
-    Map<String, dynamic> json,
+    Json json,
   ) => (
     name: json['name'] as String? ?? '',
     isHidden: json['isHidden'] as bool? ?? false,
     isNotCounted: json['isNotCounted'] as bool? ?? false,
   );
 
-  Map<String, dynamic> toJson();
+  Json toJson();
 
-  static Map<String, dynamic> toJsonFrom(ExportEntry entry) => {
+  static Json toJsonFrom(ExportEntry entry) => {
     'type': entry.entryType,
     'name': entry.name,
     'isHidden': entry.isHidden,
     'isNotCounted': entry.isNotCounted,
   };
 
-  static final Map<String, ExportEntry Function(Map<String, dynamic>)>
-  _registry = {
+  static final Map<String, ExportEntry Function(Json)> _registry = {
     'ExportItem': ExportItem.fromJson,
     'ExportPlaceholder': ExportItem.fromJson, // For backward compatibility
     'ExportTitle': ExportTitle.fromJson,
@@ -66,7 +66,7 @@ class ExportItem extends HiveObject implements ExportEntry {
     this.omniName,
   });
 
-  factory ExportItem.fromJson(Map<String, dynamic> json) {
+  factory ExportItem.fromJson(Json json) {
     final ({bool isHidden, bool isNotCounted, String name}) fields =
         ExportEntry.parseCommonFields(json);
     return ExportItem(
@@ -93,10 +93,7 @@ class ExportItem extends HiveObject implements ExportEntry {
   String? omniName;
 
   @override
-  Map<String, dynamic> toJson() => {
-    ...ExportEntry.toJsonFrom(this),
-    'omniName': omniName,
-  };
+  Json toJson() => {...ExportEntry.toJsonFrom(this), 'omniName': omniName};
 
   @override
   String get entryType => 'ExportItem';
@@ -106,7 +103,7 @@ class ExportItem extends HiveObject implements ExportEntry {
 class ExportTitle extends HiveObject implements ExportEntry {
   ExportTitle(this.name, {this.isHidden = false, this.isNotCounted = false});
 
-  factory ExportTitle.fromJson(Map<String, dynamic> json) {
+  factory ExportTitle.fromJson(Json json) {
     final ({bool isHidden, bool isNotCounted, String name}) fields =
         ExportEntry.parseCommonFields(json);
     return ExportTitle(
@@ -129,7 +126,7 @@ class ExportTitle extends HiveObject implements ExportEntry {
   bool isNotCounted = false;
 
   @override
-  Map<String, dynamic> toJson() => ExportEntry.toJsonFrom(this);
+  Json toJson() => ExportEntry.toJsonFrom(this);
 
   @override
   String get entryType => 'ExportTitle';

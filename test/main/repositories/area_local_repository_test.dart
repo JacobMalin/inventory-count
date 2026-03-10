@@ -19,7 +19,6 @@ void main() {
       await repository.ensureInitialized();
 
       expect(repository.readProfiles(), isEmpty);
-      expect(repository.readItemIdCounter(), 0);
     });
 
     test('reads and writes profiles', () async {
@@ -35,14 +34,6 @@ void main() {
       expect(result.length, 1);
       expect(result.keys.single.name, 'ER');
       expect(result.values.single.single.name, 'Cabinet');
-    });
-
-    test('reads and writes item id counter', () async {
-      final repository = HiveAreaLocalRepository();
-
-      await repository.writeItemIdCounter(41);
-
-      expect(repository.readItemIdCounter(), 41);
     });
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 
 import '../models/area_model.dart';
@@ -106,6 +107,65 @@ class AreaList extends StatefulWidget {
 class _AreaListState extends State<AreaList> {
   final ScrollController _scrollController = ScrollController();
 
+  Future<bool> _confirmDelete(String name) async {
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Area'),
+        content: Text('Are you sure you want to delete "$name"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    return shouldDelete ?? false;
+  }
+
+  Future<void> _renameArea(AreaModel areaModel, int index) async {
+    final controller = TextEditingController(
+      text: areaModel.getArea(index).name,
+    );
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: controller.text.length,
+    );
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Area'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          onSubmitted: (_) => Navigator.pop(context),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    final String name = controller.text.trim();
+    if (name.isNotEmpty) {
+      areaModel.renameArea(index, name);
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -170,16 +230,57 @@ class _AreaListState extends State<AreaList> {
                       child: ReorderableListView(
                         scrollController: _scrollController,
                         key: const PageStorageKey('areaListView'),
-                        children: <AreaTile>[
+                        children: <Widget>[
                           for (
                             int index = 0;
                             index < areaModel.numAreas;
                             index += 1
                           )
-                            AreaTile(
-                              key: Key('$index'),
-                              index: index,
-                              select: widget._select,
+                            Slidable(
+                              key: ValueKey('area_$index'),
+                              endActionPane: ActionPane(
+                                motion: const DrawerMotion(),
+                                children: [
+                                  SlidableAction(
+                                    onPressed: (_) async {
+                                      await _renameArea(areaModel, index);
+                                    },
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                    foregroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                    icon: Icons.edit,
+                                    label: 'Edit',
+                                  ),
+                                  SlidableAction(
+                                    onPressed: (_) async {
+                                      final String name = areaModel
+                                          .getArea(index)
+                                          .name;
+                                      final bool shouldDelete =
+                                          await _confirmDelete(name);
+                                      if (shouldDelete) {
+                                        areaModel.removeArea(index);
+                                      }
+                                    },
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.errorContainer,
+                                    foregroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.onErrorContainer,
+                                    icon: Icons.delete,
+                                    label: 'Delete',
+                                  ),
+                                ],
+                              ),
+                              child: AreaTile(
+                                key: Key('$index'),
+                                index: index,
+                                select: widget._select,
+                              ),
                             ),
                         ],
                         onReorder: (oldIndex, newIndex) {

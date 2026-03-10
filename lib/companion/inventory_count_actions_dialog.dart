@@ -229,7 +229,14 @@ class _InventoryCountActionsDialogState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               spacing: 16,
-              children: [?_buildFillMessage, ?_buildPrintMessage],
+              children: [
+                // Hive analyzer version doesnt support null aware operator
+                // ignore: use_null_aware_elements
+                if (_buildFillMessage != null) _buildFillMessage!,
+                // Hive analyzer version doesnt support null aware operator
+                // ignore: use_null_aware_elements
+                if (_buildPrintMessage != null) _buildPrintMessage!,
+              ],
             );
           }
 

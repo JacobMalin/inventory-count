@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/types/json.dart';
 import '../main/models/data/inventory_models.dart';
 import 'inventory_count_actions_dialog.dart';
 import 'window_model.dart';
@@ -155,7 +156,7 @@ class InventoryCountsPage extends StatelessWidget {
     );
 
     return SafeArea(
-      child: StreamBuilder<List<Map<String, dynamic>>>(
+      child: StreamBuilder<List<Json>>(
         stream: storage
             .stream(primaryKey: ['name', 'profile'])
             .order('updated_at'),
@@ -167,7 +168,7 @@ class InventoryCountsPage extends StatelessWidget {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
-          final List<Map<String, dynamic>> counts = snapshot.data ?? [];
+          final List<Json> counts = snapshot.data ?? [];
           if (counts.isEmpty) {
             return const Center(child: Text('No counts found.'));
           }
@@ -177,7 +178,7 @@ class InventoryCountsPage extends StatelessWidget {
             separatorBuilder: (context, index) =>
                 const Divider(height: 1, indent: 36, endIndent: 36),
             itemBuilder: (context, index) {
-              final Map<String, dynamic> count = counts[index];
+              final Json count = counts[index];
 
               final String profile = count['profile'] ?? 'Default';
               final countName = (count['name'] ?? '').toString();

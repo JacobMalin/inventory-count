@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../core/types/json.dart';
 import '../export_model.dart';
 import 'count_strategy.dart';
 import 'export_entry.dart';
@@ -35,38 +36,49 @@ abstract class StorageObject extends HiveObject {
   String get name;
   set name(String value);
 
-  Map<String, dynamic> toJson();
+  String get path;
+  List<TextSpan> get richPath;
+
+  Json toJson();
+}
+
+String _nameWithDuplicateSuffix(String name, int duplicateOrder) {
+  return duplicateOrder <= 1 ? name : '$name$duplicateOrder';
 }
 
 @HiveType(typeId: 0)
 class Area extends StorageObject {
-  Area(this.name, {List<StorageObject>? shelvesAndItems})
-    : shelvesAndItems = shelvesAndItems ?? [];
+  Area(
+    this.name, {
+    int duplicateOrder = 1,
+    List<StorageObject>? shelvesAndItems,
+  }) : _duplicateOrder = duplicateOrder,
+       _shelvesAndItems = shelvesAndItems ?? [];
 
-  factory Area.fromJson(Map<String, dynamic> json) {
-    return Area(
+  factory Area.fromJson(Json json) {
+    final area = Area(
       json['name'] as String? ?? '',
-      shelvesAndItems: (json['shelvesAndItems'] as List? ?? [])
-          .map((item) {
-            if (item == null || item is! Map<String, dynamic>) return null;
-            try {
-              if (item['type'] == 'shelf') {
-                return Shelf.fromJson(item['data'] as Map<String, dynamic>);
-              } else if (item['type'] == 'item') {
-                return Item.fromJson(item['data'] as Map<String, dynamic>);
-              }
-            } on Exception catch (e) {
-              if (kDebugMode) {
-                print('Failed to parse StorageObject from JSON: $e');
-              }
-              return null;
-            }
-            return null;
-          })
-          .where((item) => item != null)
-          .cast<StorageObject>()
-          .toList(),
+      duplicateOrder: json['duplicateOrder'] as int? ?? 1,
     );
+
+    for (final Json item in json['shelvesAndItems'] as List? ?? []) {
+      try {
+        if (item['type'] == 'shelf') {
+          area._shelvesAndItems.add(
+            Shelf._fromJson(item['data'] as Json, area),
+          );
+        } else if (item['type'] == 'item') {
+          area._shelvesAndItems.add(Item._fromJson(item['data'] as Json, area));
+        }
+      } on Exception catch (e) {
+        if (kDebugMode) {
+          print('Failed to parse StorageObject from JSON: $e');
+        }
+        continue;
+      }
+    }
+
+    return area;
   }
 
   @override
@@ -78,17 +90,35 @@ class Area extends StorageObject {
   bool get _deprecated => false;
 
   @HiveField(2)
-  List<StorageObject> shelvesAndItems;
+  List<StorageObject> _shelvesAndItems;
+
+  @HiveField(3)
+  int? _duplicateOrder;
+
+  int get duplicateOrder => _duplicateOrder ?? 1;
+  set duplicateOrder(int value) => _duplicateOrder = value;
 
   Color get color => Color(
     Colors.primaries[name.hashCode % Colors.primaries.length].toARGB32(),
   );
 
   @override
-  Map<String, dynamic> toJson() {
+  String get path => _nameWithDuplicateSuffix(name, duplicateOrder);
+
+  @override
+  List<TextSpan> get richPath => [
+    TextSpan(
+      text: name,
+      style: TextStyle(color: color),
+    ),
+  ];
+
+  @override
+  Json toJson() {
     return {
       'name': name,
-      'shelvesAndItems': shelvesAndItems.map((item) {
+      'duplicateOrder': duplicateOrder,
+      'shelvesAndItems': _shelvesAndItems.map((item) {
         if (item is Shelf) {
           return {'type': 'shelf', 'data': item.toJson()};
         } else if (item is Item) {
@@ -98,31 +128,161 @@ class Area extends StorageObject {
       }).toList(),
     };
   }
+
+  void addShelf(String shelfName) {
+    _shelvesAndItems.add(Shelf(shelfName)..parent = this);
+    _reindexDirectChildDuplicateOrders();
+  }
+
+  void addItem(String itemName) {
+    _shelvesAndItems.add(Item(itemName)..parent = this);
+    _reindexDirectChildDuplicateOrders();
+  }
+
+  int get numItemsAndShelves => _shelvesAndItems.length;
+  StorageObject operator [](int index) {
+    final StorageObject object = _shelvesAndItems[index];
+    if (object is Shelf) {
+      object
+        ..parent = this
+        .._relinkParentReferences();
+    } else if (object is Item) {
+      object.parent = this;
+    }
+    return object;
+  }
+
+  StorageObject removeAt(int index) {
+    final StorageObject removed = _shelvesAndItems.removeAt(index);
+    _reindexDirectChildDuplicateOrders();
+    return removed;
+  }
+
+  void insert(int index, StorageObject object) {
+    if (object is Shelf) {
+      object
+        ..parent = this
+        .._relinkParentReferences();
+    } else if (object is Item) {
+      object.parent = this;
+    }
+
+    _shelvesAndItems.insert(index, object);
+    _reindexDirectChildDuplicateOrders();
+  }
+
+  void relinkParentReferences() {
+    _reindexDirectChildDuplicateOrders();
+    for (final StorageObject element in _shelvesAndItems) {
+      if (element is Shelf) {
+        element
+          ..parent = this
+          .._relinkParentReferences();
+      } else if (element is Item) {
+        element.parent = this;
+      }
+    }
+  }
+
+  void forEachItem(void Function(Item element) action) {
+    for (final StorageObject element in _shelvesAndItems) {
+      if (element is Item) {
+        element.parent = this;
+        action(element);
+      } else if (element is Shelf) {
+        element
+          ..parent = this
+          .._relinkParentReferences()
+          ..forEach(action);
+      }
+    }
+  }
+
+  int get numShelves => _shelvesAndItems.whereType<Shelf>().length;
+  int get numItems => _shelvesAndItems.whereType<Item>().length;
+
+  bool hasAnyItems() {
+    for (var i = 0; i < numItemsAndShelves; i++) {
+      final StorageObject shelfOrItem = _shelvesAndItems[i];
+      if (shelfOrItem is Shelf) {
+        shelfOrItem
+          ..parent = this
+          .._relinkParentReferences();
+        if (shelfOrItem.isNotEmpty) {
+          return true;
+        }
+      } else if (shelfOrItem is Item) {
+        shelfOrItem.parent = this;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  List<String> getPathsForItem(String itemName) => [
+    for (final StorageObject shelfOrItem in _shelvesAndItems)
+      if (shelfOrItem is Shelf)
+        ...(() {
+          shelfOrItem
+            ..parent = this
+            .._relinkParentReferences();
+          return shelfOrItem.getPathsForItem(itemName);
+        }())
+      else if (shelfOrItem is Item &&
+          (shelfOrItem.countName ?? shelfOrItem.name) == itemName)
+        () {
+          shelfOrItem.parent = this;
+          return shelfOrItem.path;
+        }(),
+  ];
+
+  void _reindexDirectChildDuplicateOrders() {
+    final shelfNameCount = <String, int>{};
+    final itemNameCount = <String, int>{};
+
+    for (final StorageObject element in _shelvesAndItems) {
+      if (element is Shelf) {
+        final int nextOrder = (shelfNameCount[element.name] ?? 0) + 1;
+        shelfNameCount[element.name] = nextOrder;
+        element
+          ..duplicateOrder = nextOrder
+          ..parent = this
+          .._relinkParentReferences();
+      } else if (element is Item) {
+        final int nextOrder = (itemNameCount[element.name] ?? 0) + 1;
+        itemNameCount[element.name] = nextOrder;
+        element
+          ..duplicateOrder = nextOrder
+          ..parent = this;
+      }
+    }
+  }
 }
 
 @HiveType(typeId: 1)
 class Shelf extends StorageObject {
-  Shelf(this.name, {List<Item>? items}) : items = items ?? [];
+  Shelf(this.name, {int duplicateOrder = 1, List<Item>? items})
+    : _duplicateOrder = duplicateOrder,
+      _items = items ?? [];
 
-  factory Shelf.fromJson(Map<String, dynamic> json) {
-    return Shelf(
+  factory Shelf._fromJson(Json json, Area parent) {
+    final shelf = Shelf(
       json['name'] as String? ?? '',
-      items: (json['items'] as List? ?? [])
-          .where((item) => item != null && item is Map<String, dynamic>)
-          .map((item) {
-            try {
-              return Item.fromJson(item as Map<String, dynamic>);
-            } on Exception catch (e) {
-              if (kDebugMode) {
-                print('Failed to parse Item from JSON: $e');
-              }
-              return null;
-            }
-          })
-          .where((item) => item != null)
-          .cast<Item>()
-          .toList(),
-    );
+      duplicateOrder: json['duplicateOrder'] as int? ?? 1,
+    )..parent = parent;
+
+    for (final Json item in (json['items'] as List? ?? [])) {
+      try {
+        shelf._items.add(Item._fromJson(item, shelf));
+      } on Exception catch (e) {
+        if (kDebugMode) {
+          print('Failed to parse Item from JSON: $e');
+        }
+        continue;
+      }
+    }
+
+    return shelf;
   }
 
   @override
@@ -130,12 +290,88 @@ class Shelf extends StorageObject {
   String name;
 
   @HiveField(1)
-  List<Item> items;
+  List<Item> _items;
+
+  @HiveField(2)
+  int? _duplicateOrder;
+
+  int get duplicateOrder => _duplicateOrder ?? 1;
+  set duplicateOrder(int value) => _duplicateOrder = value;
+
+  late Area parent;
 
   @override
-  Map<String, dynamic> toJson() {
-    return {'name': name, 'items': items.map((item) => item.toJson()).toList()};
+  String get path =>
+      '${parent.path} > '
+      '${_nameWithDuplicateSuffix(name, duplicateOrder)}';
+
+  @override
+  List<TextSpan> get richPath => [
+    ...parent.richPath,
+    const TextSpan(text: ' > '),
+    TextSpan(text: name),
+  ];
+
+  @override
+  Json toJson() {
+    return {
+      'name': name,
+      'duplicateOrder': duplicateOrder,
+      'items': _items.map((item) => item.toJson()).toList(),
+    };
   }
+
+  void addItem(String itemName) {
+    _items.add(Item(itemName)..parent = this);
+    _reindexItemDuplicateOrders();
+  }
+
+  int get numItems => _items.length;
+  Item operator [](int index) {
+    final Item item = _items[index]..parent = this;
+    return item;
+  }
+
+  Item removeAt(int index) {
+    final Item removed = _items.removeAt(index);
+    _reindexItemDuplicateOrders();
+    return removed;
+  }
+
+  void insert(int index, Item item) {
+    item.parent = this;
+    _items.insert(index, item);
+    _reindexItemDuplicateOrders();
+  }
+
+  bool get isNotEmpty => _items.isNotEmpty;
+
+  void _relinkParentReferences() {
+    _reindexItemDuplicateOrders();
+  }
+
+  void _reindexItemDuplicateOrders() {
+    final itemNameCount = <String, int>{};
+    for (final Item item in _items) {
+      final int nextOrder = (itemNameCount[item.name] ?? 0) + 1;
+      itemNameCount[item.name] = nextOrder;
+      item
+        ..duplicateOrder = nextOrder
+        ..parent = this;
+    }
+  }
+
+  void forEach(void Function(Item element) action) {
+    for (final Item item in _items) {
+      item.parent = this;
+      action(item);
+    }
+  }
+
+  List<String> getPathsForItem(String itemName) => [
+    for (final Item item in _items)
+      if ((item.countName ?? item.name) == itemName) item.path,
+  ];
 }
 
 @HiveType(typeId: 2)
@@ -147,12 +383,12 @@ class Item extends StorageObject {
     this.defaultCount,
     CountPhase? countPhase,
     this.personalCountPhase,
-    int? id,
-  }) : strategy = strategy ?? SingularCountStrategy(),
-       countPhase = countPhase ?? CountPhase.back,
-       id = id ?? _generateId();
+    int duplicateOrder = 1,
+  }) : _duplicateOrder = duplicateOrder,
+       strategy = strategy ?? SingularCountStrategy(),
+       countPhase = countPhase ?? CountPhase.back;
 
-  factory Item.fromJson(Map<String, dynamic> json) {
+  factory Item._fromJson(Json json, StorageObject parent) {
     try {
       final int countPhaseIndex = json['countPhase'] ?? 0;
       final int? personalCountPhaseIndex = json['personalCountPhase'];
@@ -160,10 +396,8 @@ class Item extends StorageObject {
       CountStrategy? strategy;
       if (json['strategy'] != null) {
         try {
-          if (json['strategy'] is Map<String, dynamic>) {
-            strategy = CountStrategy.fromJson(
-              json['strategy'] as Map<String, dynamic>,
-            );
+          if (json['strategy'] is Json) {
+            strategy = CountStrategy.fromJson(json['strategy'] as Json);
           }
         } on Exception catch (e) {
           if (kDebugMode) {
@@ -177,10 +411,8 @@ class Item extends StorageObject {
       ItemCount? defaultCount;
       if (json['defaultCount'] != null) {
         try {
-          if (json['defaultCount'] is Map<String, dynamic>) {
-            defaultCount = ItemCount.fromJson(
-              json['defaultCount'] as Map<String, dynamic>,
-            );
+          if (json['defaultCount'] is Json) {
+            defaultCount = ItemCount.fromJson(json['defaultCount'] as Json);
           }
         } on Exception catch (e) {
           if (kDebugMode) {
@@ -191,11 +423,12 @@ class Item extends StorageObject {
         }
       }
 
-      return Item(
+      final item = Item(
         json['name'] as String? ?? '',
         strategy: strategy,
         countName: json['countName'] as String?,
         defaultCount: defaultCount,
+        duplicateOrder: json['duplicateOrder'] as int? ?? 1,
         countPhase:
             countPhaseIndex >= 0 && countPhaseIndex < CountPhase.values.length
             ? CountPhase.values[countPhaseIndex]
@@ -206,14 +439,16 @@ class Item extends StorageObject {
                 personalCountPhaseIndex < CountPhase.values.length
             ? CountPhase.values[personalCountPhaseIndex]
             : null,
-        id: json['id'] as int?,
-      );
+      )..parent = parent;
+      return item;
     } on Exception catch (e) {
       if (kDebugMode) {
         print('Failed to parse Item from JSON: $e');
       }
       // If anything fails, return a basic item with the name
-      return Item(json['name'] as String? ?? 'Unknown Item');
+      final item = Item(json['name'] as String? ?? 'Unknown Item')
+        ..parent = parent;
+      return item;
     }
   }
 
@@ -236,39 +471,43 @@ class Item extends StorageObject {
   @HiveField(6)
   CountPhase? personalCountPhase;
 
+  @HiveField(7)
+  int? _duplicateOrder;
+
+  int get duplicateOrder => _duplicateOrder ?? 1;
+  set duplicateOrder(int value) => _duplicateOrder = value;
+
   @HiveField(2)
-  int id;
+  // @Deprecated('Used to be itemId, but is no longer used')
+  bool get _deprecated => false;
+
+  late StorageObject parent;
+
+  @override
+  String get path =>
+      '${parent.path} > '
+      '${_nameWithDuplicateSuffix(name, duplicateOrder)}';
+
+  @override
+  List<TextSpan> get richPath => [
+    ...parent.richPath,
+    const TextSpan(text: ' > '),
+    TextSpan(text: name),
+  ];
 
   bool getIsValid(ExportModel exportModel) =>
       exportModel.contains(countName ?? name);
 
-  static int _generateId() {
-    try {
-      if (!Hive.isBoxOpen('areas')) {
-        return 0;
-      }
-      final Box box = Hive.box('areas');
-      final newId = box.get('itemIdCounter', defaultValue: 0) as int;
-      unawaited(box.put('itemIdCounter', newId + 1));
-      return newId;
-    } on Exception catch (e) {
-      if (kDebugMode) {
-        print('Failed to generate ID: $e');
-      }
-      return 0;
-    }
-  }
-
   @override
-  Map<String, dynamic> toJson() {
+  Json toJson() {
     return {
       'name': name,
+      'duplicateOrder': duplicateOrder,
       'strategy': strategy.toJson(),
       'countName': countName,
       'defaultCount': defaultCount?.toJson(),
       'countPhase': countPhase.index,
       'personalCountPhase': personalCountPhase?.index,
-      'id': id,
     };
   }
 
@@ -306,13 +545,24 @@ enum CountPhase {
         return 'Out';
     }
   }
+
+  Color get color {
+    switch (this) {
+      case CountPhase.back:
+        return const Color.fromRGBO(244, 67, 54, 0.6);
+      case CountPhase.cabinet:
+        return const Color.fromRGBO(255, 235, 59, 0.6);
+      case CountPhase.out:
+        return const Color.fromRGBO(76, 175, 80, 0.6);
+    }
+  }
 }
 
 @HiveType(typeId: 6)
 class CountEntry extends HiveObject {
   CountEntry(this.name, this.phase, this.countType);
 
-  factory CountEntry.fromJson(Map<String, dynamic> json) {
+  factory CountEntry.fromJson(Json json) {
     final String name = json['name'] as String? ?? '';
     final int phaseIndex = json['phase'] as int? ?? 0;
     final CountPhase phase =
@@ -334,7 +584,7 @@ class CountEntry extends HiveObject {
   @HiveField(2)
   ItemCountType countType;
 
-  Map<String, dynamic> toJson() {
+  Json toJson() {
     return {
       'name': name,
       'phase': phase.index,
@@ -346,33 +596,37 @@ class CountEntry extends HiveObject {
 @HiveType(typeId: 5)
 class Count extends HiveObject {
   Count({
-    Map<int, CountEntry>? itemCounts,
+    Map<dynamic, CountEntry>? itemCounts,
     CountPhase? countPhase,
     Map<String, bool>? itemsToFix,
     this.profile,
-  }) : itemCounts = itemCounts ?? <int, CountEntry>{},
+  }) : itemCounts = {
+         for (final MapEntry<dynamic, CountEntry> entry
+             in (itemCounts ?? <dynamic, CountEntry>{}).entries)
+           entry.key.toString(): entry.value,
+       },
        countPhase = countPhase ?? CountPhase.back,
        itemsToFix = itemsToFix ?? <String, bool>{};
 
-  factory Count.fromJson(Map<String, dynamic> json) {
+  factory Count.fromJson(Json json) {
     final int phaseIndex = json['countPhase'] as int? ?? 0;
     final CountPhase phase =
         (phaseIndex >= 0 && phaseIndex < CountPhase.values.length)
         ? CountPhase.values[phaseIndex]
         : CountPhase.back;
 
-    final itemsToFixRaw = json['itemsToFix'] as Map<String, dynamic>?;
+    final itemsToFixRaw = json['itemsToFix'] as Json?;
     final Map<String, bool> itemsToFix = itemsToFixRaw != null
         ? itemsToFixRaw.map((k, v) => MapEntry(k, v as bool))
         : <String, bool>{};
 
     final List<dynamic> itemCountsList =
         (json['itemCounts'] as List<dynamic>?) ?? [];
-    final Map<int, CountEntry> itemCountsMap = {};
+    final Map<String, CountEntry> itemCountsMap = {};
     for (final element in itemCountsList) {
-      if (element is Map<String, dynamic>) {
-        final itemId = element['itemId'] as int?;
-        final entryJson = element['entry'] as Map<String, dynamic>?;
+      if (element is Json) {
+        final itemId = element['path'] as String?;
+        final entryJson = element['entry'] as Json?;
         if (itemId != null && entryJson != null) {
           try {
             final entry = CountEntry.fromJson(entryJson);
@@ -394,7 +648,7 @@ class Count extends HiveObject {
   }
 
   @HiveField(0)
-  final Map<int, CountEntry> itemCounts;
+  final Map<dynamic, CountEntry> itemCounts;
 
   @HiveField(1)
   CountPhase countPhase = CountPhase.back;
@@ -406,16 +660,16 @@ class Count extends HiveObject {
   Profile? profile;
 
   ItemCountType? getCount(Item data) {
-    return itemCounts[data.id]?.countType;
+    return itemCounts[data.path]?.countType;
   }
 
   void setCount(Item data, ItemCountType? count) {
     if (count == null || (count is ItemCount && count.isEmpty())) {
-      itemCounts.remove(data.id);
+      itemCounts.remove(data.path);
       return;
     }
 
-    itemCounts[data.id] = CountEntry(
+    itemCounts[data.path] = CountEntry(
       data.countName ?? data.name,
       data.countPhase,
       count,
@@ -423,7 +677,7 @@ class Count extends HiveObject {
   }
 
   void setNotCounted(Item data) {
-    itemCounts[data.id] = CountEntry(
+    itemCounts[data.path] = CountEntry(
       data.countName ?? data.name,
       data.countPhase,
       ItemNotCounted(),
@@ -434,9 +688,9 @@ class Count extends HiveObject {
     var total = 0;
     var isValue = false;
 
-    for (final MapEntry<int, CountEntry> entry in itemCounts.entries) {
-      final ItemCountType itemCountType = entry.value.countType;
-      if (entry.value.name == name && entry.value.phase == phase) {
+    for (final CountEntry entry in itemCounts.values) {
+      final ItemCountType itemCountType = entry.countType;
+      if (entry.name == name && entry.phase == phase) {
         if (itemCountType is ItemNotCounted) return -1;
 
         isValue = true;
@@ -449,9 +703,9 @@ class Count extends HiveObject {
   String? getCountSumNotationByName(String name, CountPhase phase) {
     final List<String> notations = [];
 
-    for (final MapEntry<int, CountEntry> entry in itemCounts.entries) {
-      final ItemCountType itemCountType = entry.value.countType;
-      if (entry.value.name == name && entry.value.phase == phase) {
+    for (final CountEntry entry in itemCounts.values) {
+      final ItemCountType itemCountType = entry.countType;
+      if (entry.name == name && entry.phase == phase) {
         if (itemCountType is ItemNotCounted) {
           notations.add('-');
         } else if (itemCountType is ItemCount) {
@@ -471,8 +725,8 @@ class Count extends HiveObject {
     return notations.join(' + ');
   }
 
-  static Map<String, dynamic> getItemNotCountedJson(String? omniName) {
-    final Map<String, dynamic> exportData = {};
+  static Json getItemNotCountedJson(String? omniName) {
+    final Json exportData = {};
 
     for (final CountPhase phase in CountPhase.values) {
       exportData[phase.name] = '-';
@@ -484,8 +738,8 @@ class Count extends HiveObject {
     return exportData;
   }
 
-  Map<String, dynamic> getItemExportJson(String countName, String? omniName) {
-    final Map<String, dynamic> exportData = {};
+  Json getItemExportJson(String countName, String? omniName) {
+    final Json exportData = {};
 
     for (final CountPhase phase in CountPhase.values) {
       exportData[phase.name] = getCountSumNotationByName(countName, phase);
@@ -535,11 +789,11 @@ class Count extends HiveObject {
   }
 
   void updateCountForItem(Item data) {
-    if (!itemCounts.containsKey(data.id)) {
+    if (!itemCounts.containsKey(data.path)) {
       return;
     }
 
-    final CountEntry existingEntry = itemCounts[data.id]!;
+    final CountEntry existingEntry = itemCounts[data.path]!;
     ItemCountType existingCountType = existingEntry.countType;
 
     if (existingCountType is ItemCount) {
@@ -550,19 +804,19 @@ class Count extends HiveObject {
       );
     }
 
-    itemCounts[data.id] = CountEntry(
+    itemCounts[data.path] = CountEntry(
       data.countName ?? data.name,
       data.countPhase,
       existingCountType,
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Json toJson() {
     return {
       'countPhase': countPhase.index,
       'itemsToFix': itemsToFix,
       'itemCounts': itemCounts.entries.map((e) {
-        return {'itemId': e.key, 'entry': e.value.toJson()};
+        return {'path': e.key, 'entry': e.value.toJson()};
       }).toList(),
     };
   }

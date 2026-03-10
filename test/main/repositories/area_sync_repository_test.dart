@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventory_count/core/types/json.dart';
 import 'package:inventory_count/main/repositories/area_sync_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -77,7 +78,7 @@ void main() {
       final SupabaseClient client = _client();
       final repository = SupabaseAreaSyncRepository(
         client: client,
-        fetchProfilesRows: () async => <Map<String, dynamic>>[
+        fetchProfilesRows: () async => <Json>[
           <String, dynamic>{
             'name': _profileName,
             'updated_at': DateTime.utc(2026, 2, 19).toIso8601String(),
@@ -102,9 +103,9 @@ void main() {
       'subscribeProfileChanges maps insert update and delete events',
       () async {
         final SupabaseClient client = _client();
-        Future<void> Function(Map<String, dynamic> row)? insert;
-        Future<void> Function(Map<String, dynamic> row)? update;
-        Future<void> Function(Map<String, dynamic> row)? delete;
+        Future<void> Function(Json row)? insert;
+        Future<void> Function(Json row)? update;
+        Future<void> Function(Json row)? delete;
         final channel = _FakeRealtimeChannel();
         final changes = <AreaSyncChange>[];
 
@@ -113,12 +114,9 @@ void main() {
           subscribeProfileChanges:
               ({
                 required excludedUdid,
-                required Future<void> Function(Map<String, dynamic>)
-                onInsertRow,
-                required Future<void> Function(Map<String, dynamic>)
-                onUpdateRow,
-                required Future<void> Function(Map<String, dynamic>)
-                onDeleteRow,
+                required Future<void> Function(Json) onInsertRow,
+                required Future<void> Function(Json) onUpdateRow,
+                required Future<void> Function(Json) onDeleteRow,
               }) {
                 expect(excludedUdid, _localUdid);
                 insert = onInsertRow;
@@ -160,7 +158,7 @@ void main() {
 
     test('batchUpsertProfiles sends mapped payload rows', () async {
       final SupabaseClient client = _client();
-      List<Map<String, dynamic>>? capturedRows;
+      List<Json>? capturedRows;
       final repository = SupabaseAreaSyncRepository(
         client: client,
         upsertProfilesRows: (rows) async {
@@ -184,7 +182,7 @@ void main() {
 
     test('upsertProfile sends mapped payload row', () async {
       final SupabaseClient client = _client();
-      Map<String, dynamic>? capturedRow;
+      Json? capturedRow;
       final repository = SupabaseAreaSyncRepository(
         client: client,
         upsertProfileRow: (row) async {
@@ -303,7 +301,7 @@ void main() {
         udid: _deviceA,
       );
 
-      final Map<String, dynamic> payload = repository.toPayloadForTest(record);
+      final Json payload = repository.toPayloadForTest(record);
 
       expect(payload['name'], _profileName);
       expect(payload['updated_at'], updatedAt.toIso8601String());

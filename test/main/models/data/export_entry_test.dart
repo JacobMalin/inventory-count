@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:inventory_count/core/types/json.dart';
 import 'package:inventory_count/main/models/data/export_entry.dart';
 
 import '../../../test_hive_setup.dart';
@@ -13,7 +14,7 @@ void main() {
     test('ExportItem.toJson includes omniName', () {
       final item = ExportItem('Popcorn', omniName: 'POPCORN_OMNI');
 
-      final Map<String, dynamic> json = item.toJson();
+      final Json json = item.toJson();
 
       expect(json['type'], 'ExportItem');
       expect(json['name'], 'Popcorn');

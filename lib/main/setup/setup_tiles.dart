@@ -16,17 +16,6 @@ String _getPhaseText(CountPhase phase) {
   }
 }
 
-Color _getPhaseColor(CountPhase phase) {
-  switch (phase) {
-    case CountPhase.back:
-      return const Color.fromRGBO(244, 67, 54, 0.6); // Red
-    case CountPhase.cabinet:
-      return const Color.fromRGBO(255, 235, 59, 0.6); // Yellow
-    case CountPhase.out:
-      return const Color.fromRGBO(76, 175, 80, 0.6); // Green
-  }
-}
-
 Widget _buildPhaseIndicators(Set<CountPhase> phases) {
   final List<CountPhase> sortedPhases = phases.toList()
     ..sort((a, b) => a.index.compareTo(b.index));
@@ -39,7 +28,7 @@ Widget _buildPhaseIndicators(Set<CountPhase> phases) {
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: _getPhaseColor(sortedPhases[i]),
+            color: sortedPhases[i].color,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Center(
@@ -75,20 +64,14 @@ class AreaTile extends StatelessWidget {
     return Consumer<AreaModel>(
       builder: (context, areaModel, child) {
         final Area area = areaModel.getArea(_index);
-        final int numShelves = area.shelvesAndItems.whereType<Shelf>().length;
-        final int numItems = area.shelvesAndItems.whereType<Item>().length;
+        final int numShelves = area.numShelves;
+        final int numItems = area.numItems;
 
         // Collect all phases from items in area
         final phases = <CountPhase>{};
-        for (final StorageObject element in area.shelvesAndItems) {
-          if (element is Item) {
-            phases.add(element.personalCountPhase ?? element.countPhase);
-          } else if (element is Shelf) {
-            for (final Item item in element.items) {
-              phases.add(item.personalCountPhase ?? item.countPhase);
-            }
-          }
-        }
+        area.forEachItem((element) {
+          phases.add(element.personalCountPhase ?? element.countPhase);
+        });
 
         String subtitleText;
         if (numShelves == 0 && numItems == 0) {
@@ -146,16 +129,16 @@ class ShelfTile extends StatelessWidget {
 
         // Collect all phases from items in shelf
         final phases = <CountPhase>{};
-        for (final Item item in shelf.items) {
+        shelf.forEach((item) {
           phases.add(item.personalCountPhase ?? item.countPhase);
-        }
+        });
 
         return ListTile(
           key: Key('$_index'),
           leading: const Icon(Icons.shelves, color: Colors.amber),
           tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           title: Text(shelf.name),
-          subtitle: Text('${shelf.items.length} items'),
+          subtitle: Text('${shelf.numItems} items'),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -224,7 +207,7 @@ class ItemTile extends StatelessWidget {
                     width: 20,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: _getPhaseColor(item.countPhase),
+                      color: item.countPhase.color,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Center(
@@ -244,7 +227,7 @@ class ItemTile extends StatelessWidget {
                       width: 20,
                       height: 20,
                       decoration: BoxDecoration(
-                        color: _getPhaseColor(item.personalCountPhase!),
+                        color: item.personalCountPhase!.color,
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
                           color: const Color.fromRGBO(255, 255, 255, 0.5),

@@ -6,7 +6,6 @@ import 'models/count_model.dart';
 import 'models/data/export_entry.dart';
 import 'models/data/inventory_models.dart';
 import 'models/export_model.dart';
-import 'models/item_location_data.dart';
 
 class FixPage extends StatefulWidget {
   const FixPage({super.key});
@@ -103,16 +102,6 @@ class _FixPageState extends State<FixPage> {
     return textPainter.width;
   }
 
-  List<TextSpan> _buildAreaShelfTextSpans(Area? itemArea, Shelf? itemShelf) => [
-    if (itemArea != null)
-      TextSpan(
-        text: itemArea.name,
-        style: TextStyle(color: itemArea.color),
-      ),
-    if (itemArea != null && itemShelf != null) const TextSpan(text: ' > '),
-    if (itemShelf != null) TextSpan(text: itemShelf.name),
-  ];
-
   Future<void> _showBumpCountDialog(
     BuildContext context,
     String itemName,
@@ -120,10 +109,7 @@ class _FixPageState extends State<FixPage> {
     bool isNotCounted,
     AreaModel areaModel,
   ) async {
-    final List<ItemLocationData> items = areaModel.findItemsByName(
-      itemName,
-      phase,
-    );
+    final List<Item> items = areaModel.findItemsByName(itemName, phase);
     if (items.isEmpty) return;
 
     await showDialog(
@@ -135,9 +121,11 @@ class _FixPageState extends State<FixPage> {
             children: [
               Text(
                 phase.name,
-                style: DefaultTextStyle.of(
-                  context,
-                ).style.copyWith(fontSize: 14, fontWeight: FontWeight.normal),
+                style: DefaultTextStyle.of(context).style.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                  color: phase.color,
+                ),
               ),
               Text(itemName, overflow: TextOverflow.ellipsis),
             ],
@@ -148,13 +136,9 @@ class _FixPageState extends State<FixPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: 16,
           children: [
-            for (final itemData in items)
+            for (final item in items)
               Builder(
                 builder: (context) {
-                  final Area? itemArea = itemData.area;
-                  final Shelf? itemShelf = itemData.shelf;
-                  final Item item = itemData.item;
-
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -167,10 +151,7 @@ class _FixPageState extends State<FixPage> {
                                     fontSize: 14,
                                     fontWeight: FontWeight.normal,
                                   ),
-                              children: _buildAreaShelfTextSpans(
-                                itemArea,
-                                itemShelf,
-                              ),
+                              children: item.parent.richPath,
                             ),
                           ),
                           const Spacer(),
@@ -709,14 +690,17 @@ class _FixPageState extends State<FixPage> {
   }) {
     return Container(
       color: backgroundColor,
-      padding: const EdgeInsets.all(12),
-      child: Text(
-        text,
-        textAlign: textAlign,
-        style: Theme.of(context).textTheme.bodyMedium,
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-        softWrap: false,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: textAlign == TextAlign.left
+            ? Alignment.centerLeft
+            : Alignment.center,
+        child: Text(
+          text,
+          textAlign: textAlign,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
       ),
     );
   }

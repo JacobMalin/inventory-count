@@ -5,13 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/types/json.dart';
 import '../repositories/area_local_repository.dart';
 import '../repositories/area_sync_repository.dart';
 import '../repositories/device_id_repository.dart';
 import 'count_model.dart';
 import 'data/count_strategy.dart';
 import 'data/inventory_models.dart';
-import 'item_location_data.dart';
 import 'sync_change_notifier.dart';
 import 'sync_coordinator.dart';
 
@@ -269,6 +269,17 @@ class AreaModel extends SyncChangeNotifier {
 
   Map<Profile, DateTime?> _updatedAtMap = {};
 
+  void _reindexAreaDuplicateOrders(List<Area> areas) {
+    final areaNameCount = <String, int>{};
+    for (final area in areas) {
+      final int nextOrder = (areaNameCount[area.name] ?? 0) + 1;
+      areaNameCount[area.name] = nextOrder;
+      area
+        ..duplicateOrder = nextOrder
+        ..relinkParentReferences();
+    }
+  }
+
   List<Area> getAreas() {
     if (countModel.selectedProfile == null) return [];
 
@@ -286,16 +297,13 @@ class AreaModel extends SyncChangeNotifier {
   void setAreas(List<Area> areas) {
     if (countModel.selectedProfile == null) return;
 
+    _reindexAreaDuplicateOrders(areas);
+
     final Map<Profile, List<Area>> currentProfiles = profiles;
     currentProfiles[countModel.selectedProfile!] = areas;
     profiles = currentProfiles;
 
     updateSupabase(countModel.selectedProfile!);
-  }
-
-  int get _itemIdCounter => _localRepository.readItemIdCounter();
-  set _itemIdCounter(int value) {
-    unawaited(_localRepository.writeItemIdCounter(value));
   }
 
   int get numAreas => getAreas().length;
@@ -307,17 +315,8 @@ class AreaModel extends SyncChangeNotifier {
 
   void removeArea(int index) {
     final List<Area> currentAreas = getAreas();
-    final Area area = currentAreas[index];
-
     // Remove all items in the area from count list
-    for (final StorageObject shelfOrItem in area.shelvesAndItems) {
-      if (shelfOrItem is Item) {
-        countModel.removeFromCountList(shelfOrItem);
-      } else if (shelfOrItem is Shelf) {
-        // Remove all items in the shelf from count list
-        shelfOrItem.items.forEach(countModel.removeFromCountList);
-      }
-    }
+    currentAreas[index].forEachItem(countModel.removeFromCountList);
 
     currentAreas.removeAt(index);
     setAreas(currentAreas);
@@ -337,53 +336,52 @@ class AreaModel extends SyncChangeNotifier {
     setAreas(currentAreas);
   }
 
-  void addShelfToArea(int areaIndex, Shelf shelf) {
+  void addShelfToArea(int areaIndex, String shelfName) {
     final List<Area> currentAreas = getAreas();
-    currentAreas[areaIndex].shelvesAndItems.add(shelf);
+    currentAreas[areaIndex].addShelf(shelfName);
     setAreas(currentAreas);
   }
 
-  void addItemToArea(int areaIndex, Item item) {
+  void addItemToArea(int areaIndex, String itemName) {
     final List<Area> currentAreas = getAreas();
-    currentAreas[areaIndex].shelvesAndItems.add(item);
+    currentAreas[areaIndex].addItem(itemName);
     setAreas(currentAreas);
   }
 
   void removeShelfOrItemFromArea(int areaIndex, int index) {
     final List<Area> currentAreas = getAreas();
-    final StorageObject shelfOrItem =
-        currentAreas[areaIndex].shelvesAndItems[index];
+    final StorageObject shelfOrItem = currentAreas[areaIndex][index];
 
     // Remove from count list if it's an Item
     if (shelfOrItem is Item) {
       countModel.removeFromCountList(shelfOrItem);
     } else if (shelfOrItem is Shelf) {
       // Remove all items in the shelf from count list
-      shelfOrItem.items.forEach(countModel.removeFromCountList);
+      shelfOrItem.forEach(countModel.removeFromCountList);
     }
 
-    currentAreas[areaIndex].shelvesAndItems.removeAt(index);
+    currentAreas[areaIndex].removeAt(index);
     setAreas(currentAreas);
   }
 
   void moveShelfOrItemInArea(int areaIndex, int oldIndex, int newIndex) {
     final List<Area> currentAreas = getAreas();
-    final List<StorageObject> shelvesAndItems =
-        currentAreas[areaIndex].shelvesAndItems;
-    shelvesAndItems.insert(newIndex, shelvesAndItems.removeAt(oldIndex));
+    currentAreas[areaIndex].insert(
+      newIndex,
+      currentAreas[areaIndex].removeAt(oldIndex),
+    );
     setAreas(currentAreas);
   }
 
   void renameShelfInArea(int areaIndex, int index, String newName) {
     final List<Area> currentAreas = getAreas();
-    currentAreas[areaIndex].shelvesAndItems[index].name = newName;
+    currentAreas[areaIndex][index].name = newName;
     setAreas(currentAreas);
   }
 
-  void addItemToShelf(int areaIndex, int shelfIndex, Item item) {
+  void addItemToShelf(int areaIndex, int shelfIndex, String itemName) {
     final List<Area> currentAreas = getAreas();
-    final shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
-    shelf.items.add(item);
+    (currentAreas[areaIndex][shelfIndex] as Shelf).addItem(itemName);
     setAreas(currentAreas);
   }
 
@@ -396,17 +394,16 @@ class AreaModel extends SyncChangeNotifier {
       // Item is directly in area
       final int areaIndex = selectedOrder[0];
       final int itemIndex = selectedOrder[1];
-      itemToRemove = currentAreas[areaIndex].shelvesAndItems[itemIndex] as Item;
-      currentAreas[areaIndex].shelvesAndItems.removeAt(itemIndex);
+      itemToRemove = currentAreas[areaIndex][itemIndex] as Item;
+      currentAreas[areaIndex].removeAt(itemIndex);
     } else {
       // Item is in shelf
       final int areaIndex = selectedOrder[0];
       final int shelfIndex = selectedOrder[1];
       final int itemIndex = selectedOrder[2];
-      final shelf =
-          currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
-      itemToRemove = shelf.items[itemIndex];
-      shelf.items.removeAt(itemIndex);
+      final shelf = currentAreas[areaIndex][shelfIndex] as Shelf;
+      itemToRemove = shelf[itemIndex];
+      shelf.removeAt(itemIndex);
     }
 
     // Remove from count list
@@ -422,8 +419,8 @@ class AreaModel extends SyncChangeNotifier {
     int newIndex,
   ) {
     final List<Area> currentAreas = getAreas();
-    final shelf = currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
-    shelf.items.insert(newIndex, shelf.items.removeAt(oldIndex));
+    final shelf = currentAreas[areaIndex][shelfIndex] as Shelf;
+    shelf.insert(newIndex, shelf.removeAt(oldIndex));
     setAreas(currentAreas);
   }
 
@@ -433,10 +430,10 @@ class AreaModel extends SyncChangeNotifier {
     final int? index2 = selectedOrder.elementAtOrNull(2);
 
     if (index2 != null) {
-      final shelf = getAreas()[areaIndex].shelvesAndItems[index] as Shelf;
-      return shelf.items[index2];
+      final shelf = getAreas()[areaIndex][index] as Shelf;
+      return shelf[index2];
     }
-    return getAreas()[areaIndex].shelvesAndItems[index];
+    return getAreas()[areaIndex][index];
   }
 
   void editItem(
@@ -458,15 +455,14 @@ class AreaModel extends SyncChangeNotifier {
       // Item is directly in area
       final int areaIndex = selectedOrder[0];
       final int itemIndex = selectedOrder[1];
-      item = currentAreas[areaIndex].shelvesAndItems[itemIndex] as Item;
+      item = currentAreas[areaIndex][itemIndex] as Item;
     } else {
       // Item is in shelf
       final int areaIndex = selectedOrder[0];
       final int shelfIndex = selectedOrder[1];
       final int itemIndex = selectedOrder[2];
-      final shelf =
-          currentAreas[areaIndex].shelvesAndItems[shelfIndex] as Shelf;
-      item = shelf.items[itemIndex];
+      final shelf = currentAreas[areaIndex][shelfIndex] as Shelf;
+      item = shelf[itemIndex];
     }
 
     var countListNeedsUpdate = false;
@@ -515,34 +511,26 @@ class AreaModel extends SyncChangeNotifier {
       'profiles': profiles.map(
         (profile, areas) => MapEntry(profile.name, areas),
       ),
-      'itemIdCounter': _itemIdCounter,
     };
 
     return jsonEncode(data);
   }
 
   void importAreasFromJson(String jsonString) {
-    final data = jsonDecode(jsonString) as Map<String, dynamic>;
+    final data = jsonDecode(jsonString) as Json;
 
     // Import areas
     if (data['profiles'] != null) {
       final Map<Profile, List<Area>> importedProfiles =
-          (data['profiles'] as Map<String, dynamic>).map((
-            profileName,
-            areasData,
-          ) {
+          (data['profiles'] as Json).map((profileName, areasData) {
             final profile = Profile(profileName);
             final List<Area> areas = (areasData as List<dynamic>)
                 .map((areaData) => Area.fromJson(areaData))
                 .toList();
+            _reindexAreaDuplicateOrders(areas);
             return MapEntry(profile, areas);
           });
       profiles = importedProfiles;
-    }
-
-    // Import itemIdCounter
-    if (data['itemIdCounter'] != null) {
-      _itemIdCounter = data['itemIdCounter'];
     }
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -560,7 +548,7 @@ class AreaModel extends SyncChangeNotifier {
   }
 
   void importProfileFromJson(Profile profile, String jsonString) {
-    final data = jsonDecode(jsonString) as Map<String, dynamic>;
+    final data = jsonDecode(jsonString) as Json;
 
     // Import areas for this specific profile
     List<Area> areas = [];
@@ -568,6 +556,7 @@ class AreaModel extends SyncChangeNotifier {
       areas = (data['areas'] as List<dynamic>)
           .map((areaData) => Area.fromJson(areaData))
           .toList();
+      _reindexAreaDuplicateOrders(areas);
     }
 
     final Map<Profile, List<Area>> currentProfiles = profiles;
@@ -580,71 +569,30 @@ class AreaModel extends SyncChangeNotifier {
   }
 
   bool hasAnyItems() {
-    for (var i = 0; i < numAreas; i++) {
-      final Area area = getArea(i);
-      for (final StorageObject shelfOrItem in area.shelvesAndItems) {
-        if (shelfOrItem is Shelf) {
-          if (shelfOrItem.items.isNotEmpty) {
-            return true;
-          }
-        } else if (shelfOrItem is Item) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return getAreas().any((area) => area.hasAnyItems());
   }
 
-  List<String> getPathsForItem(String itemName) {
-    final List<String> paths = [];
-    for (var i = 0; i < numAreas; i++) {
-      final Area area = getArea(i);
-      final String areaName = area.name;
-      for (final StorageObject shelfOrItem in area.shelvesAndItems) {
-        if (shelfOrItem is Shelf) {
-          final String shelfName = shelfOrItem.name;
-          for (final Item item in shelfOrItem.items) {
-            if ((item.countName ?? item.name) == itemName) {
-              paths.add('$areaName > $shelfName > ${item.name}');
-            }
-          }
-        } else if (shelfOrItem is Item &&
-            (shelfOrItem.countName ?? shelfOrItem.name) == itemName) {
-          paths.add('$areaName > ${shelfOrItem.name}');
-        }
-      }
-    }
-    return paths;
-  }
+  List<String> getPathsForItem(String itemName) => [
+    for (final area in getAreas()) ...area.getPathsForItem(itemName),
+  ];
 
-  List<ItemLocationData> findItemsByName(String name, CountPhase phase) {
-    final List<int> itemIds = [];
-    final List<ItemLocationData> items = [];
+  List<Item> findItemsByName(String name, CountPhase phase) {
+    final List<String> itemPaths = [];
+    final List<Item> items = [];
 
     if (countModel.selectedProfile == null) return [];
 
-    for (final MapEntry<int, CountEntry> entry
+    for (final MapEntry<String, CountEntry> entry
         in countModel.itemCounts.entries) {
       if (entry.value.name == name && entry.value.phase == phase) {
-        itemIds.add(entry.key);
+        itemPaths.add(entry.key);
       }
     }
 
     for (var i = 0; i < numAreas; i++) {
-      final Area area = getArea(i);
-      for (final StorageObject shelfOrItem in area.shelvesAndItems) {
-        if (shelfOrItem is Item) {
-          if (itemIds.contains(shelfOrItem.id)) {
-            items.add(ItemLocationData(shelfOrItem, area: area));
-          }
-        } else if (shelfOrItem is Shelf) {
-          for (final Item item in shelfOrItem.items) {
-            if (itemIds.contains(item.id)) {
-              items.add(ItemLocationData(item, area: area, shelf: shelfOrItem));
-            }
-          }
-        }
-      }
+      getArea(i).forEachItem((item) {
+        if (itemPaths.contains(item.path)) items.add(item);
+      });
     }
 
     return items;

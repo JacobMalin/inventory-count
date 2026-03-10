@@ -30,6 +30,20 @@
         "panel": "shared"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Run Sonar Scanner",
+      "type": "process",
+      "command": "sonar-scanner.bat",
+      "args": [
+        "-Dsonar.organization=jacobmalin",
+        "-Dsonar.projectKey=JacobMalin_inventory-count"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
     }
   ]
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:inventory_count/main/models/count_model.dart';
 import 'package:inventory_count/main/models/data/count_strategy.dart';
 import 'package:inventory_count/main/models/data/inventory_models.dart';
@@ -10,15 +11,42 @@ void main() {
   tearDownAll(disposeTestHive);
   setUp(resetTestHiveData);
 
+  Future<Item> buildItemFromAreaJson(
+    String name, {
+    required int id,
+    required CountStrategy strategy,
+    String? countName,
+    CountPhase countPhase = CountPhase.back,
+  }) async {
+    final area = Area.fromJson({
+      'name': 'Test Area',
+      'shelvesAndItems': [
+        {
+          'type': 'item',
+          'data': {
+            'name': name,
+            'strategy': strategy.toJson(),
+            'countName': countName,
+            'countPhase': countPhase.index,
+          },
+        },
+      ],
+    });
+
+    final item = area[0] as Item;
+    await Hive.box('areas').put(id, item);
+    return item;
+  }
+
   group('CountModel', () {
-    test('updates item count fields and computed value', () {
+    test('updates item count fields and computed value', () async {
       final model = CountModel();
-      final item = Item(
+      final Item item = await buildItemFromAreaJson(
         'Gloves',
+        id: 101,
         strategy: BoxesAndStacksCountStrategy(4, 2),
         countName: 'Gloves',
         countPhase: CountPhase.cabinet,
-        id: 101,
       );
 
       model
@@ -35,9 +63,13 @@ void main() {
       expect(model.getCountValueByName('Gloves', CountPhase.cabinet), 26);
     });
 
-    test('copies last available count from previous date', () {
+    test('copies last available count from previous date', () async {
       final model = CountModel();
-      final item = Item('Syringe', strategy: SingularCountStrategy(), id: 7);
+      final Item item = await buildItemFromAreaJson(
+        'Syringe',
+        id: 7,
+        strategy: SingularCountStrategy(),
+      );
 
       model
         ..setField1(item, 9)

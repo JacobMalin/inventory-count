@@ -4,19 +4,20 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/types/json.dart';
+
 enum AreaSyncChangeType { insert, update, delete }
 
-typedef FetchProfilesRows = Future<List<Map<String, dynamic>>> Function();
+typedef FetchProfilesRows = Future<List<Json>> Function();
 typedef SubscribeProfileChanges =
     RealtimeChannel Function({
       required String excludedUdid,
-      required Future<void> Function(Map<String, dynamic> newRow) onInsertRow,
-      required Future<void> Function(Map<String, dynamic> newRow) onUpdateRow,
-      required Future<void> Function(Map<String, dynamic> oldRow) onDeleteRow,
+      required Future<void> Function(Json newRow) onInsertRow,
+      required Future<void> Function(Json newRow) onUpdateRow,
+      required Future<void> Function(Json oldRow) onDeleteRow,
     });
-typedef UpsertProfilesRows =
-    Future<void> Function(List<Map<String, dynamic>> rows);
-typedef UpsertProfileRow = Future<void> Function(Map<String, dynamic> row);
+typedef UpsertProfilesRows = Future<void> Function(List<Json> rows);
+typedef UpsertProfileRow = Future<void> Function(Json row);
 typedef DeleteProfileByName = Future<void> Function(String profileName);
 
 class AreaSyncRecord {
@@ -90,7 +91,7 @@ class SupabaseAreaSyncRepository implements AreaSyncRepository {
 
   @override
   Future<List<AreaSyncRecord>> fetchProfiles() async {
-    final List<Map<String, dynamic>> response =
+    final List<Json> response =
         await (_fetchProfilesRows ?? _defaultFetchProfilesRows)();
 
     return response.map(_parseRecord).nonNulls.toList();
@@ -145,18 +146,16 @@ class SupabaseAreaSyncRepository implements AreaSyncRepository {
     return (_deleteProfileByName ?? _defaultDeleteProfileByName)(profileName);
   }
 
-  Future<List<Map<String, dynamic>>> _defaultFetchProfilesRows() async {
+  Future<List<Json>> _defaultFetchProfilesRows() async {
     final PostgrestList response = await _client.from('profiles').select();
-    return response
-        .map((row) => Map<String, dynamic>.from(row as Map))
-        .toList();
+    return response.map((row) => Json.from(row as Map)).toList();
   }
 
   RealtimeChannel _defaultSubscribeProfileChanges({
     required String excludedUdid,
-    required Future<void> Function(Map<String, dynamic> newRow) onInsertRow,
-    required Future<void> Function(Map<String, dynamic> newRow) onUpdateRow,
-    required Future<void> Function(Map<String, dynamic> oldRow) onDeleteRow,
+    required Future<void> Function(Json newRow) onInsertRow,
+    required Future<void> Function(Json newRow) onUpdateRow,
+    required Future<void> Function(Json oldRow) onDeleteRow,
   }) {
     return _client
         .channel('public:profiles')
@@ -191,11 +190,11 @@ class SupabaseAreaSyncRepository implements AreaSyncRepository {
         .subscribe();
   }
 
-  Future<void> _defaultUpsertProfilesRows(List<Map<String, dynamic>> rows) {
+  Future<void> _defaultUpsertProfilesRows(List<Json> rows) {
     return _client.from('profiles').upsert(rows);
   }
 
-  Future<void> _defaultUpsertProfileRow(Map<String, dynamic> row) {
+  Future<void> _defaultUpsertProfileRow(Json row) {
     return _client.from('profiles').upsert(row);
   }
 
@@ -204,16 +203,16 @@ class SupabaseAreaSyncRepository implements AreaSyncRepository {
   }
 
   @visibleForTesting
-  AreaSyncRecord? parseRecordForTest(Map<String, dynamic> row) {
+  AreaSyncRecord? parseRecordForTest(Json row) {
     return _parseRecord(row);
   }
 
   @visibleForTesting
-  Map<String, dynamic> toPayloadForTest(AreaSyncRecord record) {
+  Json toPayloadForTest(AreaSyncRecord record) {
     return _toPayload(record);
   }
 
-  Map<String, dynamic> _toPayload(AreaSyncRecord record) {
+  Json _toPayload(AreaSyncRecord record) {
     return {
       'name': record.name,
       'updated_at': record.updatedAt.toIso8601String(),
@@ -222,7 +221,7 @@ class SupabaseAreaSyncRepository implements AreaSyncRepository {
     };
   }
 
-  AreaSyncRecord? _parseRecord(Map<String, dynamic> row) {
+  AreaSyncRecord? _parseRecord(Json row) {
     final name = row['name'] as String?;
     final udid = row['udid'] as String?;
     final DateTime? updatedAt = row['updated_at'] != null

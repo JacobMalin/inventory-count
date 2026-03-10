@@ -21,13 +21,7 @@ class _FakeAreaLocalRepository implements AreaLocalRepository {
   Future<void> ensureInitialized() async {}
 
   @override
-  int readItemIdCounter() => 0;
-
-  @override
   Map<Profile, List<Area>> readProfiles() => <Profile, List<Area>>{};
-
-  @override
-  Future<void> writeItemIdCounter(int value) async {}
 
   @override
   Future<void> writeProfiles(Map<Profile, List<Area>> profiles) async {}

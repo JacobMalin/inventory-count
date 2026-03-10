@@ -22,21 +22,12 @@ import '../../test_hive_setup.dart';
 
 class _InMemoryAreaLocalRepository implements AreaLocalRepository {
   final Map<Profile, List<Area>> _profiles = <Profile, List<Area>>{};
-  int _itemIdCounter = 0;
 
   @override
   Future<void> ensureInitialized() async {}
 
   @override
-  int readItemIdCounter() => _itemIdCounter;
-
-  @override
   Map<Profile, List<Area>> readProfiles() => _profiles;
-
-  @override
-  Future<void> writeItemIdCounter(int value) async {
-    _itemIdCounter = value;
-  }
 
   @override
   Future<void> writeProfiles(Map<Profile, List<Area>> profiles) async {

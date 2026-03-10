@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/types/json.dart';
 import '../area_model.dart';
 import '../count_model.dart';
 import 'inventory_models.dart';
@@ -38,10 +39,9 @@ enum CountStrategyType {
 abstract class CountStrategy {
   const CountStrategy();
 
-  factory CountStrategy.fromJson(Map<String, dynamic> json) {
+  factory CountStrategy.fromJson(Json json) {
     final type = json['type'] as String?;
-    final CountStrategy Function(Map<String, dynamic>)? constructor =
-        _registry[type];
+    final CountStrategy Function(Json)? constructor = _registry[type];
 
     if (constructor == null) {
       throw Exception('Unknown CountStrategy type: $type');
@@ -75,8 +75,7 @@ abstract class CountStrategy {
     _ => throw Exception('Unknown CountStrategy type'),
   };
 
-  Map<String, dynamic> toJson();
-
+  Json toJson();
   int? calculateCount(int? field1, int? field2);
 
   bool isEmpty(int? field1, int? field2);
@@ -108,8 +107,7 @@ abstract class CountStrategy {
 
   Widget buildBumpDisplay(BuildContext context, Item item);
 
-  static final Map<String, CountStrategy Function(Map<String, dynamic>)>
-  _registry = {
+  static final Map<String, CountStrategy Function(Json)> _registry = {
     'SingularCountStrategy': SingularCountStrategy.fromJson,
     'StacksCountStrategy': StacksCountStrategy.fromJson,
     'BoxesAndStacksCountStrategy': BoxesAndStacksCountStrategy.fromJson,
@@ -123,14 +121,14 @@ class SingularCountStrategy extends CountStrategy {
 
   // Must match pattern
   // ignore: avoid_unused_constructor_parameters
-  SingularCountStrategy.fromJson(Map<String, dynamic> json);
+  SingularCountStrategy.fromJson(Json json);
 
   // Hive requires at least one field for subtypes
   @HiveField(0)
   bool? placeholder = true;
 
   @override
-  Map<String, dynamic> toJson() => {'type': 'SingularCountStrategy'};
+  Json toJson() => {'type': 'SingularCountStrategy'};
 
   @override
   int? calculateCount(int? field1, int? field2) => field1;
@@ -304,16 +302,12 @@ class _SingularBumpDisplayState extends State<_SingularBumpDisplay> {
 class NegativeCountStrategy extends CountStrategy {
   NegativeCountStrategy(this.from);
 
-  NegativeCountStrategy.fromJson(Map<String, dynamic> json)
-    : from = json['from'] as int? ?? 0;
+  NegativeCountStrategy.fromJson(Json json) : from = json['from'] as int? ?? 0;
   @HiveField(0)
   int from;
 
   @override
-  Map<String, dynamic> toJson() => {
-    'type': 'NegativeCountStrategy',
-    'from': from,
-  };
+  Json toJson() => {'type': 'NegativeCountStrategy', 'from': from};
 
   @override
   int? calculateCount(int? field1, int? field2) {
@@ -376,20 +370,13 @@ class NegativeCountStrategy extends CountStrategy {
     required Item item,
     required void Function(String) onSubmitted,
   }) {
-    return TextField(
+    return _NegativeEntryField(
       controller: controller1,
       focusNode: focusNode,
-      autofocus: true,
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: 'Count (negative from $from)',
-        border: const OutlineInputBorder(),
-      ),
-      onChanged: (value) {
-        final int? intValue = int.tryParse(value);
-        countModel.setField1(item, intValue);
-      },
+      countModel: countModel,
+      item: item,
       onSubmitted: onSubmitted,
+      from: from,
     );
   }
 
@@ -539,20 +526,122 @@ class _NegativeBumpDisplayState extends State<_NegativeBumpDisplay> {
   }
 }
 
+class _NegativeEntryField extends StatefulWidget {
+  const _NegativeEntryField({
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required CountModel countModel,
+    required Item item,
+    required void Function(String) onSubmitted,
+    required int from,
+  }) : _from = from,
+       _onSubmitted = onSubmitted,
+       _item = item,
+       _countModel = countModel,
+       _focusNode = focusNode,
+       _controller = controller;
+
+  final TextEditingController _controller;
+  final FocusNode _focusNode;
+  final CountModel _countModel;
+  final Item _item;
+  final void Function(String) _onSubmitted;
+  final int _from;
+
+  @override
+  State<_NegativeEntryField> createState() => _NegativeEntryFieldState();
+}
+
+class _NegativeEntryFieldState extends State<_NegativeEntryField> {
+  bool _usePositiveInput = false;
+
+  void _toggleInputMode() {
+    final bool nextUsePositiveInput = !_usePositiveInput;
+    setState(() {
+      _usePositiveInput = nextUsePositiveInput;
+    });
+
+    FocusScope.of(context).requestFocus(widget._focusNode);
+
+    final int? intValue = int.tryParse(widget._controller.text);
+    if (intValue == null) {
+      widget._controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: widget._controller.text.length,
+      );
+      return;
+    }
+
+    // Negative mode value is the deducted amount (field1).
+    // Positive mode value is the resulting count (from - field1).
+    final int convertedValue = widget._from - intValue;
+    widget._controller.text = convertedValue.toString();
+    widget._controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: widget._controller.text.length,
+    );
+
+    final int storedValue = nextUsePositiveInput
+        ? widget._from - convertedValue
+        : convertedValue;
+    widget._countModel.setField1(widget._item, storedValue);
+
+    widget._controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: widget._controller.text.length,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: _toggleInputMode,
+          icon: Icon(_usePositiveInput ? Icons.add : Icons.remove, size: 26),
+          padding: const EdgeInsets.all(4),
+          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          splashRadius: 16,
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: TextField(
+            controller: widget._controller,
+            focusNode: widget._focusNode,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: _usePositiveInput
+                  ? 'Count'
+                  : 'Count (negative from ${widget._from})',
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              final int? intValue = int.tryParse(value);
+              final int? storedValue = _usePositiveInput && intValue != null
+                  ? widget._from - intValue
+                  : intValue;
+              widget._countModel.setField1(widget._item, storedValue);
+            },
+            onSubmitted: widget._onSubmitted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 @HiveType(typeId: 14)
 class StacksCountStrategy extends CountStrategy {
   StacksCountStrategy(this.perStack);
 
-  StacksCountStrategy.fromJson(Map<String, dynamic> json)
+  StacksCountStrategy.fromJson(Json json)
     : perStack = json['perStack'] as int? ?? 1;
   @HiveField(0)
   int perStack;
 
   @override
-  Map<String, dynamic> toJson() => {
-    'type': 'StacksCountStrategy',
-    'perStack': perStack,
-  };
+  Json toJson() => {'type': 'StacksCountStrategy', 'perStack': perStack};
 
   @override
   int? calculateCount(int? field1, int? field2) {
@@ -773,7 +862,7 @@ class _StacksBumpDisplayState extends State<_StacksBumpDisplay> {
 class BoxesAndStacksCountStrategy extends CountStrategy {
   BoxesAndStacksCountStrategy(this.perBox, this.perStack);
 
-  BoxesAndStacksCountStrategy.fromJson(Map<String, dynamic> json)
+  BoxesAndStacksCountStrategy.fromJson(Json json)
     : perBox = json['perBox'] as int? ?? 1,
       perStack = json['perStack'] as int? ?? 1;
   @HiveField(0)
@@ -783,7 +872,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
   int perStack;
 
   @override
-  Map<String, dynamic> toJson() => {
+  Json toJson() => {
     'type': 'BoxesAndStacksCountStrategy',
     'perBox': perBox,
     'perStack': perStack,
@@ -1175,15 +1264,12 @@ class _BoxesAndStacksBumpDisplayState
 class ItemCount extends ItemCountType {
   ItemCount(this.strategy, {this.field1, this.field2, super.doubleChecked});
 
-  factory ItemCount.fromJson(Map<String, dynamic> json) {
+  factory ItemCount.fromJson(Json json) {
     try {
       CountStrategy strategy;
-      if (json['strategy'] != null &&
-          json['strategy'] is Map<String, dynamic>) {
+      if (json['strategy'] != null && json['strategy'] is Json) {
         try {
-          strategy = CountStrategy.fromJson(
-            json['strategy'] as Map<String, dynamic>,
-          );
+          strategy = CountStrategy.fromJson(json['strategy'] as Json);
         } on Exception catch (e) {
           if (kDebugMode) print('Failed to parse strategy from JSON: $e');
           // If strategy parsing fails, use default
@@ -1222,7 +1308,7 @@ class ItemCount extends ItemCountType {
   bool isEmpty() => strategy.isEmpty(field1, field2);
 
   @override
-  Map<String, dynamic> toJson() => {
+  Json toJson() => {
     'type': 'ItemCount',
     'field1': field1,
     'field2': field2,
@@ -1235,20 +1321,17 @@ class ItemCount extends ItemCountType {
 class ItemNotCounted extends ItemCountType {
   ItemNotCounted({super.doubleChecked});
 
-  ItemNotCounted.fromJson(Map<String, dynamic> json)
+  ItemNotCounted.fromJson(Json json)
     : super(doubleChecked: json['doubleChecked'] as bool? ?? false);
 
   @override
-  Map<String, dynamic> toJson() => {
-    'type': 'ItemNotCounted',
-    ...super.toJson(),
-  };
+  Json toJson() => {'type': 'ItemNotCounted', ...super.toJson()};
 }
 
 abstract class ItemCountType {
   ItemCountType({this.doubleChecked = false});
 
-  factory ItemCountType.fromJson(Map<String, dynamic> json) {
+  factory ItemCountType.fromJson(Json json) {
     final type = json['type'] as String?;
     switch (type) {
       case 'ItemCount':
@@ -1262,5 +1345,5 @@ abstract class ItemCountType {
   @HiveField(0)
   bool doubleChecked;
 
-  Map<String, dynamic> toJson() => {'doubleChecked': doubleChecked};
+  Json toJson() => {'doubleChecked': doubleChecked};
 }

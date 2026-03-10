@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/types/json.dart';
 import 'data/count_strategy.dart';
 import 'data/inventory_models.dart';
 
@@ -219,17 +220,17 @@ class CountModel with ChangeNotifier {
     return _thisCount.getCountSumNotationByName(name, phase);
   }
 
-  Map<String, dynamic> getItemExportJson(String name, String? omniName) {
+  Json getItemExportJson(String name, String? omniName) {
     return _thisCount.getItemExportJson(name, omniName);
   }
 
-  Map<String, dynamic> getItemNotCountedJson(String? omniName) {
+  Json getItemNotCountedJson(String? omniName) {
     return Count.getItemNotCountedJson(omniName);
   }
 
   void removeFromCountList(Item data) {
     final Count currentCount = _thisCount;
-    currentCount.itemCounts.remove(data.id);
+    currentCount.itemCounts.remove(data.path);
     _thisCount = currentCount;
   }
 
@@ -238,5 +239,7 @@ class CountModel with ChangeNotifier {
     _thisCount = currentCount;
   }
 
-  Map<int, CountEntry> get itemCounts => _thisCount.itemCounts;
+  Map<String, CountEntry> get itemCounts => _thisCount.itemCounts.map(
+    (key, value) => MapEntry(key.toString(), value),
+  );
 }

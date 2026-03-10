@@ -7,9 +7,6 @@ abstract class AreaLocalRepository {
 
   Map<Profile, List<Area>> readProfiles();
   Future<void> writeProfiles(Map<Profile, List<Area>> profiles);
-
-  int readItemIdCounter();
-  Future<void> writeItemIdCounter(int value);
 }
 
 class HiveAreaLocalRepository implements AreaLocalRepository {
@@ -23,10 +20,6 @@ class HiveAreaLocalRepository implements AreaLocalRepository {
     if (_areasBox.get('profiles') == null) {
       await _areasBox.put('profiles', <Profile, List<Area>>{});
     }
-
-    if (_areasBox.get('itemIdCounter') == null) {
-      await _areasBox.put('itemIdCounter', 0);
-    }
   }
 
   @override
@@ -36,21 +29,26 @@ class HiveAreaLocalRepository implements AreaLocalRepository {
       defaultValue: <Profile, List<Area>>{},
     );
 
-    return data.map<Profile, List<Area>>(
+    final Map<Profile, List<Area>> profiles = data.map<Profile, List<Area>>(
       (k, v) => MapEntry(k as Profile, (v as List<dynamic>).cast<Area>()),
     );
+
+    for (final List<Area> areas in profiles.values) {
+      final areaNameCount = <String, int>{};
+      for (final area in areas) {
+        final int nextOrder = (areaNameCount[area.name] ?? 0) + 1;
+        areaNameCount[area.name] = nextOrder;
+        area
+          ..duplicateOrder = nextOrder
+          ..relinkParentReferences();
+      }
+    }
+
+    return profiles;
   }
 
   @override
   Future<void> writeProfiles(Map<Profile, List<Area>> profiles) {
     return _areasBox.put('profiles', profiles);
-  }
-
-  @override
-  int readItemIdCounter() => _areasBox.get('itemIdCounter', defaultValue: 0);
-
-  @override
-  Future<void> writeItemIdCounter(int value) {
-    return _areasBox.put('itemIdCounter', value);
   }
 }

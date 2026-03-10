@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventory_count/core/types/json.dart';
 import 'package:inventory_count/main/repositories/export_sync_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -35,7 +36,7 @@ void main() {
       final SupabaseClient client = _client();
       final repository = SupabaseExportSyncRepository(
         client: client,
-        fetchLatestRows: () async => <Map<String, dynamic>>[],
+        fetchLatestRows: () async => <Json>[],
       );
 
       final ExportSyncRecord? result = await repository.fetchLatest();
@@ -47,7 +48,7 @@ void main() {
       final SupabaseClient client = _client();
       final repository = SupabaseExportSyncRepository(
         client: client,
-        fetchLatestRows: () async => <Map<String, dynamic>>[
+        fetchLatestRows: () async => <Json>[
           <String, dynamic>{
             'id': _latestId,
             'updated_at': DateTime.utc(2026, 2, 19).toIso8601String(),
@@ -67,7 +68,7 @@ void main() {
       'watchLatest maps rows to records and null for empty/invalid rows',
       () async {
         final SupabaseClient client = _client();
-        final controller = StreamController<List<Map<String, dynamic>>>();
+        final controller = StreamController<List<Json>>();
         final repository = SupabaseExportSyncRepository(
           client: client,
           watchLatestRows: () => controller.stream,
@@ -79,8 +80,8 @@ void main() {
             .listen(events.add);
 
         controller
-          ..add(<Map<String, dynamic>>[])
-          ..add(<Map<String, dynamic>>[
+          ..add(<Json>[])
+          ..add(<Json>[
             <String, dynamic>{
               'id': _latestId,
               'updated_at': DateTime.utc(2026, 2, 19).toIso8601String(),
@@ -88,7 +89,7 @@ void main() {
               'udid': _deviceA,
             },
           ])
-          ..add(<Map<String, dynamic>>[
+          ..add(<Json>[
             <String, dynamic>{
               'id': _latestId,
               'updated_at': 'invalid-date',
@@ -110,7 +111,7 @@ void main() {
 
     test('upsertLatest calls upsertLatestRow with mapped record', () async {
       final SupabaseClient client = _client();
-      Map<String, dynamic>? capturedRow;
+      Json? capturedRow;
       final repository = SupabaseExportSyncRepository(
         client: client,
         upsertLatestRow: (row) async {
@@ -136,7 +137,7 @@ void main() {
       'upsertCountExport calls upsertCountRow with mapped payload',
       () async {
         final SupabaseClient client = _client();
-        Map<String, dynamic>? capturedRow;
+        Json? capturedRow;
         final repository = SupabaseExportSyncRepository(
           client: client,
           upsertCountRow: (row) async {
@@ -236,7 +237,7 @@ void main() {
         udid: _deviceA,
       );
 
-      final Map<String, dynamic> payload = repository.toPayloadForTest(record);
+      final Json payload = repository.toPayloadForTest(record);
 
       expect(payload['id'], _latestId);
       expect(payload['updated_at'], updatedAt.toIso8601String());

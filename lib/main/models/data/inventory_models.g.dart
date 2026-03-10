@@ -18,18 +18,21 @@ class AreaAdapter extends TypeAdapter<Area> {
     };
     return Area(
       fields[0] as String,
-      shelvesAndItems: (fields[2] as List?)?.cast<StorageObject>(),
-    );
+    )
+      .._shelvesAndItems = (fields[2] as List).cast<StorageObject>()
+      .._duplicateOrder = fields[3] as int?;
   }
 
   @override
   void write(BinaryWriter writer, Area obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.shelvesAndItems)
+      ..write(obj._shelvesAndItems)
+      ..writeByte(3)
+      ..write(obj._duplicateOrder)
       ..writeByte(1)
       ..write(obj._deprecated);
   }
@@ -57,18 +60,21 @@ class ShelfAdapter extends TypeAdapter<Shelf> {
     };
     return Shelf(
       fields[0] as String,
-      items: (fields[1] as List?)?.cast<Item>(),
-    );
+    )
+      .._items = (fields[1] as List).cast<Item>()
+      .._duplicateOrder = fields[2] as int?;
   }
 
   @override
   void write(BinaryWriter writer, Shelf obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.items);
+      ..write(obj._items)
+      ..writeByte(2)
+      ..write(obj._duplicateOrder);
   }
 
   @override
@@ -99,14 +105,13 @@ class ItemAdapter extends TypeAdapter<Item> {
       defaultCount: fields[4] as ItemCount?,
       countPhase: fields[5] as CountPhase?,
       personalCountPhase: fields[6] as CountPhase?,
-      id: fields[2] as int?,
-    );
+    ).._duplicateOrder = fields[7] as int?;
   }
 
   @override
   void write(BinaryWriter writer, Item obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -119,8 +124,10 @@ class ItemAdapter extends TypeAdapter<Item> {
       ..write(obj.countPhase)
       ..writeByte(6)
       ..write(obj.personalCountPhase)
+      ..writeByte(7)
+      ..write(obj._duplicateOrder)
       ..writeByte(2)
-      ..write(obj.id);
+      ..write(obj._deprecated);
   }
 
   @override
@@ -185,7 +192,7 @@ class CountAdapter extends TypeAdapter<Count> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Count(
-      itemCounts: (fields[0] as Map?)?.cast<int, CountEntry>(),
+      itemCounts: (fields[0] as Map?)?.cast<dynamic, CountEntry>(),
       countPhase: fields[1] as CountPhase?,
       itemsToFix: (fields[2] as Map?)?.cast<String, bool>(),
       profile: fields[3] as Profile?,

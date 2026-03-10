@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/types/json.dart';
+
 class ExportSyncRecord {
   ExportSyncRecord({
     required this.id,
@@ -19,9 +21,9 @@ class ExportSyncRecord {
   final String udid;
 }
 
-typedef FetchLatestRows = Future<List<Map<String, dynamic>>> Function();
-typedef WatchLatestRows = Stream<List<Map<String, dynamic>>> Function();
-typedef UpsertRow = Future<void> Function(Map<String, dynamic> row);
+typedef FetchLatestRows = Future<List<Json>> Function();
+typedef WatchLatestRows = Stream<List<Json>> Function();
+typedef UpsertRow = Future<void> Function(Json row);
 
 abstract class ExportSyncRepository {
   Future<ExportSyncRecord?> fetchLatest();
@@ -58,7 +60,7 @@ class SupabaseExportSyncRepository implements ExportSyncRepository {
 
   @override
   Future<ExportSyncRecord?> fetchLatest() async {
-    final List<Map<String, dynamic>> response =
+    final List<Json> response =
         await (_fetchLatestRows ?? _defaultFetchLatestRows)();
 
     if (response.isEmpty) {
@@ -100,48 +102,43 @@ class SupabaseExportSyncRepository implements ExportSyncRepository {
     });
   }
 
-  Future<List<Map<String, dynamic>>> _defaultFetchLatestRows() async {
+  Future<List<Json>> _defaultFetchLatestRows() async {
     final PostgrestList response = await _client
         .from('setups')
         .select()
         .order('updated_at')
         .limit(1);
-    return response
-        .map((row) => Map<String, dynamic>.from(row as Map))
-        .toList();
+    return response.map((row) => Json.from(row as Map)).toList();
   }
 
-  Stream<List<Map<String, dynamic>>> _defaultWatchLatestRows() {
+  Stream<List<Json>> _defaultWatchLatestRows() {
     return _client
         .from('setups')
         .stream(primaryKey: ['updated_at'])
         .order('updated_at')
         .limit(1)
-        .map(
-          (rows) =>
-              rows.map((row) => Map<String, dynamic>.from(row as Map)).toList(),
-        );
+        .map((rows) => rows.map((row) => Json.from(row as Map)).toList());
   }
 
-  Future<void> _defaultUpsertLatestRow(Map<String, dynamic> row) {
+  Future<void> _defaultUpsertLatestRow(Json row) {
     return _client.from('setups').upsert(row);
   }
 
-  Future<void> _defaultUpsertCountRow(Map<String, dynamic> row) {
+  Future<void> _defaultUpsertCountRow(Json row) {
     return _client.from('counts').upsert(row);
   }
 
   @visibleForTesting
-  ExportSyncRecord? parseRecordForTest(Map<String, dynamic> row) {
+  ExportSyncRecord? parseRecordForTest(Json row) {
     return _parseRecord(row);
   }
 
   @visibleForTesting
-  Map<String, dynamic> toPayloadForTest(ExportSyncRecord record) {
+  Json toPayloadForTest(ExportSyncRecord record) {
     return _toPayload(record);
   }
 
-  Map<String, dynamic> _toPayload(ExportSyncRecord record) {
+  Json _toPayload(ExportSyncRecord record) {
     return {
       'id': record.id,
       'updated_at': record.updatedAt.toIso8601String(),
@@ -150,7 +147,7 @@ class SupabaseExportSyncRepository implements ExportSyncRepository {
     };
   }
 
-  ExportSyncRecord? _parseRecord(Map<String, dynamic> row) {
+  ExportSyncRecord? _parseRecord(Json row) {
     final DateTime? updatedAt = row['updated_at'] != null
         ? DateTime.tryParse(row['updated_at'].toString())?.toUtc()
         : null;
