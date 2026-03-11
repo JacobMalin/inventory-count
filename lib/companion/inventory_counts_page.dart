@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/types/json.dart';
 import '../main/models/data/inventory_models.dart';
 import 'inventory_count_actions_dialog.dart';
+import 'process_cancellation.dart';
 import 'window_model.dart';
 
 class InventoryCountsPage extends StatefulWidget {
@@ -173,7 +174,112 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
     return rawName;
   }
 
-  Future<bool> printJson(BuildContext context, String json) async {
+  String _normalizeExpectedKey(String key) {
+    return key.toLowerCase().replaceAll('&', '').trim();
+  }
+
+  int? _toExpectedInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final String digits = value.replaceAll(RegExp('[^0-9-]'), '');
+      if (digits.isEmpty) return null;
+      return int.tryParse(digits);
+    }
+    return null;
+  }
+
+  Object _spoolCountAndExpectedJson(String countJson, String? expectedJson) {
+    final Object decodedCount = jsonDecode(countJson);
+    if (expectedJson == null || expectedJson.trim().isEmpty) {
+      return decodedCount;
+    }
+
+    final Object? decodedExpected = jsonDecode(expectedJson);
+
+    if (decodedCount is! Map) return decodedCount;
+    if (decodedExpected is! Map) return decodedCount;
+
+    final expectedByKey = <String, int>{};
+    for (final MapEntry<dynamic, dynamic> entry in decodedExpected.entries) {
+      final int? expectedValue = _toExpectedInt(entry.value);
+      if (expectedValue == null) continue;
+      expectedByKey[_normalizeExpectedKey(entry.key.toString())] =
+          expectedValue;
+    }
+
+    if (expectedByKey.isEmpty) return decodedCount;
+
+    final merged = <String, dynamic>{};
+    for (final MapEntry<dynamic, dynamic> categoryEntry
+        in decodedCount.entries) {
+      final Object? categoryValue = categoryEntry.value;
+      if (categoryValue is! Map) {
+        merged[categoryEntry.key.toString()] = categoryValue;
+        continue;
+      }
+
+      final mergedCategory = <String, dynamic>{};
+      for (final MapEntry<dynamic, dynamic> itemEntry
+          in categoryValue.entries) {
+        final itemName = itemEntry.key.toString();
+        final Object? itemValue = itemEntry.value;
+
+        if (itemValue is! Map) {
+          mergedCategory[itemName] = itemValue;
+          continue;
+        }
+
+        final mergedItem = Map<String, dynamic>.from(itemValue);
+        final omniName = mergedItem['omniName']?.toString();
+
+        final String normalizedItemName = _normalizeExpectedKey(itemName);
+        final String? normalizedOmniName = omniName == null
+            ? null
+            : _normalizeExpectedKey(omniName);
+
+        final int? expectedValue =
+            expectedByKey[normalizedOmniName] ??
+            expectedByKey[normalizedItemName];
+
+        if (expectedValue != null) {
+          mergedItem['Expected'] = expectedValue;
+        }
+
+        mergedCategory[itemName] = mergedItem;
+      }
+
+      merged[categoryEntry.key.toString()] = mergedCategory;
+    }
+
+    return merged;
+  }
+
+  ({String? status, String? message}) _extractPrintStatus(String stdoutText) {
+    const String prefix = 'IC_PRINT_STATUS|';
+
+    for (final String line in LineSplitter.split(stdoutText).toList().reversed) {
+      if (!line.startsWith(prefix)) continue;
+
+      final String payload = line.substring(prefix.length);
+      final List<String> parts = payload.split('|');
+      if (parts.isEmpty) continue;
+
+      final String status = parts.first.trim().toLowerCase();
+      final String? message =
+          parts.length > 1 ? parts.sublist(1).join('|').trim() : null;
+
+      return (status: status, message: message);
+    }
+
+    return (status: null, message: null);
+  }
+
+  Future<bool> printJson(
+    BuildContext context,
+    String json,
+    String? expected,
+  ) async {
     final windowModel = WindowModel();
 
     // Prompt user to locate Excel if not configured
@@ -240,8 +346,10 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
     final File jsonFile = await File(
       '${tempDir.path}\\count_${DateTime.now().millisecondsSinceEpoch}.json',
     ).create();
-    await jsonFile.writeAsString(json);
+    final Object printPayload = _spoolCountAndExpectedJson(json, expected);
+    await jsonFile.writeAsString(jsonEncode(printPayload));
 
+    Process? proc;
     try {
       if (!Platform.isWindows) {
         if (context.mounted) {
@@ -254,13 +362,14 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
         return false;
       }
 
-      final Process proc = await Process.start('cscript', [
+      proc = await Process.start('cscript', [
         '//Nologo',
         scriptFile.path,
         vbsJsonFile.path,
         windowModel.countExcelPath!,
         jsonFile.path,
       ]);
+      CompanionProcessCancellation.registerPrintProcess(proc);
 
       final Future<String> stdoutData = proc.stdout
           .transform(utf8.decoder)
@@ -272,15 +381,36 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
       final int exitCode = await proc.exitCode;
       final String out = await stdoutData;
       final String err = await stderrData;
+      final ({String? status, String? message}) scriptStatus =
+          _extractPrintStatus(out);
+
+      if (CompanionProcessCancellation.consumePrintCancelRequested()) {
+        return false;
+      }
+
+      if (scriptStatus.status == 'cancelled') {
+        return false;
+      }
+
+      if (scriptStatus.status == 'failed') {
+        throw Exception(
+          scriptStatus.message ??
+              'Print failed: ${err.isNotEmpty ? err : out}',
+        );
+      }
 
       if (exitCode != 0) {
         throw Exception(
-          'cscript failed (exit $exitCode): ${err.isNotEmpty ? err : out}',
+          'cscript failed (exit $exitCode): '
+          '${scriptStatus.message ?? (err.isNotEmpty ? err : out)}',
         );
       }
 
       return true;
     } finally {
+      if (proc != null) {
+        CompanionProcessCancellation.clearPrintProcess(proc);
+      }
       try {
         if (scriptFile.existsSync()) await scriptFile.delete();
       } on Exception {
@@ -352,6 +482,11 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
               final String jsonString = count['json'] is String
                   ? count['json'] as String
                   : jsonEncode(count['json']);
+              final String? expectedJsonString = count['expected'] == null
+                  ? null
+                  : count['expected'] is String
+                  ? count['expected'] as String
+                  : jsonEncode(count['expected']);
 
               return ListTile(
                 title: Text(
@@ -383,10 +518,12 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
                     await showDialog(
                       context: context,
                       builder: (context) => InventoryCountActionsDialog(
+                        countKey: countName,
                         countName: formattedCountName,
                         time: time,
                         profile: profile,
                         jsonString: jsonString,
+                        expectedJsonString: expectedJsonString,
                         hostContext: hostContext,
                         onPrintJson: printJson,
                       ),

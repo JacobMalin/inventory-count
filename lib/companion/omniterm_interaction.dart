@@ -1,14 +1,40 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-class OmnitermInteraction {
-  static Future<bool> fillOutCount(String json) async {
-    json = json.replaceAll('&', '');
-    await runPythonScript('assets/omniterm_autofill.exe', args: {'json': json});
+Process? _activePythonProcess;
+bool _pythonCancelRequested = false;
 
-    return true;
+class OmnitermInteraction {
+  static Map<String, int> lastExpectedByName = <String, int>{};
+
+  static Future<void> cancelFillOutCount() async {
+    _pythonCancelRequested = true;
+    _activePythonProcess?.kill();
+  }
+
+  static Future<Map<String, int>> fillOutCount(String json) async {
+    json = json.replaceAll('&', '');
+    final String output = await runPythonScript(
+      'assets/omniterm_autofill.exe',
+      args: {'json': json},
+    );
+
+    if (output.isNotEmpty) {
+      final dynamic decoded = jsonDecode(output);
+      if (decoded is Map) {
+        lastExpectedByName = decoded.map<String, int>((key, value) {
+          final int parsed = value is num
+              ? value.toInt()
+              : int.tryParse(value?.toString() ?? '') ?? 0;
+          return MapEntry(key.toString(), parsed);
+        });
+      }
+    }
+
+    return lastExpectedByName;
   }
 }
 
@@ -36,28 +62,53 @@ Future<String> runPythonScript(
     throw ArgumentError('The specified script does not exist: $scriptPath');
   }
 
-  final ProcessResult result = await Process.run(resolvedScriptPath, cliArgs);
+  _pythonCancelRequested = false;
+  final Process process = await Process.start(resolvedScriptPath, cliArgs);
+  _activePythonProcess = process;
 
-  final String stdoutText = (result.stdout ?? '').toString().trim();
-  final String stderrText = (result.stderr ?? '').toString().trim();
+  try {
+    final Future<String> stdoutData = process.stdout
+        .transform(utf8.decoder)
+        .join();
+    final Future<String> stderrData = process.stderr
+        .transform(utf8.decoder)
+        .join();
 
-  if (result.exitCode != 0) {
-    final rawError = stderrText.isNotEmpty ? stderrText : stdoutText;
+    final int exitCode = await process.exitCode;
+    final String stdoutText = (await stdoutData).trim();
+    final String stderrText = (await stderrData).trim();
 
-    final runtimeErrorRegex = RegExp(r'^\s*(.+Error:\s*.+)$', multiLine: true);
-    final RegExpMatch? runtimeErrorMatch = runtimeErrorRegex.firstMatch(
-      rawError,
-    );
+    if (_pythonCancelRequested) {
+      _pythonCancelRequested = false;
+      throw Exception('Operation canceled.');
+    }
 
-    final String conciseMessage =
-        runtimeErrorMatch?.group(1)?.trim().isNotEmpty ?? false
-        ? runtimeErrorMatch!.group(1)!.trim()
-        : 'RuntimeError: Omniterm autofill failed.';
+    if (exitCode != 0) {
+      final rawError = stderrText.isNotEmpty ? stderrText : stdoutText;
 
-    throw Exception(conciseMessage);
+      final runtimeErrorRegex = RegExp(
+        r'^\s*(.+Error:\s*.+)$',
+        multiLine: true,
+      );
+      final RegExpMatch? runtimeErrorMatch = runtimeErrorRegex.firstMatch(
+        rawError,
+      );
+
+      final String conciseMessage =
+          runtimeErrorMatch?.group(1)?.trim().isNotEmpty ?? false
+          ? runtimeErrorMatch!.group(1)!.trim()
+          : 'RuntimeError: Omniterm autofill failed.';
+
+      throw Exception(conciseMessage);
+    }
+
+    return stdoutText;
+  } finally {
+    if (identical(_activePythonProcess, process)) {
+      _activePythonProcess = null;
+    }
+    _pythonCancelRequested = false;
   }
-
-  return stdoutText;
 }
 
 String _resolveWindowsAssetPath(String scriptPath) {

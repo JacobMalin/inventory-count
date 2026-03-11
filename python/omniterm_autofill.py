@@ -47,30 +47,38 @@ def _load_json(args: argparse.Namespace):
     raise ValueError("No JSON input provided. Pass --json or pipe JSON via stdin.")
 
 
-def _extract_total_values(json):
+def _extract_values(json):
     export_totals = {}
+    export_damages = {}
 
     for section in json.values():
         for item_name, item_value in section.items():
+            omni_name = item_value.get("omniName")
+            normalized_name = (
+                omni_name.lower()
+                if isinstance(omni_name, str)
+                else item_name.lower()
+            )
+            normalized_name = normalized_name.replace("&", "")
+            
             if "Total" in item_value and item_value["Total"] is not None:
                 total = item_value["Total"]
                 if total == "-": total = ""
-                omni_name = item_value.get("omniName")
-                normalized_name = (
-                    omni_name.lower()
-                    if isinstance(omni_name, str)
-                    else item_name.lower()
-                )
-                normalized_name = normalized_name.replace("&", "")
-                export_totals[normalized_name] = total
+                sanitized_total = "".join(ch for ch in str(total) if ch.isdigit())
+                export_totals[normalized_name] = sanitized_total
+            if "Damaged" in item_value and item_value["Damaged"] is not None:
+                damaged = item_value["Damaged"]
+                sanitized_damaged = "".join(ch for ch in str(damaged) if ch.isdigit())
+                export_damages[normalized_name] = sanitized_damaged
 
-    return export_totals
+    return export_totals, export_damages
 
 
 def main():
     args = _parse_args()
     json = _load_json(args)
-    totals = _extract_total_values(json)
+    totals, damages = _extract_values(json)
+    expected = {}
 
     if not totals:
         raise ValueError("No total values found in JSON input.")
@@ -113,12 +121,20 @@ def main():
     except pywinauto.findwindows.ElementNotFoundError:
         raise RuntimeError("Stock Count form not found. Please navigate to the Stock Count screen in Concessions Manager.") from None
 
-    data_grid = _pw_timed(
-        "DataGrid.child_window.wait(visible)",
-        lambda: stock_count.child_window(
-            title="DataGrid", auto_id="dgStock", control_type="Table"
-        ).wait("visible"),
+    data_grid_spec = _pw_timed(
+        "DataGrid.child_window",
+        lambda: stock_count.child_window(auto_id="dgStock", control_type="Table"),
     )
+    try:
+        data_grid = _pw_timed(
+            "DataGrid.wait(visible,fast)",
+            lambda: data_grid_spec.wait("visible", timeout=1.0, retry_interval=0.1),
+        )
+    except pywinauto.timings.TimeoutError:
+        data_grid = _pw_timed(
+            "DataGrid.wait(visible,fallback)",
+            lambda: data_grid_spec.wait("visible", timeout=10.0, retry_interval=0.2),
+        )
 
     rows = []
     for item in _pw_timed("DataGrid.children", lambda: data_grid.children()):
@@ -139,24 +155,46 @@ def main():
 
     _pw_timed("Count field.click_input", lambda: count_field.click_input())
 
+    all_keys = ""
     for row in rows:
         children = _pw_timed("Row.children", lambda row=row: row.children())
 
         name_field = None
+        expected_field = None
         for item in children:
             texts = _pw_timed("Name field.texts", lambda item=item: item.texts())
             if texts and texts[0] == "Name":
                 name_field = item
+            elif texts and texts[0] == "Expected":
+                expected_field = item
+                
+            if name_field and expected_field:
                 break
-
+            
         name = _pw_timed("Name field.legacy_properties", lambda: name_field.legacy_properties())["Value"].lower().strip()
+        expected_text = str(
+            _pw_timed(
+                "Expected field.legacy_properties",
+                lambda: expected_field.legacy_properties(),
+            )["Value"]
+        )
+        expected_digits = "".join(ch for ch in expected_text if ch.isdigit())
+        expected_value = int(expected_digits) if expected_digits else 0
+
+        expected[name] = expected_value
+
         name = name.replace("&", "")
 
+        all_keys += "{BACKSPACE}"
+        
         if name in totals:
             total = totals[name]
-            _pw_timed("keyboard.send_keys:total", lambda total=total: pywinauto.keyboard.send_keys(f"{total}"))
+            all_keys += f"{total}"
         
-        _pw_timed("keyboard.send_keys:down", lambda: pywinauto.keyboard.send_keys("{DOWN}"))
+        all_keys += "{DOWN}"
+    
+    _pw_timed("keyboard.send_keys:all_keys", lambda: pywinauto.keyboard.send_keys(all_keys, pause=0.01))
+    print(json.dumps(expected))
 
 if __name__ == '__main__':
     main()
