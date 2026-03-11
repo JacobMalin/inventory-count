@@ -1,0 +1,1598 @@
+[pywinauto-timing] Application.connect: 491.97 ms
+[pywinauto-timing] Application.top_window: 525.94 ms
+[pywinauto-timing] Window.set_focus: 2.87 ms
+[pywinauto-timing] Stock Count.child_window: 0.25 ms
+[pywinauto-timing] DataGrid.child_window.wait(visible): 9930.53 ms
+[pywinauto-timing] DataGrid.children: 1746.47 ms
+[pywinauto-timing] Row.friendly_class_name: 0.55 ms
+[pywinauto-timing] Row.friendly_class_name: 0.55 ms
+[pywinauto-timing] Row.friendly_class_name: 0.45 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.89 ms
+[pywinauto-timing] Row.friendly_class_name: 0.94 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.90 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 1.08 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 1.10 ms
+[pywinauto-timing] Row.friendly_class_name: 1.22 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 1.06 ms
+[pywinauto-timing] Row.friendly_class_name: 0.89 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.89 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.89 ms
+[pywinauto-timing] Row.friendly_class_name: 0.87 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 1.51 ms
+[pywinauto-timing] Row.friendly_class_name: 0.98 ms
+[pywinauto-timing] Row.friendly_class_name: 1.04 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 1.31 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.87 ms
+[pywinauto-timing] Row.friendly_class_name: 0.94 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 1.04 ms
+[pywinauto-timing] Row.friendly_class_name: 0.94 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.97 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 1.03 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 1.03 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.90 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 1.00 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.95 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 1.01 ms
+[pywinauto-timing] Row.friendly_class_name: 1.01 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.97 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.96 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.96 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 1.01 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 1.00 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.90 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.87 ms
+[pywinauto-timing] Row.friendly_class_name: 0.94 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.99 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.87 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 1.09 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 1.01 ms
+[pywinauto-timing] Row.friendly_class_name: 0.90 ms
+[pywinauto-timing] Row.friendly_class_name: 0.97 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 1.03 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 1.00 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 1.21 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.90 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 1.08 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.90 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.96 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 1.23 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.89 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 1.09 ms
+[pywinauto-timing] Row.friendly_class_name: 0.99 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 1.12 ms
+[pywinauto-timing] Row.friendly_class_name: 1.27 ms
+[pywinauto-timing] Row.friendly_class_name: 1.03 ms
+[pywinauto-timing] Row.friendly_class_name: 1.02 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.89 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.95 ms
+[pywinauto-timing] Row.friendly_class_name: 1.46 ms
+[pywinauto-timing] Row.friendly_class_name: 1.94 ms
+[pywinauto-timing] Row.friendly_class_name: 0.99 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 1.05 ms
+[pywinauto-timing] Row.friendly_class_name: 1.05 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 1.00 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.59 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.98 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.59 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.95 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.94 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 1.00 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 1.14 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 1.27 ms
+[pywinauto-timing] Row.friendly_class_name: 0.97 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.93 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.99 ms
+[pywinauto-timing] Row.friendly_class_name: 0.94 ms
+[pywinauto-timing] Row.friendly_class_name: 0.94 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 1.06 ms
+[pywinauto-timing] Row.friendly_class_name: 1.02 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 1.24 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.99 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.99 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 1.14 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 1.03 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.93 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.87 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.97 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 1.07 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.95 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.97 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.96 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 1.10 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.87 ms
+[pywinauto-timing] Row.friendly_class_name: 0.96 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 1.46 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.89 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 1.38 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.95 ms
+[pywinauto-timing] Row.friendly_class_name: 1.17 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.94 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.96 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 1.19 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.58 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.81 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 1.14 ms
+[pywinauto-timing] Row.friendly_class_name: 1.23 ms
+[pywinauto-timing] Row.friendly_class_name: 0.87 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.86 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 1.22 ms
+[pywinauto-timing] Row.friendly_class_name: 1.08 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 1.07 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.77 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.90 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.93 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 1.07 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.92 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 1.03 ms
+[pywinauto-timing] Row.friendly_class_name: 1.17 ms
+[pywinauto-timing] Row.friendly_class_name: 0.84 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 1.00 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 1.03 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.93 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 1.38 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.96 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.74 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.93 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.78 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.90 ms
+[pywinauto-timing] Row.friendly_class_name: 0.85 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.58 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.96 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.75 ms
+[pywinauto-timing] Row.friendly_class_name: 0.68 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.71 ms
+[pywinauto-timing] Row.friendly_class_name: 0.87 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.91 ms
+[pywinauto-timing] Row.friendly_class_name: 0.69 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.70 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.88 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.64 ms
+[pywinauto-timing] Row.friendly_class_name: 0.61 ms
+[pywinauto-timing] Row.friendly_class_name: 0.62 ms
+[pywinauto-timing] Row.friendly_class_name: 0.80 ms
+[pywinauto-timing] Row.friendly_class_name: 0.79 ms
+[pywinauto-timing] Row.friendly_class_name: 0.96 ms
+[pywinauto-timing] Row.friendly_class_name: 0.73 ms
+[pywinauto-timing] Row.friendly_class_name: 0.83 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.72 ms
+[pywinauto-timing] Row.friendly_class_name: 0.66 ms
+[pywinauto-timing] Row.friendly_class_name: 0.65 ms
+[pywinauto-timing] Row.friendly_class_name: 0.60 ms
+[pywinauto-timing] Row.friendly_class_name: 0.98 ms
+[pywinauto-timing] Row.friendly_class_name: 0.95 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.67 ms
+[pywinauto-timing] Row.friendly_class_name: 0.76 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 0.63 ms
+[pywinauto-timing] Row.friendly_class_name: 1.23 ms
+[pywinauto-timing] Row.friendly_class_name: 1.04 ms
+[pywinauto-timing] Row.friendly_class_name: 0.82 ms
+[pywinauto-timing] DataGrid.rectangle: 0.30 ms
+[pywinauto-timing] mouse.scroll: 102.43 ms
+[pywinauto-timing] First row.children: 56.44 ms
+[pywinauto-timing] Field.texts: 3.13 ms
+[pywinauto-timing] Field.texts: 2.70 ms
+[pywinauto-timing] Field.texts: 2.52 ms
+[pywinauto-timing] Field.texts: 2.13 ms
+[pywinauto-timing] Field.texts: 2.21 ms
+[pywinauto-timing] Field.texts: 1.76 ms
+[pywinauto-timing] Field.texts: 1.91 ms
+[pywinauto-timing] Field.texts: 1.58 ms
+[pywinauto-timing] Count field.click_input: 118.36 ms
+[pywinauto-timing] Row.children: 36.54 ms
+[pywinauto-timing] Name field.texts: 2.04 ms
+[pywinauto-timing] Name field.texts: 1.81 ms
+[pywinauto-timing] Name field.texts: 1.96 ms
+[pywinauto-timing] Name field.legacy_properties: 3.22 ms
+kids popcorn {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.17 ms
+[pywinauto-timing] Row.children: 105.44 ms
+[pywinauto-timing] Name field.texts: 2.00 ms
+[pywinauto-timing] Name field.texts: 2.32 ms
+[pywinauto-timing] Name field.texts: 1.96 ms
+[pywinauto-timing] Name field.legacy_properties: 4.76 ms
+small popcorn {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.42 ms
+[pywinauto-timing] Row.children: 103.29 ms
+[pywinauto-timing] Name field.texts: 2.02 ms
+[pywinauto-timing] Name field.texts: 2.45 ms
+[pywinauto-timing] Name field.texts: 1.76 ms
+[pywinauto-timing] Name field.legacy_properties: 3.24 ms
+medium popcorn {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.42 ms
+[pywinauto-timing] Row.children: 89.39 ms
+[pywinauto-timing] Name field.texts: 2.27 ms
+[pywinauto-timing] Name field.texts: 1.89 ms
+[pywinauto-timing] Name field.texts: 1.75 ms
+[pywinauto-timing] Name field.legacy_properties: 3.66 ms
+large popcorn {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.03 ms
+[pywinauto-timing] Row.children: 97.08 ms
+[pywinauto-timing] Name field.texts: 2.20 ms
+[pywinauto-timing] Name field.texts: 2.06 ms
+[pywinauto-timing] Name field.texts: 2.69 ms
+[pywinauto-timing] Name field.legacy_properties: 4.18 ms
+family popcorn {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.84 ms
+[pywinauto-timing] Row.children: 122.49 ms
+[pywinauto-timing] Name field.texts: 2.60 ms
+[pywinauto-timing] Name field.texts: 1.98 ms
+[pywinauto-timing] Name field.texts: 1.89 ms
+[pywinauto-timing] Name field.legacy_properties: 3.29 ms
+refill tub {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.53 ms
+[pywinauto-timing] Row.children: 91.05 ms
+[pywinauto-timing] Name field.texts: 2.22 ms
+[pywinauto-timing] Name field.texts: 1.87 ms
+[pywinauto-timing] Name field.texts: 1.81 ms
+[pywinauto-timing] Name field.legacy_properties: 3.48 ms
+mann tub {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.50 ms
+[pywinauto-timing] Row.children: 86.64 ms
+[pywinauto-timing] Name field.texts: 2.35 ms
+[pywinauto-timing] Name field.texts: 2.02 ms
+[pywinauto-timing] Name field.texts: 1.72 ms
+[pywinauto-timing] Name field.legacy_properties: 3.83 ms
+popcorn seasoning nacho {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.09 ms
+[pywinauto-timing] Row.children: 97.61 ms
+[pywinauto-timing] Name field.texts: 2.25 ms
+[pywinauto-timing] Name field.texts: 1.83 ms
+[pywinauto-timing] Name field.texts: 2.28 ms
+[pywinauto-timing] Name field.legacy_properties: 4.22 ms
+monster original {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.55 ms
+[pywinauto-timing] Row.children: 89.65 ms
+[pywinauto-timing] Name field.texts: 2.50 ms
+[pywinauto-timing] Name field.texts: 2.11 ms
+[pywinauto-timing] Name field.texts: 2.36 ms
+[pywinauto-timing] Name field.legacy_properties: 3.78 ms
+monster zero {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.53 ms
+[pywinauto-timing] Row.children: 92.97 ms
+[pywinauto-timing] Name field.texts: 2.05 ms
+[pywinauto-timing] Name field.texts: 1.70 ms
+[pywinauto-timing] Name field.texts: 1.79 ms
+[pywinauto-timing] Name field.legacy_properties: 3.16 ms
+vit water shine {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.31 ms
+[pywinauto-timing] Row.children: 91.68 ms
+[pywinauto-timing] Name field.texts: 2.09 ms
+[pywinauto-timing] Name field.texts: 2.23 ms
+[pywinauto-timing] Name field.texts: 1.79 ms
+[pywinauto-timing] Name field.legacy_properties: 3.67 ms
+vit water power-c {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.34 ms
+[pywinauto-timing] Row.children: 89.59 ms
+[pywinauto-timing] Name field.texts: 2.03 ms
+[pywinauto-timing] Name field.texts: 1.60 ms
+[pywinauto-timing] Name field.texts: 1.71 ms
+[pywinauto-timing] Name field.legacy_properties: 3.26 ms
+dunkin donuts regular {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.65 ms
+[pywinauto-timing] Row.children: 92.99 ms
+[pywinauto-timing] Name field.texts: 2.21 ms
+[pywinauto-timing] Name field.texts: 2.20 ms
+[pywinauto-timing] Name field.texts: 1.94 ms
+[pywinauto-timing] Name field.legacy_properties: 3.37 ms
+dunkin french vanilla {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.51 ms
+[pywinauto-timing] Row.children: 98.37 ms
+[pywinauto-timing] Name field.texts: 2.67 ms
+[pywinauto-timing] Name field.texts: 2.63 ms
+[pywinauto-timing] Name field.texts: 1.96 ms
+[pywinauto-timing] Name field.legacy_properties: 3.97 ms
+minute maid lemonade {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.20 ms
+[pywinauto-timing] Row.children: 90.45 ms
+[pywinauto-timing] Name field.texts: 2.09 ms
+[pywinauto-timing] Name field.texts: 1.93 ms
+[pywinauto-timing] Name field.texts: 1.68 ms
+[pywinauto-timing] Name field.legacy_properties: 3.05 ms
+f choc chip mint {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.63 ms
+[pywinauto-timing] Row.children: 94.19 ms
+[pywinauto-timing] Name field.texts: 2.44 ms
+[pywinauto-timing] Name field.texts: 2.36 ms
+[pywinauto-timing] Name field.texts: 1.84 ms
+[pywinauto-timing] Name field.legacy_properties: 3.30 ms
+f chocolate {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.08 ms
+[pywinauto-timing] Row.children: 95.52 ms
+[pywinauto-timing] Name field.texts: 2.05 ms
+[pywinauto-timing] Name field.texts: 1.78 ms
+[pywinauto-timing] Name field.texts: 1.64 ms
+[pywinauto-timing] Name field.legacy_properties: 3.88 ms
+f cookie cream {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.00 ms
+[pywinauto-timing] Row.children: 95.41 ms
+[pywinauto-timing] Name field.texts: 2.32 ms
+[pywinauto-timing] Name field.texts: 1.84 ms
+[pywinauto-timing] Name field.texts: 1.68 ms
+[pywinauto-timing] Name field.legacy_properties: 3.31 ms
+f reeses {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.45 ms
+[pywinauto-timing] Row.children: 92.01 ms
+[pywinauto-timing] Name field.texts: 2.06 ms
+[pywinauto-timing] Name field.texts: 1.79 ms
+[pywinauto-timing] Name field.texts: 1.69 ms
+[pywinauto-timing] Name field.legacy_properties: 3.12 ms
+f vanilla {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.27 ms
+[pywinauto-timing] Row.children: 90.24 ms
+[pywinauto-timing] Name field.texts: 2.62 ms
+[pywinauto-timing] Name field.texts: 2.03 ms
+[pywinauto-timing] Name field.texts: 2.11 ms
+[pywinauto-timing] Name field.legacy_properties: 3.90 ms
+f real straw/banana {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.83 ms
+[pywinauto-timing] Row.children: 92.36 ms
+[pywinauto-timing] Name field.texts: 2.00 ms
+[pywinauto-timing] Name field.texts: 1.80 ms
+[pywinauto-timing] Name field.texts: 2.26 ms
+[pywinauto-timing] Name field.legacy_properties: 3.44 ms
+dibs {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.92 ms
+[pywinauto-timing] Row.children: 90.97 ms
+[pywinauto-timing] Name field.texts: 2.10 ms
+[pywinauto-timing] Name field.texts: 2.24 ms
+[pywinauto-timing] Name field.texts: 1.80 ms
+[pywinauto-timing] Name field.legacy_properties: 3.22 ms
+cookie dough bites {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.45 ms
+[pywinauto-timing] Row.children: 88.99 ms
+[pywinauto-timing] Name field.texts: 2.00 ms
+[pywinauto-timing] Name field.texts: 1.99 ms
+[pywinauto-timing] Name field.texts: 1.79 ms
+[pywinauto-timing] Name field.legacy_properties: 3.03 ms
+mm peanut peg pack {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.07 ms
+[pywinauto-timing] Row.children: 88.37 ms
+[pywinauto-timing] Name field.texts: 2.05 ms
+[pywinauto-timing] Name field.texts: 1.84 ms
+[pywinauto-timing] Name field.texts: 1.68 ms
+[pywinauto-timing] Name field.legacy_properties: 2.99 ms
+reeses pieces {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.09 ms
+[pywinauto-timing] Row.children: 89.59 ms
+[pywinauto-timing] Name field.texts: 2.10 ms
+[pywinauto-timing] Name field.texts: 1.87 ms
+[pywinauto-timing] Name field.texts: 1.73 ms
+[pywinauto-timing] Name field.legacy_properties: 3.33 ms
+skittles {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.47 ms
+[pywinauto-timing] Row.children: 89.05 ms
+[pywinauto-timing] Name field.texts: 2.13 ms
+[pywinauto-timing] Name field.texts: 2.24 ms
+[pywinauto-timing] Name field.texts: 2.05 ms
+[pywinauto-timing] Name field.legacy_properties: 3.72 ms
+berry skittles {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.87 ms
+[pywinauto-timing] Row.children: 116.98 ms
+[pywinauto-timing] Name field.texts: 3.05 ms
+[pywinauto-timing] Name field.texts: 1.87 ms
+[pywinauto-timing] Name field.texts: 1.67 ms
+[pywinauto-timing] Name field.legacy_properties: 3.68 ms
+punch blue {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.48 ms
+[pywinauto-timing] Row.children: 95.34 ms
+[pywinauto-timing] Name field.texts: 2.04 ms
+[pywinauto-timing] Name field.texts: 2.01 ms
+[pywinauto-timing] Name field.texts: 1.83 ms
+[pywinauto-timing] Name field.legacy_properties: 4.17 ms
+sweetarts mini chewy {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.74 ms
+[pywinauto-timing] Row.children: 107.66 ms
+[pywinauto-timing] Name field.texts: 2.16 ms
+[pywinauto-timing] Name field.texts: 1.88 ms
+[pywinauto-timing] Name field.texts: 2.30 ms
+[pywinauto-timing] Name field.legacy_properties: 3.40 ms
+kit kat {'kit kat': '21'} True
+[pywinauto-timing] keyboard.send_keys:total: 102.14 ms
+[pywinauto-timing] keyboard.send_keys:down: 51.47 ms
+[pywinauto-timing] Row.children: 119.65 ms
+[pywinauto-timing] Name field.texts: 2.33 ms
+[pywinauto-timing] Name field.texts: 1.98 ms
+[pywinauto-timing] Name field.texts: 2.07 ms
+[pywinauto-timing] Name field.legacy_properties: 3.31 ms
+buncha crunch {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.45 ms
+[pywinauto-timing] Row.children: 95.44 ms
+[pywinauto-timing] Name field.texts: 2.41 ms
+[pywinauto-timing] Name field.texts: 1.85 ms
+[pywinauto-timing] Name field.texts: 1.71 ms
+[pywinauto-timing] Name field.legacy_properties: 3.45 ms
+junior mints {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.28 ms
+[pywinauto-timing] Row.children: 97.06 ms
+[pywinauto-timing] Name field.texts: 2.35 ms
+[pywinauto-timing] Name field.texts: 2.67 ms
+[pywinauto-timing] Name field.texts: 1.86 ms
+[pywinauto-timing] Name field.legacy_properties: 3.16 ms
+mm king {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.91 ms
+[pywinauto-timing] Row.children: 93.46 ms
+[pywinauto-timing] Name field.texts: 2.27 ms
+[pywinauto-timing] Name field.texts: 1.88 ms
+[pywinauto-timing] Name field.texts: 1.78 ms
+[pywinauto-timing] Name field.legacy_properties: 3.14 ms
+mike  ike {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.57 ms
+[pywinauto-timing] Row.children: 104.31 ms
+[pywinauto-timing] Name field.texts: 2.41 ms
+[pywinauto-timing] Name field.texts: 1.95 ms
+[pywinauto-timing] Name field.texts: 2.45 ms
+[pywinauto-timing] Name field.legacy_properties: 3.40 ms
+milk duds {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.54 ms
+[pywinauto-timing] Row.children: 97.33 ms
+[pywinauto-timing] Name field.texts: 2.90 ms
+[pywinauto-timing] Name field.texts: 2.34 ms
+[pywinauto-timing] Name field.texts: 1.82 ms
+[pywinauto-timing] Name field.legacy_properties: 3.26 ms
+sour brite crawlers {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.39 ms
+[pywinauto-timing] Row.children: 96.74 ms
+[pywinauto-timing] Name field.texts: 2.56 ms
+[pywinauto-timing] Name field.texts: 2.51 ms
+[pywinauto-timing] Name field.texts: 2.44 ms
+[pywinauto-timing] Name field.legacy_properties: 3.67 ms
+sour patch kids {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.76 ms
+[pywinauto-timing] Row.children: 97.68 ms
+[pywinauto-timing] Name field.texts: 2.29 ms
+[pywinauto-timing] Name field.texts: 1.91 ms
+[pywinauto-timing] Name field.texts: 2.01 ms
+[pywinauto-timing] Name field.legacy_properties: 4.39 ms
+twizzlers {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.20 ms
+[pywinauto-timing] Row.children: 98.50 ms
+[pywinauto-timing] Name field.texts: 2.31 ms
+[pywinauto-timing] Name field.texts: 1.86 ms
+[pywinauto-timing] Name field.texts: 1.73 ms
+[pywinauto-timing] Name field.legacy_properties: 3.65 ms
+cotton candy {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.31 ms
+[pywinauto-timing] Row.children: 93.40 ms
+[pywinauto-timing] Name field.texts: 2.15 ms
+[pywinauto-timing] Name field.texts: 1.83 ms
+[pywinauto-timing] Name field.texts: 1.66 ms
+[pywinauto-timing] Name field.legacy_properties: 3.04 ms
+cotton tub {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.94 ms
+[pywinauto-timing] Row.children: 98.77 ms
+[pywinauto-timing] Name field.texts: 2.39 ms
+[pywinauto-timing] Name field.texts: 1.70 ms
+[pywinauto-timing] Name field.texts: 1.77 ms
+[pywinauto-timing] Name field.legacy_properties: 3.66 ms
+nerds clusters {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.69 ms
+[pywinauto-timing] Row.children: 94.48 ms
+[pywinauto-timing] Name field.texts: 2.71 ms
+[pywinauto-timing] Name field.texts: 1.75 ms
+[pywinauto-timing] Name field.texts: 2.00 ms
+[pywinauto-timing] Name field.legacy_properties: 4.57 ms
+plastic kids {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.30 ms
+[pywinauto-timing] Row.children: 96.80 ms
+[pywinauto-timing] Name field.texts: 2.35 ms
+[pywinauto-timing] Name field.texts: 1.96 ms
+[pywinauto-timing] Name field.texts: 2.07 ms
+[pywinauto-timing] Name field.legacy_properties: 3.47 ms
+small icee {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.19 ms
+[pywinauto-timing] Row.children: 92.30 ms
+[pywinauto-timing] Name field.texts: 2.17 ms
+[pywinauto-timing] Name field.texts: 2.01 ms
+[pywinauto-timing] Name field.texts: 1.95 ms
+[pywinauto-timing] Name field.legacy_properties: 3.07 ms
+large icee {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.52 ms
+[pywinauto-timing] Row.children: 95.96 ms
+[pywinauto-timing] Name field.texts: 2.14 ms
+[pywinauto-timing] Name field.texts: 2.29 ms
+[pywinauto-timing] Name field.texts: 1.86 ms
+[pywinauto-timing] Name field.legacy_properties: 3.63 ms
+kids drink {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.63 ms
+[pywinauto-timing] Row.children: 108.66 ms
+[pywinauto-timing] Name field.texts: 2.29 ms
+[pywinauto-timing] Name field.texts: 2.20 ms
+[pywinauto-timing] Name field.texts: 2.05 ms
+[pywinauto-timing] Name field.legacy_properties: 3.59 ms
+small drink {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.02 ms
+[pywinauto-timing] Row.children: 105.54 ms
+[pywinauto-timing] Name field.texts: 2.44 ms
+[pywinauto-timing] Name field.texts: 1.81 ms
+[pywinauto-timing] Name field.texts: 1.84 ms
+[pywinauto-timing] Name field.legacy_properties: 3.44 ms
+medium drink {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.78 ms
+[pywinauto-timing] Row.children: 99.33 ms
+[pywinauto-timing] Name field.texts: 2.64 ms
+[pywinauto-timing] Name field.texts: 2.10 ms
+[pywinauto-timing] Name field.texts: 1.85 ms
+[pywinauto-timing] Name field.legacy_properties: 3.49 ms
+large drink {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.63 ms
+[pywinauto-timing] Row.children: 93.13 ms
+[pywinauto-timing] Name field.texts: 2.12 ms
+[pywinauto-timing] Name field.texts: 2.13 ms
+[pywinauto-timing] Name field.texts: 1.69 ms
+[pywinauto-timing] Name field.legacy_properties: 3.37 ms
+bottled water (sm) {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.35 ms
+[pywinauto-timing] Row.children: 95.41 ms
+[pywinauto-timing] Name field.texts: 2.19 ms
+[pywinauto-timing] Name field.texts: 2.22 ms
+[pywinauto-timing] Name field.texts: 2.24 ms
+[pywinauto-timing] Name field.legacy_properties: 3.48 ms
+chicken tenders {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.23 ms
+[pywinauto-timing] Row.children: 94.26 ms
+[pywinauto-timing] Name field.texts: 2.16 ms
+[pywinauto-timing] Name field.texts: 1.64 ms
+[pywinauto-timing] Name field.texts: 2.03 ms
+[pywinauto-timing] Name field.legacy_properties: 3.51 ms
+hot dog {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.37 ms
+[pywinauto-timing] Row.children: 94.63 ms
+[pywinauto-timing] Name field.texts: 2.19 ms
+[pywinauto-timing] Name field.texts: 1.91 ms
+[pywinauto-timing] Name field.texts: 2.49 ms
+[pywinauto-timing] Name field.legacy_properties: 3.24 ms
+mini donuts {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.46 ms
+[pywinauto-timing] Row.children: 95.34 ms
+[pywinauto-timing] Name field.texts: 2.44 ms
+[pywinauto-timing] Name field.texts: 1.95 ms
+[pywinauto-timing] Name field.texts: 2.15 ms
+[pywinauto-timing] Name field.legacy_properties: 3.75 ms
+nachos {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.18 ms
+[pywinauto-timing] Row.children: 98.29 ms
+[pywinauto-timing] Name field.texts: 2.31 ms
+[pywinauto-timing] Name field.texts: 2.35 ms
+[pywinauto-timing] Name field.texts: 2.32 ms
+[pywinauto-timing] Name field.legacy_properties: 3.45 ms
+pretzel bites {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.10 ms
+[pywinauto-timing] Row.children: 97.64 ms
+[pywinauto-timing] Name field.texts: 2.12 ms
+[pywinauto-timing] Name field.texts: 1.81 ms
+[pywinauto-timing] Name field.texts: 2.13 ms
+[pywinauto-timing] Name field.legacy_properties: 3.79 ms
+12 pepperoni pizza (lk) {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.26 ms
+[pywinauto-timing] Row.children: 96.54 ms
+[pywinauto-timing] Name field.texts: 2.06 ms
+[pywinauto-timing] Name field.texts: 1.66 ms
+[pywinauto-timing] Name field.texts: 1.90 ms
+[pywinauto-timing] Name field.legacy_properties: 3.63 ms
+12 cheese pizza (lk) {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.14 ms
+[pywinauto-timing] Row.children: 95.64 ms
+[pywinauto-timing] Name field.texts: 2.18 ms
+[pywinauto-timing] Name field.texts: 1.97 ms
+[pywinauto-timing] Name field.texts: 1.90 ms
+[pywinauto-timing] Name field.legacy_properties: 3.47 ms
+10 pepperoni (lk) {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.00 ms
+[pywinauto-timing] Row.children: 97.66 ms
+[pywinauto-timing] Name field.texts: 2.20 ms
+[pywinauto-timing] Name field.texts: 1.91 ms
+[pywinauto-timing] Name field.texts: 2.42 ms
+[pywinauto-timing] Name field.legacy_properties: 3.19 ms
+10 cheese pizza (lk) {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.71 ms
+[pywinauto-timing] Row.children: 97.57 ms
+[pywinauto-timing] Name field.texts: 2.18 ms
+[pywinauto-timing] Name field.texts: 2.00 ms
+[pywinauto-timing] Name field.texts: 1.93 ms
+[pywinauto-timing] Name field.legacy_properties: 3.82 ms
+tues. hot dog {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.16 ms
+[pywinauto-timing] Row.children: 101.14 ms
+[pywinauto-timing] Name field.texts: 2.11 ms
+[pywinauto-timing] Name field.texts: 1.87 ms
+[pywinauto-timing] Name field.texts: 1.90 ms
+[pywinauto-timing] Name field.legacy_properties: 3.49 ms
+s-tin 1 {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.29 ms
+[pywinauto-timing] Row.children: 99.12 ms
+[pywinauto-timing] Name field.texts: 2.01 ms
+[pywinauto-timing] Name field.texts: 1.84 ms
+[pywinauto-timing] Name field.texts: 1.85 ms
+[pywinauto-timing] Name field.legacy_properties: 3.14 ms
+s-tin 2 {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.11 ms
+[pywinauto-timing] Row.children: 88.59 ms
+[pywinauto-timing] Name field.texts: 2.32 ms
+[pywinauto-timing] Name field.texts: 1.61 ms
+[pywinauto-timing] Name field.texts: 1.76 ms
+[pywinauto-timing] Name field.legacy_properties: 3.30 ms
+s-tin 3 {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.42 ms
+[pywinauto-timing] Row.children: 88.47 ms
+[pywinauto-timing] Name field.texts: 1.96 ms
+[pywinauto-timing] Name field.texts: 2.02 ms
+[pywinauto-timing] Name field.texts: 1.78 ms
+[pywinauto-timing] Name field.legacy_properties: 3.46 ms
+s-cup {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.20 ms
+[pywinauto-timing] Row.children: 91.39 ms
+[pywinauto-timing] Name field.texts: 2.10 ms
+[pywinauto-timing] Name field.texts: 1.83 ms
+[pywinauto-timing] Name field.texts: 1.67 ms
+[pywinauto-timing] Name field.legacy_properties: 3.75 ms
+blanket {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 51.21 ms
+[pywinauto-timing] Row.children: 85.66 ms
+[pywinauto-timing] Name field.texts: 2.14 ms
+[pywinauto-timing] Name field.texts: 1.92 ms
+[pywinauto-timing] Name field.texts: 1.73 ms
+[pywinauto-timing] Name field.legacy_properties: 4.35 ms
+shoulder plushie {'kit kat': '21'} False
+[pywinauto-timing] keyboard.send_keys:down: 50.93 ms
