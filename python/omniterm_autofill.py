@@ -149,7 +149,7 @@ def main():
                 name_field = item
                 break
 
-        name = _pw_timed("Name field.legacy_properties", lambda: name_field.legacy_properties())["Value"].lower()
+        name = _pw_timed("Name field.legacy_properties", lambda: name_field.legacy_properties())["Value"].lower().strip()
         name = name.replace("&", "")
 
         if name in totals:
