@@ -70,7 +70,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_TAG: v${{ needs.get-and-bump-version.outputs.version }}
         run: |
-          gh release view "$VERSION_TAG" >/dev/null 2>&1 || gh release create "$VERSION_TAG" --title "$VERSION_TAG" --notes "Automated release"
+          gh release view "$VERSION_TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$VERSION_TAG" -R "$GITHUB_REPOSITORY" --title "$VERSION_TAG" --notes "Automated release"
 
   build-ios:
     name: 🎉 iOS Build
@@ -141,7 +141,7 @@ jobs:
       - name: Upload IPA to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload v${{ needs.get-and-bump-version.outputs.version }} build/release/InventoryCount.ipa --clobber
+        run: gh release upload v${{ needs.get-and-bump-version.outputs.version }} build/release/InventoryCount.ipa --clobber -R "$GITHUB_REPOSITORY"
   update-app-description:
     name: Update app_description.json
     runs-on: ubuntu-latest
@@ -234,7 +234,7 @@ jobs:
       - name: Upload apk to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload v${{ needs.get-and-bump-version.outputs.version }} build/release/InventoryCount.apk --clobber
+        run: gh release upload v${{ needs.get-and-bump-version.outputs.version }} build/release/InventoryCount.apk --clobber -R "$GITHUB_REPOSITORY"
   build-companion:
     name: 🪟 Windows Companion Build
     runs-on: windows-latest
@@ -296,4 +296,4 @@ jobs:
       - name: Upload companion app to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload v${{ needs.get-and-bump-version.outputs.version }} build/release/CompanionApp.zip --clobber
+        run: gh release upload v${{ needs.get-and-bump-version.outputs.version }} build/release/CompanionApp.zip --clobber -R "$GITHUB_REPOSITORY"
