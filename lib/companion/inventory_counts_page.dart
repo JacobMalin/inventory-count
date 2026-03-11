@@ -11,8 +11,158 @@ import '../main/models/data/inventory_models.dart';
 import 'inventory_count_actions_dialog.dart';
 import 'window_model.dart';
 
-class InventoryCountsPage extends StatelessWidget {
+class InventoryCountsPage extends StatefulWidget {
   const InventoryCountsPage({super.key});
+
+  @override
+  State<InventoryCountsPage> createState() => _InventoryCountsPageState();
+}
+
+class _InventoryCountsPageState extends State<InventoryCountsPage> {
+  static const Duration _minimumOfflineReloadDuration = Duration(
+    milliseconds: 500,
+  );
+
+  late Stream<List<Json>> _countsStream;
+  bool _isReloadingOffline = false;
+  DateTime? _offlineReloadStartedAt;
+  bool _isOfflineReloadReleaseQueued = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _countsStream = _createCountsStream();
+  }
+
+  Stream<List<Json>> _createCountsStream() {
+    return Supabase.instance.client
+        .from('counts')
+        .stream(primaryKey: ['name', 'profile'])
+        .order('updated_at');
+  }
+
+  void _reloadCounts() {
+    setState(() {
+      _isReloadingOffline = true;
+      _offlineReloadStartedAt = DateTime.now();
+      _isOfflineReloadReleaseQueued = false;
+      _countsStream = _createCountsStream();
+    });
+  }
+
+  void _finishOfflineReload() {
+    if (_isOfflineReloadReleaseQueued) return;
+
+    _isOfflineReloadReleaseQueued = true;
+    final DateTime startedAt = _offlineReloadStartedAt ?? DateTime.now();
+    final Duration elapsed = DateTime.now().difference(startedAt);
+    final Duration remaining = elapsed >= _minimumOfflineReloadDuration
+        ? Duration.zero
+        : _minimumOfflineReloadDuration - elapsed;
+
+    Future<void>.delayed(remaining, () {
+      if (!mounted || !_isReloadingOffline) return;
+      setState(() {
+        _isReloadingOffline = false;
+        _offlineReloadStartedAt = null;
+        _isOfflineReloadReleaseQueued = false;
+      });
+    });
+  }
+
+  Widget _buildNoInternetError(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.wifi_off_rounded,
+            size: 64,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          const SizedBox(height: 16),
+          Text("You're offline", style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            'Check your network connection and try again.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _isReloadingOffline ? null : _reloadCounts,
+            icon: _isReloadingOffline
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            label: Text(_isReloadingOffline ? 'Reloading...' : 'Reload'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStreamError(BuildContext context, Object? error) {
+    if (error is SocketException) return _buildNoInternetError(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: Theme.of(
+                  context,
+                ).colorScheme.error.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.error_outline,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Could not load inventory counts',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          error?.toString() ?? 'Unknown error',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   String _formatCountName(String rawName) {
     final DateTime? isoParsed = DateTime.tryParse(rawName);
@@ -151,21 +301,23 @@ class InventoryCountsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final SupabaseQueryBuilder storage = Supabase.instance.client.from(
-      'counts',
-    );
-
     return SafeArea(
       child: StreamBuilder<List<Json>>(
-        stream: storage
-            .stream(primaryKey: ['name', 'profile'])
-            .order('updated_at'),
+        stream: _countsStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
+            if (_isReloadingOffline) {
+              return _buildNoInternetError(context);
+            }
             return const Center(child: CircularProgressIndicator());
           }
+
+          if (_isReloadingOffline) {
+            _finishOfflineReload();
+          }
+
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return _buildStreamError(context, snapshot.error);
           }
 
           final List<Json> counts = snapshot.data ?? [];

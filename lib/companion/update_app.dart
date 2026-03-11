@@ -53,7 +53,9 @@ class _UpdateAppState extends State<UpdateApp> {
           'X-GitHub-Api-Version': '2022-11-28',
         },
       );
-      if (response.statusCode != 200) return;
+      if (response.statusCode != 200) {
+        throw Exception('GitHub returned HTTP ${response.statusCode}.');
+      }
 
       final data = jsonDecode(response.body) as Json;
 
@@ -79,7 +81,10 @@ class _UpdateAppState extends State<UpdateApp> {
         }
       }
 
-      if (!mounted || latestVersion.isEmpty) return;
+      if (latestVersion.isEmpty) {
+        throw Exception('Latest release tag is missing.');
+      }
+      if (!mounted) return;
 
       setState(() {
         _currentVersion = currentVersion;
@@ -89,8 +94,16 @@ class _UpdateAppState extends State<UpdateApp> {
             companionZipDownloadUrl != null &&
             _isVersionNewer(latestVersion, currentVersion);
       });
-    } on Exception {
-      // Silent fail: no update prompt if request cannot be completed.
+    } on Exception catch (error) {
+      if (!mounted) return;
+
+      if (error is SocketException) return;
+
+      final String reason = error.toString().replaceFirst('Exception: ', '');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to check for updates: $reason')),
+      );
     }
   }
 

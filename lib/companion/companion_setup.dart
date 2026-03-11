@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:win32/win32.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -17,12 +18,16 @@ Future<void> windowSetup() async {
   await windowManager.ensureInitialized();
 
   final windowModel = WindowModel();
+
   final Offset? startPosition = windowModel.position;
   final Size? startSize = windowModel.size;
   final bool? startIsMaximized = windowModel.isMaximized;
 
+  final PackageInfo packageInfo = await PackageInfo.fromPlatform();
+  final String version = packageInfo.version;
+
   final windowOptions = WindowOptions(
-    title: 'Inventory Count',
+    title: 'Inventory Count v$version',
     minimumSize: minSize,
     size: startSize ?? minSize,
   );
