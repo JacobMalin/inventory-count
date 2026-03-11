@@ -464,28 +464,7 @@ class ExportTile extends StatelessWidget {
       ),
       SlidableAction(
         onPressed: (_) async {
-          final ExportItem? exportItem = _exportEntry is ExportItem
-              ? _exportEntry
-              : null;
-
-          await showRenameDialog(
-            context: context,
-            title: 'Rename $entryType',
-            initialValue: _exportEntry.name,
-            onChanged: (value) async {
-              await exportModel.editEntry(_index, name: value);
-            },
-            includeOmniName: exportItem != null,
-            initialOmniName: exportItem?.omniName,
-            onSaved: (name, omniName) async {
-              await exportModel.editEntry(
-                _index,
-                name: name,
-                omniName: omniName,
-                updateOmniName: exportItem != null,
-              );
-            },
-          );
+          await _openEditDialog(context, exportModel);
         },
         backgroundColor: colorScheme.surfaceContainerHighest,
         foregroundColor: colorScheme.onSurfaceVariant,
@@ -509,6 +488,41 @@ class ExportTile extends StatelessWidget {
         label: 'Delete',
       ),
     ];
+  }
+
+  Future<void> _openEditDialog(
+    BuildContext context,
+    ExportModel exportModel,
+  ) async {
+    final String entryType = switch (_exportEntry) {
+      ExportTitle _ => 'Title',
+      ExportItem _ =>
+        _paths != null && _paths.isNotEmpty ? 'Item' : 'Placeholder',
+      _ => 'Unknown',
+    };
+
+    final ExportItem? exportItem = _exportEntry is ExportItem
+        ? _exportEntry
+        : null;
+
+    await showRenameDialog(
+      context: context,
+      title: 'Rename $entryType',
+      initialValue: _exportEntry.name,
+      onChanged: (value) async {
+        await exportModel.editEntry(_index, name: value);
+      },
+      includeOmniName: exportItem != null,
+      initialOmniName: exportItem?.omniName,
+      onSaved: (name, omniName) async {
+        await exportModel.editEntry(
+          _index,
+          name: name,
+          omniName: omniName,
+          updateOmniName: exportItem != null,
+        );
+      },
+    );
   }
 
   @override
@@ -577,7 +591,9 @@ class ExportTile extends StatelessWidget {
                   const Icon(Icons.drag_handle),
                 ],
               ),
-              onTap: () {},
+              onTap: () async {
+                await _openEditDialog(context, exportModel);
+              },
               title: Text(
                 displayName,
                 style: _exportEntry.isHidden || _titleHidden

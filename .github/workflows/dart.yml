@@ -71,7 +71,7 @@ jobs:
 
       # Cache Flutter pub packages
       - name: Cache Flutter pub packages
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: |
             ~/.pub-cache
@@ -81,7 +81,7 @@ jobs:
 
       # Cache CocoaPods
       - name: Cache CocoaPods
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: |
             ios/Pods
@@ -123,12 +123,9 @@ jobs:
           mv build/ios/iphoneos/FlutterIpaExport.ipa build/release/InventoryCount.ipa
           
       - name: Upload IPA to release
-        uses: svenstaro/upload-release-action@6b7fa9f267e90b50a19fef07b3596790bb941741
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/release/InventoryCount.ipa
-          tag: v${{ needs.get-and-bump-version.outputs.version }}
-          overwrite: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload v${{ needs.get-and-bump-version.outputs.version }} build/release/InventoryCount.ipa --clobber
   update-app-description:
     name: Update app_description.json
     runs-on: ubuntu-latest
@@ -197,7 +194,7 @@ jobs:
 
       # Cache Flutter pub packages
       - name: Cache Flutter pub packages
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: |
             ~/.pub-cache
@@ -219,12 +216,9 @@ jobs:
           mv build/app/outputs/flutter-apk/app-release.apk build/release/InventoryCount.apk
           
       - name: Upload apk to release
-        uses: svenstaro/upload-release-action@6b7fa9f267e90b50a19fef07b3596790bb941741
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/release/InventoryCount.apk
-          tag: v${{ needs.get-and-bump-version.outputs.version }}
-          overwrite: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload v${{ needs.get-and-bump-version.outputs.version }} build/release/InventoryCount.apk --clobber
   build-companion:
     name: 🪟 Windows Companion Build
     runs-on: windows-latest
@@ -238,7 +232,7 @@ jobs:
 
       # Cache Flutter pub packages
       - name: Cache Flutter pub packages
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: |
             ~\AppData\Local\Pub\Cache
@@ -252,6 +246,29 @@ jobs:
           architecture: x64
       - run: flutter pub get
 
+      - name: Detect Python build input changes
+        id: python-changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            python:
+              - 'python/**'
+              - 'omniterm_autofill.spec'
+              - 'omniterm.spec'
+
+      - name: Set up Python
+        if: steps.python-changes.outputs.python == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Rebuild Python executable
+        if: steps.python-changes.outputs.python == 'true'
+        run: |
+          py -m pip install --upgrade pip
+          py -m pip install -r python/requirements.txt
+          py -m PyInstaller --onefile python/omniterm_autofill.py --distpath assets
+
       - run: flutter build windows --release --dart-define=COMPANION=true
 
       - name: Create release archive
@@ -261,9 +278,6 @@ jobs:
         shell: pwsh
           
       - name: Upload companion app to release
-        uses: svenstaro/upload-release-action@6b7fa9f267e90b50a19fef07b3596790bb941741
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/release/CompanionApp.zip
-          tag: v${{ needs.get-and-bump-version.outputs.version }}
-          overwrite: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload v${{ needs.get-and-bump-version.outputs.version }} build/release/CompanionApp.zip --clobber

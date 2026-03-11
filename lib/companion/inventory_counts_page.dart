@@ -334,7 +334,7 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
 
               final String profile = count['profile'] ?? 'Default';
               final countName = (count['name'] ?? '').toString();
-              final String countId = _formatCountName(countName);
+              final String formattedCountName = _formatCountName(countName);
 
               var time = '';
               if (count['updated_at'] != null) {
@@ -355,7 +355,7 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
 
               return ListTile(
                 title: Text(
-                  countId.isNotEmpty ? countId : 'Count',
+                  formattedCountName.isNotEmpty ? formattedCountName : 'Count',
                   overflow: TextOverflow.ellipsis,
                 ),
                 leading: Icon(
@@ -383,7 +383,7 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
                     await showDialog(
                       context: context,
                       builder: (context) => InventoryCountActionsDialog(
-                        countName: countName,
+                        countName: formattedCountName,
                         time: time,
                         profile: profile,
                         jsonString: jsonString,

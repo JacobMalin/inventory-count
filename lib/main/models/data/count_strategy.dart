@@ -107,6 +107,10 @@ abstract class CountStrategy {
 
   Widget buildBumpDisplay(BuildContext context, Item item);
 
+  void setZeroCount(CountModel countModel, Item item) {
+    countModel.setField1(item, 0);
+  }
+
   static final Map<String, CountStrategy Function(Json)> _registry = {
     'SingularCountStrategy': SingularCountStrategy.fromJson,
     'StacksCountStrategy': StacksCountStrategy.fromJson,
@@ -383,6 +387,11 @@ class NegativeCountStrategy extends CountStrategy {
   @override
   Widget buildBumpDisplay(BuildContext context, Item item) {
     return _NegativeBumpDisplay(item: item, from: from);
+  }
+
+  @override
+  void setZeroCount(CountModel countModel, Item item) {
+    countModel.setField1(item, from);
   }
 }
 
@@ -1022,6 +1031,13 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
       perBox: perBox,
       perStack: perStack,
     );
+  }
+
+  @override
+  void setZeroCount(CountModel countModel, Item item) {
+    countModel
+      ..setField1(item, 0)
+      ..setField2(item, 0);
   }
 }
 

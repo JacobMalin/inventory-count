@@ -1231,17 +1231,10 @@ class _CountDialogState extends State<CountDialog> {
                           const SizedBox(width: 12),
                           TextButton(
                             onPressed: () {
-                              if (_currentItem.strategy
-                                  is NegativeCountStrategy) {
-                                countModel.setField1(
-                                  _currentItem,
-                                  (_currentItem.strategy
-                                          as NegativeCountStrategy)
-                                      .from,
-                                );
-                              } else {
-                                countModel.setField1(_currentItem, 0);
-                              }
+                              _currentItem.strategy.setZeroCount(
+                                countModel,
+                                _currentItem,
+                              );
                               _navigateNextOrClose(hasNext);
                             },
                             style: TextButton.styleFrom(
