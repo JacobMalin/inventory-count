@@ -6,10 +6,8 @@ import 'count_page.dart';
 import 'dependencies/app_dependencies.dart';
 import 'export_page.dart';
 import 'fix_page.dart';
-import 'models/area_model.dart';
 import 'models/count_model.dart';
 import 'models/data/inventory_models.dart';
-import 'models/export_model.dart';
 import 'setup/setup_page.dart';
 import 'widgets/date_picker.dart';
 import 'widgets/profile_selection.dart';
@@ -22,60 +20,11 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppDependencies dependencies = _dependencies ?? AppDependencies();
+
     return MultiProvider(
-      providers: [
-        Provider<AppDependencies>(
-          create: (context) => _dependencies ?? AppDependencies(),
-        ),
-        ChangeNotifierProvider<CountModel>(create: (context) => CountModel()),
-        ChangeNotifierProvider<ExportModel>(
-          create: (context) {
-            final AppDependencies appDependencies = context
-                .read<AppDependencies>();
-
-            return ExportModel(
-              localRepository: appDependencies.exportLocalRepository,
-              syncRepository: appDependencies.exportSyncRepository,
-              deviceIdRepository: appDependencies.deviceIdRepository,
-              syncCoordinator: appDependencies.syncCoordinator,
-              syncRuntime: appDependencies.syncRuntime,
-            );
-          },
-        ),
-        ChangeNotifierProxyProvider<CountModel, AreaModel>(
-          create: (context) {
-            final AppDependencies appDependencies = context
-                .read<AppDependencies>();
-
-            return AreaModel(
-              countModel: context.read<CountModel>(),
-              localRepository: appDependencies.areaLocalRepository,
-              syncRepository: appDependencies.areaSyncRepository,
-              deviceIdRepository: appDependencies.deviceIdRepository,
-              syncCoordinator: appDependencies.syncCoordinator,
-              syncRuntime: appDependencies.syncRuntime,
-            );
-          },
-          update: (context, countModel, areaModel) {
-            areaModel?.countModel = countModel;
-            if (areaModel != null) {
-              return areaModel;
-            }
-
-            final AppDependencies appDependencies = context
-                .read<AppDependencies>();
-            return AreaModel(
-              countModel: countModel,
-              localRepository: appDependencies.areaLocalRepository,
-              syncRepository: appDependencies.areaSyncRepository,
-              deviceIdRepository: appDependencies.deviceIdRepository,
-              syncCoordinator: appDependencies.syncCoordinator,
-              syncRuntime: appDependencies.syncRuntime,
-            );
-          },
-        ),
-      ],
-      builder: (context, child) => MaterialApp(
+      providers: dependencies.createProviders(),
+      child: MaterialApp(
         debugShowCheckedModeBanner: false,
         locale: DevicePreview.locale(context),
         builder: DevicePreview.appBuilder,

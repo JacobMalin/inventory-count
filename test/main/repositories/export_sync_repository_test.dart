@@ -7,7 +7,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 const _latestId = 'latest';
 const _deviceA = 'device-a';
-const _defaultProfile = 'Default';
 const _itemsJson = '{"items":[]}';
 const _emptyJson = '{}';
 
@@ -132,33 +131,6 @@ void main() {
       expect(capturedRow!['id'], _latestId);
       expect(capturedRow!['udid'], _deviceA);
     });
-
-    test(
-      'upsertCountExport calls upsertCountRow with mapped payload',
-      () async {
-        final SupabaseClient client = _client();
-        Json? capturedRow;
-        final repository = SupabaseExportSyncRepository(
-          client: client,
-          upsertCountRow: (row) async {
-            capturedRow = row;
-          },
-        );
-
-        final when = DateTime.utc(2026, 3, 1, 14, 30);
-        await repository.upsertCountExport(
-          when: when,
-          profile: _defaultProfile,
-          json: _itemsJson,
-        );
-
-        expect(capturedRow, isNotNull);
-        expect(capturedRow!['name'], '2026-03-01');
-        expect(capturedRow!['profile'], _defaultProfile);
-        expect(capturedRow!['json'], _itemsJson);
-        expect(capturedRow!['updated_at'], when.toUtc().toIso8601String());
-      },
-    );
 
     test(
       'parseRecordForTest parses valid row and converts updatedAt to UTC',

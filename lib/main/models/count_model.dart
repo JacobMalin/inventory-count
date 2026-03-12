@@ -1,16 +1,46 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/types/json.dart';
+import '../repositories/count_local_repository.dart';
+import '../repositories/count_sync_repository.dart';
+import '../repositories/export_local_repository.dart';
 import 'data/count_strategy.dart';
+import 'data/export_entry.dart';
 import 'data/inventory_models.dart';
+import 'export_model.dart';
+import 'sync_change_notifier.dart';
 
-class CountModel with ChangeNotifier {
-  final Box _settingsBox = Hive.box('settings');
-  final Box<Count> _countBox = Hive.box<Count>('counts');
+class CountModel extends SyncChangeNotifier {
+  CountModel({
+    CountLocalRepository? localRepository,
+    CountSyncRepository? syncRepository,
+    ExportLocalRepository? exportLocalRepository,
+    this.exportModel,
+    super.syncRuntime,
+  }) : _localRepository = localRepository ?? HiveCountLocalRepository(),
+       _syncRepository = syncRepository ?? NoopCountSyncRepository(),
+       _exportLocalRepository =
+           exportLocalRepository ?? HiveExportLocalRepository() {
+    unawaited(_localRepository.ensureInitialized());
+    unawaited(_exportLocalRepository.ensureInitialized());
+
+    if (_syncRepository is! NoopCountSyncRepository) {
+      initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
+    }
+  }
+
+  final CountLocalRepository _localRepository;
+  final CountSyncRepository _syncRepository;
+  final ExportLocalRepository _exportLocalRepository;
+
+  StreamSubscription<CountSyncRecord?>? _countSubscription;
+  DateTime? _lastTimestamp;
+
+  ExportModel? exportModel;
 
   final DateFormat _dateFormat = DateFormat('EEEE, MMMM d, yyyy');
   static const int _lastCountLookbackDays = 14;
@@ -19,24 +49,28 @@ class CountModel with ChangeNotifier {
 
   DateTime selectedDate = DateTime.now().subtract(const Duration(hours: 3));
 
-  bool get hideCountedItems =>
-      _settingsBox.get('hideCountedItems', defaultValue: false);
+  String get _countRowName => DateFormat('yyyy-MM-dd').format(selectedDate);
+
+  bool get hideCountedItems => _localRepository.readHideCountedItems();
   set hideCountedItems(bool value) {
-    unawaited(_settingsBox.put('hideCountedItems', value));
+    unawaited(_localRepository.writeHideCountedItems(value));
   }
 
   void setSelectedDate(DateTime date) {
     selectedDate = date;
+    unawaited(_reconnectCountSubscription());
     notifyListeners();
   }
 
   void incrementDate() {
     selectedDate = selectedDate.add(const Duration(days: 1));
+    unawaited(_reconnectCountSubscription());
     notifyListeners();
   }
 
   void decrementDate() {
     selectedDate = selectedDate.subtract(const Duration(days: 1));
+    unawaited(_reconnectCountSubscription());
     notifyListeners();
   }
 
@@ -49,14 +83,85 @@ class CountModel with ChangeNotifier {
 
   void goToToday() {
     selectedDate = DateTime.now();
+    unawaited(_reconnectCountSubscription());
     notifyListeners();
   }
 
+  Future<void> _fetch() async {
+    try {
+      final CountSyncRecord? response = await _syncRepository.fetchRow(
+        rowName: _countRowName,
+      );
+      await _updateFromResponse(response);
+    } on Exception catch (e) {
+      logSyncError('Failed to fetch counts from Supabase', e);
+    }
+  }
+
+  Future<void> _listenForChanges() async {
+    try {
+      registerReconnectCallback(_reconnectCountSubscription);
+      await _reconnectCountSubscription();
+    } on Exception catch (e) {
+      logSyncError('Failed to register count reconnect callback', e);
+    }
+  }
+
+  Future<void> _reconnectCountSubscription() async {
+    await _countSubscription?.cancel();
+
+    _countSubscription = _syncRepository
+        .watchRow(rowName: _countRowName)
+        .listen(
+          (row) {
+            unawaited(_updateFromResponse(row));
+          },
+          onError: (Object e) {
+            logSyncError('Error listening to count changes', e);
+          },
+        );
+  }
+
+  Future<void> _updateFromResponse(CountSyncRecord? response) async {
+    if (response == null) {
+      return;
+    }
+
+    if (response.name != _countRowName) {
+      return;
+    }
+
+    if (_lastTimestamp != null &&
+        !response.updatedAt.isAfter(_lastTimestamp!)) {
+      return;
+    }
+
+    try {
+      final Object decoded = jsonDecode(response.actual);
+      if (decoded is! Json || decoded['itemCounts'] == null) {
+        _lastTimestamp = response.updatedAt;
+        return;
+      }
+
+      final remoteCount = Count.fromJson(decoded);
+      if (response.profile.isNotEmpty) {
+        remoteCount.profile = Profile(response.profile);
+      }
+
+      await _localRepository.writeCount(date, remoteCount);
+      _lastTimestamp = response.updatedAt;
+      notifyListeners();
+    } on Exception {
+      _lastTimestamp = response.updatedAt;
+    }
+  }
+
   Count get _thisCount =>
-      _countBox.get(date) ??
+      _localRepository.readCount(date) ??
       Count(profile: isProfileRemembered ? rememberedProfile : null);
   set _thisCount(Count count) {
-    unawaited(_countBox.put(date, count));
+    unawaited(_localRepository.writeCount(date, count));
+    unawaited(_syncPendingToRemote());
     WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
   }
 
@@ -71,29 +176,51 @@ class CountModel with ChangeNotifier {
     }
 
     if (isProfileRemembered) {
-      unawaited(_settingsBox.put('rememberedProfile', profile));
+      unawaited(_localRepository.writeRememberedProfile(profile));
     } else {
       clearRememberedProfile();
     }
   }
 
-  bool get isProfileRemembered =>
-      _settingsBox.get('isProfileRemembered', defaultValue: false);
+  bool get isProfileRemembered => _localRepository.readIsProfileRemembered();
   set isProfileRemembered(bool value) {
-    unawaited(_settingsBox.put('isProfileRemembered', value));
+    unawaited(_localRepository.writeIsProfileRemembered(value));
     notifyListeners();
   }
 
-  Profile? get rememberedProfile {
-    final dynamic value = _settingsBox.get('rememberedProfile');
-    if (value is Profile) {
-      return value;
-    }
-    return null;
-  }
+  Profile? get rememberedProfile => _localRepository.readRememberedProfile();
 
   void clearRememberedProfile() {
-    unawaited(_settingsBox.delete('rememberedProfile'));
+    unawaited(_localRepository.clearRememberedProfile());
+  }
+
+  String exportInExportOrder() {
+    final List<ExportEntry> currentExportList =
+        exportModel?.exportList ?? _exportLocalRepository.readExportList();
+
+    final Json data = {};
+
+    var currentTitle = '';
+    var titleHidden = false;
+    var titleNotCounted = false;
+    for (final entry in currentExportList) {
+      if (entry is ExportItem && !entry.isHidden && !titleHidden) {
+        final bool useNotCountedJson = entry.isNotCounted || titleNotCounted;
+
+        final currentBucket = data[currentTitle] as Map<dynamic, dynamic>;
+        currentBucket[entry.name] = useNotCountedJson
+            ? getItemNotCountedJson(entry.omniName)
+            : getItemExportJson(entry.name, entry.omniName);
+      } else if (entry is ExportTitle) {
+        currentTitle = entry.name;
+        titleHidden = entry.isHidden;
+        titleNotCounted = entry.isNotCounted;
+        if (!data.containsKey(currentTitle)) {
+          data[currentTitle] = {};
+        }
+      }
+    }
+    return jsonEncode(data);
   }
 
   CountPhase get countPhase => _thisCount.countPhase;
@@ -158,12 +285,10 @@ class CountModel with ChangeNotifier {
     ItemCount defaultWithCurrentModifiers;
 
     if (data.strategy is NegativeCountStrategy) {
-      // For negative strategy, always use 0
       defaultWithCurrentModifiers = ItemCount(data.strategy, field1: 0);
     } else {
       if (data.defaultCount == null) return;
 
-      // Create a new ItemCount with current modifiers
       defaultWithCurrentModifiers = ItemCount(
         data.strategy,
         field1: data.defaultCount!.field1,
@@ -176,15 +301,11 @@ class CountModel with ChangeNotifier {
   }
 
   ItemCountType? getLastCount(Item item) {
-    // TODO: Make last pull from supabase
-    final Box<Count> countBox = Hive.box<Count>('counts');
-
-    // Look back through the last 'days' days to find a count
     for (var i = 1; i <= _lastCountLookbackDays; i++) {
       final DateTime pastDate = selectedDate.subtract(Duration(days: i));
       final String dateKey = _dateFormat.format(pastDate);
 
-      final Count? pastCount = countBox.get(dateKey);
+      final Count? pastCount = _localRepository.readCount(dateKey);
       if (pastCount == null) continue;
 
       final ItemCountType? itemCount = pastCount.getCount(item);
@@ -242,4 +363,29 @@ class CountModel with ChangeNotifier {
   Map<String, CountEntry> get itemCounts => _thisCount.itemCounts.map(
     (key, value) => MapEntry(key.toString(), value),
   );
+
+  Future<void> _syncPendingToRemote() async {
+    final String json = exportInExportOrder();
+    final String actual = jsonEncode(_thisCount.toJson());
+
+    try {
+      await _syncRepository.upsertCount(
+        when: selectedDate,
+        profile: selectedProfile?.name ?? 'Default',
+        json: json,
+        actual: actual,
+      );
+
+      _lastTimestamp = DateTime.now().toUtc();
+    } on Exception {
+      // Keep pending flag for retry on next timer tick.
+    }
+  }
+
+  @override
+  Future<void> dispose() async {
+    await unregisterReconnectCallbacks();
+    await _countSubscription?.cancel();
+    super.dispose();
+  }
 }

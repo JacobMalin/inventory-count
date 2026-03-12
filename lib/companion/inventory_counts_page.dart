@@ -38,7 +38,7 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
   Stream<List<Json>> _createCountsStream() {
     return Supabase.instance.client
         .from('counts')
-        .stream(primaryKey: ['name', 'profile'])
+        .stream(primaryKey: ['name'])
         .order('updated_at');
   }
 
@@ -256,9 +256,10 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
   }
 
   ({String? status, String? message}) _extractPrintStatus(String stdoutText) {
-    const String prefix = 'IC_PRINT_STATUS|';
+    const prefix = 'IC_PRINT_STATUS|';
 
-    for (final String line in LineSplitter.split(stdoutText).toList().reversed) {
+    final List<String> lines = LineSplitter.split(stdoutText).toList();
+    for (final String line in lines.reversed) {
       if (!line.startsWith(prefix)) continue;
 
       final String payload = line.substring(prefix.length);
@@ -266,8 +267,9 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
       if (parts.isEmpty) continue;
 
       final String status = parts.first.trim().toLowerCase();
-      final String? message =
-          parts.length > 1 ? parts.sublist(1).join('|').trim() : null;
+      final String? message = parts.length > 1
+          ? parts.sublist(1).join('|').trim()
+          : null;
 
       return (status: status, message: message);
     }
@@ -394,8 +396,7 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
 
       if (scriptStatus.status == 'failed') {
         throw Exception(
-          scriptStatus.message ??
-              'Print failed: ${err.isNotEmpty ? err : out}',
+          scriptStatus.message ?? 'Print failed: ${err.isNotEmpty ? err : out}',
         );
       }
 

@@ -218,53 +218,6 @@ class _ExportPageState extends State<ExportPage> {
               );
             },
           ),
-          Positioned(
-            bottom: 16,
-            left: 16,
-            child: Consumer2<ExportModel, CountModel>(
-              builder: (context, exportModel, countModel, child) {
-                // TODO: Make automatic
-                return FloatingActionButton.small(
-                  onPressed: () async {
-                    final ScaffoldMessengerState messenger =
-                        ScaffoldMessenger.of(context);
-
-                    try {
-                      await exportModel.upsertCountExport(countModel);
-
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: GestureDetector(
-                            onTap: messenger.hideCurrentSnackBar,
-                            child: const Text('Exported successfully!'),
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    } on Exception catch (e) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: GestureDetector(
-                            onTap: messenger.hideCurrentSnackBar,
-                            child: Text('Export failed: $e'),
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  },
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainer,
-                  foregroundColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant,
-                  elevation: 2,
-                  child: const Icon(Icons.cloud_upload),
-                );
-              },
-            ),
-          ),
 
           Positioned(
             bottom: 16,

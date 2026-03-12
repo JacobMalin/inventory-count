@@ -8,6 +8,8 @@ import 'package:inventory_count/main/models/data/inventory_models.dart';
 import 'package:inventory_count/main/models/sync_coordinator.dart';
 import 'package:inventory_count/main/repositories/area_local_repository.dart';
 import 'package:inventory_count/main/repositories/area_sync_repository.dart';
+import 'package:inventory_count/main/repositories/count_local_repository.dart';
+import 'package:inventory_count/main/repositories/count_sync_repository.dart';
 import 'package:inventory_count/main/repositories/device_id_repository.dart';
 import 'package:inventory_count/main/repositories/export_local_repository.dart';
 import 'package:inventory_count/main/repositories/export_sync_repository.dart';
@@ -25,6 +27,58 @@ class _FakeAreaLocalRepository implements AreaLocalRepository {
 
   @override
   Future<void> writeProfiles(Map<Profile, List<Area>> profiles) async {}
+}
+
+class _FakeCountLocalRepository implements CountLocalRepository {
+  @override
+  Future<void> clearRememberedProfile() async {}
+
+  @override
+  Future<void> ensureInitialized() async {}
+
+  @override
+  Count? readCount(String dateKey) => null;
+
+  @override
+  bool readHideCountedItems() => false;
+
+  @override
+  bool readIsProfileRemembered() => false;
+
+  @override
+  Profile? readRememberedProfile() => null;
+
+  @override
+  Future<void> writeCount(String dateKey, Count count) async {}
+
+  @override
+  Future<void> writeHideCountedItems(bool value) async {}
+
+  @override
+  Future<void> writeIsProfileRemembered(bool value) async {}
+
+  @override
+  Future<void> writeRememberedProfile(Profile profile) async {}
+}
+
+class _FakeCountSyncRepository implements CountSyncRepository {
+  @override
+  Future<CountSyncRecord?> fetchRow({required String rowName}) {
+    return Future<CountSyncRecord?>.value();
+  }
+
+  @override
+  Stream<CountSyncRecord?> watchRow({required String rowName}) {
+    return const Stream<CountSyncRecord?>.empty();
+  }
+
+  @override
+  Future<void> upsertCount({
+    required DateTime when,
+    required String profile,
+    required String json,
+    required String actual,
+  }) async {}
 }
 
 class _FakeAreaSyncRepository implements AreaSyncRepository {
@@ -63,13 +117,6 @@ class _FakeExportLocalRepository implements ExportLocalRepository {
 class _FakeExportSyncRepository implements ExportSyncRepository {
   @override
   Future<ExportSyncRecord?> fetchLatest() async => null;
-
-  @override
-  Future<void> upsertCountExport({
-    required DateTime when,
-    required String profile,
-    required String json,
-  }) async {}
 
   @override
   Future<void> upsertLatest(ExportSyncRecord record) async {}
@@ -144,6 +191,8 @@ void main() {
     });
 
     test('uses provided dependency instances', () {
+      final countLocalRepository = _FakeCountLocalRepository();
+      final countSyncRepository = _FakeCountSyncRepository();
       final areaLocalRepository = _FakeAreaLocalRepository();
       final areaSyncRepository = _FakeAreaSyncRepository();
       final exportLocalRepository = _FakeExportLocalRepository();
@@ -157,6 +206,8 @@ void main() {
       );
 
       final dependencies = AppDependencies(
+        countLocalRepository: countLocalRepository,
+        countSyncRepository: countSyncRepository,
         areaLocalRepository: areaLocalRepository,
         areaSyncRepository: areaSyncRepository,
         exportLocalRepository: exportLocalRepository,
@@ -166,6 +217,14 @@ void main() {
         syncCoordinator: syncCoordinator,
       );
 
+      expect(
+        identical(dependencies.countLocalRepository, countLocalRepository),
+        isTrue,
+      );
+      expect(
+        identical(dependencies.countSyncRepository, countSyncRepository),
+        isTrue,
+      );
       expect(
         identical(dependencies.areaLocalRepository, areaLocalRepository),
         isTrue,
@@ -192,6 +251,8 @@ void main() {
 
     test('builds syncCoordinator with resolved deviceIdRepository', () async {
       final dependencies = AppDependencies(
+        countLocalRepository: _FakeCountLocalRepository(),
+        countSyncRepository: _FakeCountSyncRepository(),
         areaLocalRepository: _FakeAreaLocalRepository(),
         areaSyncRepository: _FakeAreaSyncRepository(),
         exportLocalRepository: _FakeExportLocalRepository(),
@@ -223,10 +284,15 @@ void main() {
 
     test('creates expected defaults when optional values are omitted', () {
       final dependencies = AppDependencies(
+        countSyncRepository: _FakeCountSyncRepository(),
         areaSyncRepository: _FakeAreaSyncRepository(),
         exportSyncRepository: _FakeExportSyncRepository(),
       );
 
+      expect(
+        dependencies.countLocalRepository,
+        isA<HiveCountLocalRepository>(),
+      );
       expect(dependencies.areaLocalRepository, isA<HiveAreaLocalRepository>());
       expect(
         dependencies.exportLocalRepository,
@@ -241,16 +307,28 @@ void main() {
     });
 
     test('uses provided values and defaults only omitted dependencies', () {
+      final countLocalRepository = _FakeCountLocalRepository();
+      final countSyncRepository = _FakeCountSyncRepository();
       final areaLocalRepository = _FakeAreaLocalRepository();
       final areaSyncRepository = _FakeAreaSyncRepository();
       final exportSyncRepository = _FakeExportSyncRepository();
 
       final dependencies = AppDependencies(
+        countLocalRepository: countLocalRepository,
+        countSyncRepository: countSyncRepository,
         areaLocalRepository: areaLocalRepository,
         areaSyncRepository: areaSyncRepository,
         exportSyncRepository: exportSyncRepository,
       );
 
+      expect(
+        identical(dependencies.countLocalRepository, countLocalRepository),
+        isTrue,
+      );
+      expect(
+        identical(dependencies.countSyncRepository, countSyncRepository),
+        isTrue,
+      );
       expect(
         identical(dependencies.areaLocalRepository, areaLocalRepository),
         isTrue,

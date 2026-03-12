@@ -7,7 +7,6 @@ import '../../core/types/json.dart';
 import '../repositories/device_id_repository.dart';
 import '../repositories/export_local_repository.dart';
 import '../repositories/export_sync_repository.dart';
-import 'count_model.dart';
 import 'data/export_entry.dart';
 import 'sync_change_notifier.dart';
 import 'sync_coordinator.dart';
@@ -180,42 +179,6 @@ class ExportModel extends SyncChangeNotifier {
       }
     }
     return false;
-  }
-
-  String exportInExportOrder(CountModel countModel) {
-    final List<ExportEntry> currentExportList = exportList;
-
-    final Json data = {};
-
-    var currentTitle = '';
-    var titleHidden = false;
-    var titleNotCounted = false;
-    for (final entry in currentExportList) {
-      if (entry is ExportItem && !entry.isHidden && !titleHidden) {
-        final bool useNotCountedJson = entry.isNotCounted || titleNotCounted;
-
-        final currentBucket = data[currentTitle] as Map<dynamic, dynamic>;
-        currentBucket[entry.name] = useNotCountedJson
-            ? countModel.getItemNotCountedJson(entry.omniName)
-            : countModel.getItemExportJson(entry.name, entry.omniName);
-      } else if (entry is ExportTitle) {
-        currentTitle = entry.name;
-        titleHidden = entry.isHidden;
-        titleNotCounted = entry.isNotCounted;
-        if (!data.containsKey(currentTitle)) data[currentTitle] = {};
-      }
-    }
-    return jsonEncode(data);
-  }
-
-  Future<void> upsertCountExport(CountModel countModel) async {
-    final String jsonString = exportInExportOrder(countModel);
-
-    await _syncRepository.upsertCountExport(
-      when: countModel.selectedDate,
-      profile: countModel.selectedProfile?.name ?? 'Default',
-      json: jsonString,
-    );
   }
 
   String exportToJson() {

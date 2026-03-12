@@ -35,7 +35,10 @@ void main() {
 
     expect(find.text('Today'), findsNothing);
 
-    await tester.tap(find.text('Demo'));
+    countModel.selectedProfile = Profile('Demo');
+    await tester.pumpAndSettle();
+
+    countModel.selectedProfile = null;
     await tester.pumpAndSettle();
 
     expect(find.text('Select Profile'), findsOneWidget);

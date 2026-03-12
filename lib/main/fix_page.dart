@@ -7,6 +7,8 @@ import 'models/data/export_entry.dart';
 import 'models/data/inventory_models.dart';
 import 'models/export_model.dart';
 
+// TODO: let the user know if any counted item is not expressed in area
+
 class FixPage extends StatefulWidget {
   const FixPage({super.key});
 

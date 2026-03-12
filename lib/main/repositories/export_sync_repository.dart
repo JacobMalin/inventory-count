@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/types/json.dart';
@@ -31,12 +30,6 @@ abstract class ExportSyncRepository {
   Stream<ExportSyncRecord?> watchLatest();
 
   Future<void> upsertLatest(ExportSyncRecord record);
-
-  Future<void> upsertCountExport({
-    required DateTime when,
-    required String profile,
-    required String json,
-  });
 }
 
 class SupabaseExportSyncRepository implements ExportSyncRepository {
@@ -45,18 +38,15 @@ class SupabaseExportSyncRepository implements ExportSyncRepository {
     FetchLatestRows? fetchLatestRows,
     WatchLatestRows? watchLatestRows,
     UpsertRow? upsertLatestRow,
-    UpsertRow? upsertCountRow,
   }) : _client = client ?? Supabase.instance.client,
        _fetchLatestRows = fetchLatestRows,
        _watchLatestRows = watchLatestRows,
-       _upsertLatestRow = upsertLatestRow,
-       _upsertCountRow = upsertCountRow;
+       _upsertLatestRow = upsertLatestRow;
 
   final SupabaseClient _client;
   final FetchLatestRows? _fetchLatestRows;
   final WatchLatestRows? _watchLatestRows;
   final UpsertRow? _upsertLatestRow;
-  final UpsertRow? _upsertCountRow;
 
   @override
   Future<ExportSyncRecord?> fetchLatest() async {
@@ -86,22 +76,6 @@ class SupabaseExportSyncRepository implements ExportSyncRepository {
     return (_upsertLatestRow ?? _defaultUpsertLatestRow)(_toPayload(record));
   }
 
-  @override
-  Future<void> upsertCountExport({
-    required DateTime when,
-    required String profile,
-    required String json,
-  }) {
-    final String exportName = DateFormat('yyyy-MM-dd').format(when);
-
-    return (_upsertCountRow ?? _defaultUpsertCountRow)(<String, dynamic>{
-      'name': exportName,
-      'profile': profile,
-      'json': json,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    });
-  }
-
   Future<List<Json>> _defaultFetchLatestRows() async {
     final PostgrestList response = await _client
         .from('setups')
@@ -122,10 +96,6 @@ class SupabaseExportSyncRepository implements ExportSyncRepository {
 
   Future<void> _defaultUpsertLatestRow(Json row) {
     return _client.from('setups').upsert(row);
-  }
-
-  Future<void> _defaultUpsertCountRow(Json row) {
-    return _client.from('counts').upsert(row);
   }
 
   @visibleForTesting
