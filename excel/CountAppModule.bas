@@ -63,12 +63,19 @@ Function Print_From_Json(Json)
                     Row.Cells(11).HorizontalAlignment = xlLeft
                 End If
                 If Json(GroupName)(ItemName).Exists("Expected") Then
-                    Dim expectedDiff
-                    expectedDiff = Json(GroupName)(ItemName)("Total") - Json(GroupName)(ItemName)("Expected")
+                    Dim totalValue, expectedValue, expectedDiff
+                    totalValue = Json(GroupName)(ItemName)("Total")
+                    expectedValue = Json(GroupName)(ItemName)("Expected")
 
-                    If expectedDiff <> 0 Then
-                        Row.Cells(12).Value = expectedDiff
-                        Row.Cells(12).HorizontalAlignment = xlLeft
+                    ' Some rows contain '-', '', or null, which cannot be subtracted.
+                    If IsNumeric(totalValue) And IsNumeric(expectedValue) Then
+                        expectedDiff = CDbl(totalValue) - CDbl(expectedValue)
+
+                        If expectedDiff <> 0 Then
+                            Row.Cells(12).Value = expectedDiff
+                            Row.Cells(12).NumberFormat = "+0;-0;0"
+                            Row.Cells(12).HorizontalAlignment = xlLeft
+                        End If
                     End If
                 End If
             End If

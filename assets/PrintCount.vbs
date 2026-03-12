@@ -87,7 +87,7 @@ End If
 On Error GoTo 0
 
 ' Make workbook visible
-xlApp.Visible = True ' TODO: Remove
+' xlApp.Visible = True
 
 ' Read JSON file and validate it, then pass the JSON text to the macro
 If Not fso.FileExists(CountJsonPath) Then
