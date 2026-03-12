@@ -12,6 +12,7 @@ import '../repositories/count_sync_repository.dart';
 import '../repositories/device_id_repository.dart';
 import '../repositories/export_local_repository.dart';
 import '../repositories/export_sync_repository.dart';
+import '../repositories/notes_local_repository.dart';
 import '../repositories/sync_runtime.dart';
 
 class AppDependencies {
@@ -22,6 +23,7 @@ class AppDependencies {
     AreaSyncRepository? areaSyncRepository,
     ExportLocalRepository? exportLocalRepository,
     ExportSyncRepository? exportSyncRepository,
+    NotesLocalRepository? notesLocalRepository,
     DeviceIdRepository? deviceIdRepository,
     SyncCoordinator? syncCoordinator,
     SyncRuntime? syncRuntime,
@@ -38,6 +40,7 @@ class AppDependencies {
           exportLocalRepository ?? HiveExportLocalRepository(),
       exportSyncRepository:
           exportSyncRepository ?? SupabaseExportSyncRepository(),
+      notesLocalRepository: notesLocalRepository ?? HiveNotesLocalRepository(),
       deviceIdRepository: resolvedDeviceIdRepository,
       syncRuntime: syncRuntime ?? SyncRuntime(),
       syncCoordinator:
@@ -53,6 +56,7 @@ class AppDependencies {
     required this.areaSyncRepository,
     required this.exportLocalRepository,
     required this.exportSyncRepository,
+    required this.notesLocalRepository,
     required this.deviceIdRepository,
     required this.syncRuntime,
     required this.syncCoordinator,
@@ -64,6 +68,7 @@ class AppDependencies {
   final AreaSyncRepository areaSyncRepository;
   final ExportLocalRepository exportLocalRepository;
   final ExportSyncRepository exportSyncRepository;
+  final NotesLocalRepository notesLocalRepository;
   final DeviceIdRepository deviceIdRepository;
   final SyncRuntime syncRuntime;
   final SyncCoordinator syncCoordinator;
@@ -71,6 +76,7 @@ class AppDependencies {
   List<SingleChildWidget> createProviders() {
     return [
       Provider<AppDependencies>.value(value: this),
+      Provider<NotesLocalRepository>.value(value: notesLocalRepository),
       ChangeNotifierProvider<ExportModel>(
         create: (context) => ExportModel(
           localRepository: exportLocalRepository,

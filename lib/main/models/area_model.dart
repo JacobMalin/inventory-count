@@ -29,7 +29,7 @@ class AreaModel extends SyncChangeNotifier {
        _syncCoordinator = syncCoordinator {
     unawaited(_localRepository.ensureInitialized());
 
-    initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
+    // initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
   }
 
   RealtimeChannel? _setupsSubscription;

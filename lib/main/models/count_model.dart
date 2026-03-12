@@ -28,7 +28,7 @@ class CountModel extends SyncChangeNotifier {
     unawaited(_localRepository.ensureInitialized());
     unawaited(_exportLocalRepository.ensureInitialized());
 
-    initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
+    // initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
   }
 
   final CountLocalRepository _localRepository;

@@ -14,7 +14,7 @@ import 'package:inventory_count/main/repositories/device_id_repository.dart';
 import 'package:inventory_count/main/repositories/export_local_repository.dart';
 import 'package:inventory_count/main/repositories/export_sync_repository.dart';
 import 'package:inventory_count/main/repositories/sync_runtime.dart';
-import 'package:inventory_count/main/setup/setup_page.dart';
+import 'package:inventory_count/main/setup_page.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

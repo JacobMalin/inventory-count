@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/area_model.dart';
-import 'export_setup_page.dart';
-import 'shelf_setup_page.dart';
+import 'models/area_model.dart';
+import 'setup/export_setup_page.dart';
+import 'setup/shelf_setup_page.dart';
 
 class SetupPage extends StatefulWidget {
   const SetupPage({super.key});

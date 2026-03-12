@@ -17,55 +17,72 @@ class ShelfSetupPage extends StatefulWidget {
 }
 
 class _ShelfSetupPageState extends State<ShelfSetupPage> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final _selectedOrder = <int>[];
 
   void reset() {
-    setState(_selectedOrder.clear);
+    _selectedOrder.clear();
+    _navigatorKey.currentState?.popUntil((route) => route.isFirst);
   }
 
-  void select(int index) {
-    setState(() {
-      _selectedOrder.add(index);
-    });
+  Future<void> _pushSelectionRoute(Widget page) async {
+    await _navigatorKey.currentState
+        ?.push<void>(MaterialPageRoute<void>(builder: (_) => page))
+        .then((_) {
+          if (_selectedOrder.isNotEmpty) {
+            _selectedOrder.removeLast();
+          }
+        });
   }
 
-  void deselect() {
-    setState(_selectedOrder.removeLast);
+  Future<void> select(int index) async {
+    _selectedOrder.add(index);
+
+    if (_selectedOrder.length == 1) {
+      await _pushSelectionRoute(
+        AreaPage(
+          select: select,
+          deselect: deselect,
+          selectedOrder: _selectedOrder,
+        ),
+      );
+      return;
+    }
+
+    final AreaModel areaModel = context.read<AreaModel>();
+    final dynamic shelfOrItem = areaModel.getShelfOrItem(_selectedOrder);
+    if (shelfOrItem is Shelf) {
+      await _pushSelectionRoute(
+        ShelfPage(
+          select: select,
+          deselect: deselect,
+          shelf: shelfOrItem,
+          selectedOrder: _selectedOrder,
+        ),
+      );
+    } else {
+      await _pushSelectionRoute(
+        ItemPage(
+          deselect: deselect,
+          item: shelfOrItem,
+          selectedOrder: _selectedOrder,
+        ),
+      );
+    }
+  }
+
+  Future<void> deselect() async {
+    await _navigatorKey.currentState?.maybePop();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AreaModel>(
-      builder: (context, areaModel, child) {
-        switch (_selectedOrder.length) {
-          case 0:
-            return AreasPage(select: select);
-          case 1:
-            return AreaPage(
-              select: select,
-              deselect: deselect,
-              selectedOrder: _selectedOrder,
-            );
-          default:
-            final dynamic shelfOrItem = areaModel.getShelfOrItem(
-              _selectedOrder,
-            );
-
-            if (shelfOrItem is Shelf) {
-              return ShelfPage(
-                select: select,
-                deselect: deselect,
-                shelf: shelfOrItem,
-                selectedOrder: _selectedOrder,
-              );
-            } else {
-              return ItemPage(
-                deselect: deselect,
-                item: shelfOrItem,
-                selectedOrder: _selectedOrder,
-              );
-            }
-        }
+    return Navigator(
+      key: _navigatorKey,
+      onGenerateRoute: (_) {
+        return MaterialPageRoute<void>(
+          builder: (_) => AreasPage(select: select),
+        );
       },
     );
   }

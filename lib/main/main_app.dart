@@ -8,7 +8,8 @@ import 'export_page.dart';
 import 'fix_page.dart';
 import 'models/count_model.dart';
 import 'models/data/inventory_models.dart';
-import 'setup/setup_page.dart';
+import 'setup_page.dart';
+import 'tools_page.dart';
 import 'widgets/date_picker.dart';
 import 'widgets/profile_selection.dart';
 
@@ -96,6 +97,11 @@ class _HomePageState extends State<HomePage> {
                           label: 'Setup',
                           tooltip: '',
                         ),
+                        NavigationDestination(
+                          icon: Icon(Icons.build),
+                          label: 'Tools',
+                          tooltip: '',
+                        ),
                       ],
                     ),
                   ),
@@ -111,6 +117,7 @@ class _HomePageState extends State<HomePage> {
                   const FixPage(),
                   const ExportPage(),
                   const SetupPage(),
+                  const ToolsPage(),
                 ][_currentPageIndex]
               : const SelectProfile(),
         );
