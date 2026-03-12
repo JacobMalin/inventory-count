@@ -28,9 +28,7 @@ class CountModel extends SyncChangeNotifier {
     unawaited(_localRepository.ensureInitialized());
     unawaited(_exportLocalRepository.ensureInitialized());
 
-    if (_syncRepository is! NoopCountSyncRepository) {
-      initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
-    }
+    initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
   }
 
   final CountLocalRepository _localRepository;
@@ -283,6 +281,15 @@ class CountModel extends SyncChangeNotifier {
     return _thisCount.getCount(data);
   }
 
+  CountEntry? getCountEntry(String path) {
+    return _thisCount.getCountEntry(path);
+  }
+
+  void removeCountByPath(String path) {
+    final Count currentCount = _thisCount..removeByPath(path);
+    _thisCount = currentCount;
+  }
+
   void setField1(Item data, int? count) {
     final Count currentCount = _thisCount;
     final ItemCountType? existingCount = currentCount.getCount(data);
@@ -291,6 +298,11 @@ class CountModel extends SyncChangeNotifier {
         (existingCount is ItemCount) ? existingCount : ItemCount(data.strategy)
           ..field1 = count;
     currentCount.setCount(data, itemCount);
+    _thisCount = currentCount;
+  }
+
+  void setField1ByPath(String path, int? count) {
+    final Count currentCount = _thisCount..setField1ByPath(path, count);
     _thisCount = currentCount;
   }
 
@@ -305,8 +317,18 @@ class CountModel extends SyncChangeNotifier {
     _thisCount = currentCount;
   }
 
+  void setField2ByPath(String path, int? count) {
+    final Count currentCount = _thisCount..setField2ByPath(path, count);
+    _thisCount = currentCount;
+  }
+
   void setNotCounted(Item data) {
     final Count currentCount = _thisCount..setNotCounted(data);
+    _thisCount = currentCount;
+  }
+
+  void setNotCountedByPath(String path) {
+    final Count currentCount = _thisCount..setNotCountedByPath(path);
     _thisCount = currentCount;
   }
 
@@ -319,6 +341,17 @@ class CountModel extends SyncChangeNotifier {
       currentCount.setCount(data, existingCount);
       _thisCount = currentCount;
     }
+  }
+
+  void setDoubleCheckedByPath(String path, {required bool doubleChecked}) {
+    final Count currentCount = _thisCount;
+
+    if (currentCount.getCountEntry(path) == null) {
+      return;
+    }
+
+    currentCount.setDoubleCheckedByPath(path, doubleChecked: doubleChecked);
+    _thisCount = currentCount;
   }
 
   void setDefaultCount(Item data) {
@@ -379,6 +412,10 @@ class CountModel extends SyncChangeNotifier {
     return _thisCount.getCountValueByName(name, phase);
   }
 
+  bool hasCountsForItem(String name) {
+    return _thisCount.hasCountsForItem(name);
+  }
+
   String? getCountSumNotationByName(String name, CountPhase phase) {
     return _thisCount.getCountSumNotationByName(name, phase);
   }
@@ -399,6 +436,22 @@ class CountModel extends SyncChangeNotifier {
 
   void maintainCountList(Item data) {
     final Count currentCount = _thisCount..updateCountForItem(data);
+    _thisCount = currentCount;
+  }
+
+  void moveCountPath(String oldPath, Item item) {
+    final Count currentCount = _thisCount;
+    final CountEntry? existingEntry = currentCount.getCountEntry(oldPath);
+    if (existingEntry == null) {
+      return;
+    }
+
+    currentCount.removeByPath(oldPath);
+    currentCount.itemCounts[item.path] = CountEntry(
+      item.countName ?? item.name,
+      item.countPhase,
+      existingEntry.countType,
+    );
     _thisCount = currentCount;
   }
 

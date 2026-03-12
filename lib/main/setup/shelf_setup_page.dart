@@ -19,6 +19,10 @@ class ShelfSetupPage extends StatefulWidget {
 class _ShelfSetupPageState extends State<ShelfSetupPage> {
   final _selectedOrder = <int>[];
 
+  void reset() {
+    setState(_selectedOrder.clear);
+  }
+
   void select(int index) {
     setState(() {
       _selectedOrder.add(index);

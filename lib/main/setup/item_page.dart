@@ -7,6 +7,7 @@ import '../models/data/count_strategy.dart';
 import '../models/data/export_entry.dart';
 import '../models/data/inventory_models.dart';
 import '../models/export_model.dart';
+import 'setup_helpers.dart';
 
 class ItemPage extends StatelessWidget {
   const ItemPage({
@@ -21,6 +22,118 @@ class ItemPage extends StatelessWidget {
   final Function() _deselect;
   final Item _item;
   final List<int> _selectedOrder;
+
+  Future<void> _moveItem(BuildContext context, AreaModel areaModel) async {
+    int selectedAreaIndex = _selectedOrder[0];
+    int? selectedShelfIndex = _selectedOrder.length == 3
+        ? _selectedOrder[1]
+        : null;
+
+    final bool? shouldMove = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final Area selectedArea = areaModel.getArea(selectedAreaIndex);
+            final List<MapEntry<int, Shelf>> shelves = getShelfEntriesForArea(
+              selectedArea,
+            );
+
+            if (selectedShelfIndex != null &&
+                !shelves.any((entry) => entry.key == selectedShelfIndex)) {
+              selectedShelfIndex = null;
+            }
+
+            return AlertDialog(
+              title: const Text('Move Item'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<int>(
+                    initialValue: selectedAreaIndex,
+                    decoration: const InputDecoration(labelText: 'Area'),
+                    items: [
+                      for (var i = 0; i < areaModel.numAreas; i++)
+                        DropdownMenuItem<int>(
+                          value: i,
+                          child: Text(areaModel.getArea(i).name),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setDialogState(() {
+                        selectedAreaIndex = value;
+                        selectedShelfIndex = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int?>(
+                    initialValue: selectedShelfIndex,
+                    isDense: false,
+                    decoration: const InputDecoration(
+                      labelText: 'Shelf',
+                      contentPadding: EdgeInsets.symmetric(vertical: 2),
+                    ),
+                    items: [
+                      buildBottomOfAreaOption(context),
+                      for (final shelfEntry in shelves)
+                        DropdownMenuItem<int?>(
+                          value: shelfEntry.key,
+                          child: Text(shelfEntry.value.name),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedShelfIndex = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Move'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (shouldMove != true) {
+      return;
+    }
+
+    areaModel.moveItemToDestination(
+      sourceOrder: _selectedOrder,
+      targetAreaIndex: selectedAreaIndex,
+      targetShelfIndex: selectedShelfIndex,
+    );
+
+    _deselect();
+
+    final String destinationArea = areaModel.getArea(selectedAreaIndex).name;
+    final String destination;
+    if (selectedShelfIndex == null) {
+      destination = destinationArea;
+    } else {
+      final destinationShelf =
+          areaModel.getArea(selectedAreaIndex)[selectedShelfIndex!] as Shelf;
+      destination = '$destinationArea > ${destinationShelf.name}';
+    }
+
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Moved "${_item.name}" to $destination.')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +183,12 @@ class ItemPage extends StatelessWidget {
                       ],
                     ),
                   );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.drive_file_move),
+                onPressed: () async {
+                  await _moveItem(context, areaModel);
                 },
               ),
               IconButton(

@@ -663,6 +663,14 @@ class Count extends HiveObject {
     return itemCounts[data.path]?.countType;
   }
 
+  void removeByPath(String path) {
+    itemCounts.remove(path);
+  }
+
+  CountEntry? getCountEntry(String path) {
+    return itemCounts[path];
+  }
+
   void setCount(Item data, ItemCountType? count) {
     if (count == null || (count is ItemCount && count.isEmpty())) {
       itemCounts.remove(data.path);
@@ -676,12 +684,73 @@ class Count extends HiveObject {
     );
   }
 
+  void setField1ByPath(String path, int? count) {
+    final CountEntry? entry = itemCounts[path];
+    if (entry == null) {
+      return;
+    }
+
+    final ItemCountType countType = entry.countType;
+    if (countType is! ItemCount) {
+      return;
+    }
+
+    countType.field1 = count;
+
+    if (countType.isEmpty()) {
+      itemCounts.remove(path);
+      return;
+    }
+
+    itemCounts[path] = CountEntry(entry.name, entry.phase, countType);
+  }
+
+  void setField2ByPath(String path, int? count) {
+    final CountEntry? entry = itemCounts[path];
+    if (entry == null) {
+      return;
+    }
+
+    final ItemCountType countType = entry.countType;
+    if (countType is! ItemCount) {
+      return;
+    }
+
+    countType.field2 = count;
+
+    if (countType.isEmpty()) {
+      itemCounts.remove(path);
+      return;
+    }
+
+    itemCounts[path] = CountEntry(entry.name, entry.phase, countType);
+  }
+
   void setNotCounted(Item data) {
     itemCounts[data.path] = CountEntry(
       data.countName ?? data.name,
       data.countPhase,
       ItemNotCounted(),
     );
+  }
+
+  void setNotCountedByPath(String path) {
+    final CountEntry? entry = itemCounts[path];
+    if (entry == null) {
+      return;
+    }
+
+    itemCounts[path] = CountEntry(entry.name, entry.phase, ItemNotCounted());
+  }
+
+  void setDoubleCheckedByPath(String path, {required bool doubleChecked}) {
+    final CountEntry? entry = itemCounts[path];
+    if (entry == null) {
+      return;
+    }
+
+    entry.countType.doubleChecked = doubleChecked;
+    itemCounts[path] = CountEntry(entry.name, entry.phase, entry.countType);
   }
 
   int? getCountValueByName(String name, CountPhase phase) {
@@ -698,6 +767,16 @@ class Count extends HiveObject {
       }
     }
     return isValue ? total : null;
+  }
+
+  bool hasCountsForItem(String name) {
+    for (final CountEntry entry in itemCounts.values) {
+      if (entry.name == name) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   String? getCountSumNotationByName(String name, CountPhase phase) {

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'models/area_model.dart';
 import 'models/count_model.dart';
+import 'models/data/count_strategy.dart';
 import 'models/data/export_entry.dart';
 import 'models/data/inventory_models.dart';
 import 'models/export_model.dart';
@@ -192,9 +193,7 @@ class _ExportPageState extends State<ExportPage> {
                               }
                             } else if (entry is ExportItem) {
                               if (!entry.isHidden && !currentTitleHidden) {
-                                if (areaModel
-                                        .getPathsForItem(entry.name)
-                                        .isEmpty ||
+                                if (!countModel.hasCountsForItem(entry.name) ||
                                     entry.isNotCounted ||
                                     currentTitleNotCounted) {
                                   rows.add(
@@ -202,7 +201,12 @@ class _ExportPageState extends State<ExportPage> {
                                   );
                                 } else {
                                   rows.add(
-                                    _buildItemRow(context, entry, countModel),
+                                    _buildItemRow(
+                                      context,
+                                      entry,
+                                      countModel,
+                                      areaModel,
+                                    ),
                                   );
                                 }
                               }
@@ -294,6 +298,7 @@ class _ExportPageState extends State<ExportPage> {
     BuildContext context,
     ExportItem item,
     CountModel countModel,
+    AreaModel areaModel,
   ) {
     // Get counts for each phase
     int? backCount = countModel.getCountValueByName(item.name, CountPhase.back);
@@ -315,6 +320,50 @@ class _ExportPageState extends State<ExportPage> {
       item.name,
       CountPhase.out,
     );
+    final InlineSpan backSumSpan = _buildPhaseNotationSpan(
+      context,
+      item.name,
+      CountPhase.back,
+      areaModel,
+      countModel,
+    );
+    final InlineSpan cabinetSumSpan = _buildPhaseNotationSpan(
+      context,
+      item.name,
+      CountPhase.cabinet,
+      areaModel,
+      countModel,
+    );
+    final InlineSpan outSumSpan = _buildPhaseNotationSpan(
+      context,
+      item.name,
+      CountPhase.out,
+      areaModel,
+      countModel,
+    );
+
+    final bool backHasOrphanedCounts = _hasOrphanedCountsForPhase(
+      item.name,
+      CountPhase.back,
+      areaModel,
+      countModel,
+    );
+    final bool cabinetHasOrphanedCounts = _hasOrphanedCountsForPhase(
+      item.name,
+      CountPhase.cabinet,
+      areaModel,
+      countModel,
+    );
+    final bool outHasOrphanedCounts = _hasOrphanedCountsForPhase(
+      item.name,
+      CountPhase.out,
+      areaModel,
+      countModel,
+    );
+    final bool totalHasOrphanedCounts =
+        backHasOrphanedCounts ||
+        cabinetHasOrphanedCounts ||
+        outHasOrphanedCounts;
 
     final backIsNotCounted = backCount == -1;
     final cabinetIsNotCounted = cabinetCount == -1;
@@ -356,6 +405,7 @@ class _ExportPageState extends State<ExportPage> {
           context,
           backIsNotCounted ? '-' : backSumNotation ?? '',
           TextAlign.center,
+          richTextSpan: backHasOrphanedCounts ? backSumSpan : null,
           backgroundColor: _countCellBackgroundColor(
             isNotCounted: backIsNotCounted,
             count: backCount,
@@ -365,6 +415,7 @@ class _ExportPageState extends State<ExportPage> {
           context,
           cabinetIsNotCounted ? '-' : cabinetSumNotation ?? '',
           TextAlign.center,
+          richTextSpan: cabinetHasOrphanedCounts ? cabinetSumSpan : null,
           backgroundColor: _countCellBackgroundColor(
             isNotCounted: cabinetIsNotCounted,
             count: cabinetCount,
@@ -374,6 +425,7 @@ class _ExportPageState extends State<ExportPage> {
           context,
           outIsNotCounted ? '-' : outSumNotation ?? '',
           TextAlign.center,
+          richTextSpan: outHasOrphanedCounts ? outSumSpan : null,
           backgroundColor: _countCellBackgroundColor(
             isNotCounted: outIsNotCounted,
             count: outCount,
@@ -383,6 +435,9 @@ class _ExportPageState extends State<ExportPage> {
           context,
           totalStr,
           TextAlign.center,
+          textColor: totalHasOrphanedCounts
+              ? Theme.of(context).colorScheme.error
+              : null,
           backgroundColor: _totalCellBackgroundColor(
             anyNotCounted: anyNotCounted,
             backCount: backCount,
@@ -392,6 +447,73 @@ class _ExportPageState extends State<ExportPage> {
         ),
       ],
     );
+  }
+
+  bool _hasOrphanedCountsForPhase(
+    String itemName,
+    CountPhase phase,
+    AreaModel areaModel,
+    CountModel countModel,
+  ) {
+    final Set<String> validPaths = areaModel.getPathsForItem(itemName).toSet();
+
+    for (final MapEntry<String, CountEntry> entry
+        in countModel.itemCounts.entries) {
+      if (entry.value.name == itemName &&
+          entry.value.phase == phase &&
+          !validPaths.contains(entry.key)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  InlineSpan _buildPhaseNotationSpan(
+    BuildContext context,
+    String itemName,
+    CountPhase phase,
+    AreaModel areaModel,
+    CountModel countModel,
+  ) {
+    final TextStyle baseStyle =
+        Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    final Color errorColor = Theme.of(context).colorScheme.error;
+    final Set<String> validPaths = areaModel.getPathsForItem(itemName).toSet();
+
+    final List<InlineSpan> spans = [];
+    var isFirst = true;
+
+    for (final MapEntry<String, CountEntry> entry
+        in countModel.itemCounts.entries) {
+      if (entry.value.name != itemName || entry.value.phase != phase) {
+        continue;
+      }
+
+      if (!isFirst) {
+        spans.add(TextSpan(text: ' + ', style: baseStyle));
+      }
+
+      final ItemCountType countType = entry.value.countType;
+      if (countType is ItemNotCounted) {
+        spans.add(TextSpan(text: '-', style: baseStyle));
+      } else if (countType is ItemCount) {
+        final bool isOrphan = !validPaths.contains(entry.key);
+        spans.add(
+          TextSpan(
+            text: '${countType.count ?? ''}',
+            style: baseStyle.copyWith(color: isOrphan ? errorColor : null),
+          ),
+        );
+        if (countType.doubleChecked) {
+          spans.add(TextSpan(text: ' ✓', style: baseStyle));
+        }
+      }
+
+      isFirst = false;
+    }
+
+    return TextSpan(style: baseStyle, children: spans);
   }
 
   TableRow _buildTitleRow(BuildContext context, ExportTitle title) {
@@ -452,6 +574,8 @@ class _ExportPageState extends State<ExportPage> {
     String text,
     TextAlign textAlign, {
     Color? backgroundColor,
+    Color? textColor,
+    InlineSpan? richTextSpan,
   }) {
     return Container(
       color: backgroundColor,
@@ -461,11 +585,15 @@ class _ExportPageState extends State<ExportPage> {
         alignment: textAlign == TextAlign.left
             ? Alignment.centerLeft
             : Alignment.center,
-        child: Text(
-          text,
-          textAlign: textAlign,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        child: richTextSpan != null
+            ? RichText(text: richTextSpan, textAlign: textAlign)
+            : Text(
+                text,
+                textAlign: textAlign,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: textColor),
+              ),
       ),
     );
   }

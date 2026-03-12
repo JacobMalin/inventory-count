@@ -107,6 +107,27 @@ abstract class CountStrategy {
 
   Widget buildBumpDisplay(BuildContext context, Item item);
 
+  Widget buildOrphanBumpDisplay(BuildContext context, String path) {
+    return switch (this) {
+      SingularCountStrategy() => _SingularBumpDisplay.path(path: path),
+      NegativeCountStrategy(:final int from) => _NegativeBumpDisplay.path(
+        path: path,
+        from: from,
+      ),
+      StacksCountStrategy(:final int perStack) => _StacksBumpDisplay.path(
+        path: path,
+        perStack: perStack,
+      ),
+      BoxesAndStacksCountStrategy(:final int perBox, :final int perStack) =>
+        _BoxesAndStacksBumpDisplay.path(
+          path: path,
+          perBox: perBox,
+          perStack: perStack,
+        ),
+      _ => const SizedBox.shrink(),
+    };
+  }
+
   void setZeroCount(CountModel countModel, Item item) {
     countModel.setField1(item, 0);
   }
@@ -176,14 +197,21 @@ class SingularCountStrategy extends CountStrategy {
 
   @override
   Widget buildBumpDisplay(BuildContext context, Item item) {
-    return _SingularBumpDisplay(item: item);
+    return _SingularBumpDisplay.item(item: item);
   }
 }
 
 class _SingularBumpDisplay extends StatefulWidget {
-  const _SingularBumpDisplay({required Item item}) : _item = item;
+  const _SingularBumpDisplay.item({required Item item})
+    : _item = item,
+      _path = null;
 
-  final Item _item;
+  const _SingularBumpDisplay.path({required String path})
+    : _item = null,
+      _path = path;
+
+  final Item? _item;
+  final String? _path;
 
   @override
   State<_SingularBumpDisplay> createState() => _SingularBumpDisplayState();
@@ -208,7 +236,9 @@ class _SingularBumpDisplayState extends State<_SingularBumpDisplay> {
   Widget build(BuildContext context) {
     return Consumer<CountModel>(
       builder: (context, countModel, child) {
-        final ItemCountType? itemCountType = countModel.getCount(widget._item);
+        final ItemCountType? itemCountType = widget._item != null
+            ? countModel.getCount(widget._item!)
+            : countModel.getCountEntry(widget._path!)?.countType;
         final isNotCounted = itemCountType is ItemNotCounted;
         final ItemCount? itemCount = itemCountType is ItemCount
             ? itemCountType
@@ -234,11 +264,19 @@ class _SingularBumpDisplayState extends State<_SingularBumpDisplay> {
                   : () {
                       final int value = currentValue ?? 0;
                       if (value <= 0) {
-                        countModel.setNotCounted(widget._item);
+                        if (widget._item != null) {
+                          countModel.setNotCounted(widget._item!);
+                        } else {
+                          countModel.setNotCountedByPath(widget._path!);
+                        }
                         _controller.text = '-';
                       } else {
                         final int newValue = value - 1;
-                        countModel.setField1(widget._item, newValue);
+                        if (widget._item != null) {
+                          countModel.setField1(widget._item!, newValue);
+                        } else {
+                          countModel.setField1ByPath(widget._path!, newValue);
+                        }
                         _controller.text = newValue.toString();
                       }
                     },
@@ -268,7 +306,11 @@ class _SingularBumpDisplayState extends State<_SingularBumpDisplay> {
                   },
                   onChanged: (value) {
                     final int? intValue = int.tryParse(value);
-                    countModel.setField1(widget._item, intValue);
+                    if (widget._item != null) {
+                      countModel.setField1(widget._item!, intValue);
+                    } else {
+                      countModel.setField1ByPath(widget._path!, intValue);
+                    }
                   },
                 ),
               ),
@@ -278,11 +320,19 @@ class _SingularBumpDisplayState extends State<_SingularBumpDisplay> {
               icon: const Icon(Icons.add),
               onPressed: () {
                 if (currentValue == null) {
-                  countModel.setField1(widget._item, 0);
+                  if (widget._item != null) {
+                    countModel.setField1(widget._item!, 0);
+                  } else {
+                    countModel.setField1ByPath(widget._path!, 0);
+                  }
                   _controller.text = '0';
                 } else {
                   final int newValue = currentValue + 1;
-                  countModel.setField1(widget._item, newValue);
+                  if (widget._item != null) {
+                    countModel.setField1(widget._item!, newValue);
+                  } else {
+                    countModel.setField1ByPath(widget._path!, newValue);
+                  }
                   _controller.text = newValue.toString();
                 }
               },
@@ -386,7 +436,7 @@ class NegativeCountStrategy extends CountStrategy {
 
   @override
   Widget buildBumpDisplay(BuildContext context, Item item) {
-    return _NegativeBumpDisplay(item: item, from: from);
+    return _NegativeBumpDisplay.item(item: item, from: from);
   }
 
   @override
@@ -396,11 +446,18 @@ class NegativeCountStrategy extends CountStrategy {
 }
 
 class _NegativeBumpDisplay extends StatefulWidget {
-  const _NegativeBumpDisplay({required Item item, required int from})
+  const _NegativeBumpDisplay.item({required Item item, required int from})
     : _from = from,
-      _item = item;
+      _item = item,
+      _path = null;
 
-  final Item _item;
+  const _NegativeBumpDisplay.path({required String path, required int from})
+    : _from = from,
+      _item = null,
+      _path = path;
+
+  final Item? _item;
+  final String? _path;
   final int _from;
 
   @override
@@ -426,7 +483,9 @@ class _NegativeBumpDisplayState extends State<_NegativeBumpDisplay> {
   Widget build(BuildContext context) {
     return Consumer<CountModel>(
       builder: (context, countModel, child) {
-        final ItemCountType? itemCountType = countModel.getCount(widget._item);
+        final ItemCountType? itemCountType = widget._item != null
+            ? countModel.getCount(widget._item!)
+            : countModel.getCountEntry(widget._path!)?.countType;
         final isNotCounted = itemCountType is ItemNotCounted;
         final ItemCount? itemCount = itemCountType is ItemCount
             ? itemCountType
@@ -459,11 +518,22 @@ class _NegativeBumpDisplayState extends State<_NegativeBumpDisplay> {
                       : () {
                           final int currentValue = field1 ?? 0;
                           if (currentValue <= 0) {
-                            countModel.setNotCounted(widget._item);
+                            if (widget._item != null) {
+                              countModel.setNotCounted(widget._item!);
+                            } else {
+                              countModel.setNotCountedByPath(widget._path!);
+                            }
                             _controller.text = '-';
                           } else {
                             final int newValue = currentValue - 1;
-                            countModel.setField1(widget._item, newValue);
+                            if (widget._item != null) {
+                              countModel.setField1(widget._item!, newValue);
+                            } else {
+                              countModel.setField1ByPath(
+                                widget._path!,
+                                newValue,
+                              );
+                            }
                             _controller.text = newValue.toString();
                           }
                         },
@@ -493,7 +563,11 @@ class _NegativeBumpDisplayState extends State<_NegativeBumpDisplay> {
                       },
                       onChanged: (value) {
                         final int? intValue = int.tryParse(value);
-                        countModel.setField1(widget._item, intValue);
+                        if (widget._item != null) {
+                          countModel.setField1(widget._item!, intValue);
+                        } else {
+                          countModel.setField1ByPath(widget._path!, intValue);
+                        }
                       },
                     ),
                   ),
@@ -509,11 +583,22 @@ class _NegativeBumpDisplayState extends State<_NegativeBumpDisplay> {
                       : () {
                           final currentValue = field1;
                           if (currentValue == null) {
-                            countModel.setField1(widget._item, 0);
+                            if (widget._item != null) {
+                              countModel.setField1(widget._item!, 0);
+                            } else {
+                              countModel.setField1ByPath(widget._path!, 0);
+                            }
                             _controller.text = '0';
                           } else {
                             final int newValue = currentValue + 1;
-                            countModel.setField1(widget._item, newValue);
+                            if (widget._item != null) {
+                              countModel.setField1(widget._item!, newValue);
+                            } else {
+                              countModel.setField1ByPath(
+                                widget._path!,
+                                newValue,
+                              );
+                            }
                             _controller.text = newValue.toString();
                           }
                         },
@@ -736,16 +821,23 @@ class StacksCountStrategy extends CountStrategy {
 
   @override
   Widget buildBumpDisplay(BuildContext context, Item item) {
-    return _StacksBumpDisplay(item: item, perStack: perStack);
+    return _StacksBumpDisplay.item(item: item, perStack: perStack);
   }
 }
 
 class _StacksBumpDisplay extends StatefulWidget {
-  const _StacksBumpDisplay({required Item item, required int perStack})
+  const _StacksBumpDisplay.item({required Item item, required int perStack})
     : _perStack = perStack,
-      _item = item;
+      _item = item,
+      _path = null;
 
-  final Item _item;
+  const _StacksBumpDisplay.path({required String path, required int perStack})
+    : _perStack = perStack,
+      _item = null,
+      _path = path;
+
+  final Item? _item;
+  final String? _path;
   final int _perStack;
 
   @override
@@ -771,7 +863,9 @@ class _StacksBumpDisplayState extends State<_StacksBumpDisplay> {
   Widget build(BuildContext context) {
     return Consumer<CountModel>(
       builder: (context, countModel, child) {
-        final ItemCountType? itemCountType = countModel.getCount(widget._item);
+        final ItemCountType? itemCountType = widget._item != null
+            ? countModel.getCount(widget._item!)
+            : countModel.getCountEntry(widget._path!)?.countType;
         final isNotCounted = itemCountType is ItemNotCounted;
         final ItemCount? itemCount = itemCountType is ItemCount
             ? itemCountType
@@ -797,11 +891,19 @@ class _StacksBumpDisplayState extends State<_StacksBumpDisplay> {
                   : () {
                       final int currentValue = stacks ?? 0;
                       if (currentValue <= 0) {
-                        countModel.setNotCounted(widget._item);
+                        if (widget._item != null) {
+                          countModel.setNotCounted(widget._item!);
+                        } else {
+                          countModel.setNotCountedByPath(widget._path!);
+                        }
                         _controller.text = '-';
                       } else {
                         final int newValue = currentValue - 1;
-                        countModel.setField1(widget._item, newValue);
+                        if (widget._item != null) {
+                          countModel.setField1(widget._item!, newValue);
+                        } else {
+                          countModel.setField1ByPath(widget._path!, newValue);
+                        }
                         _controller.text = newValue.toString();
                       }
                     },
@@ -832,7 +934,11 @@ class _StacksBumpDisplayState extends State<_StacksBumpDisplay> {
                   },
                   onChanged: (value) {
                     final int? intValue = int.tryParse(value);
-                    countModel.setField1(widget._item, intValue);
+                    if (widget._item != null) {
+                      countModel.setField1(widget._item!, intValue);
+                    } else {
+                      countModel.setField1ByPath(widget._path!, intValue);
+                    }
                   },
                 ),
               ),
@@ -843,11 +949,19 @@ class _StacksBumpDisplayState extends State<_StacksBumpDisplay> {
               onPressed: () {
                 final currentValue = stacks;
                 if (currentValue == null) {
-                  countModel.setField1(widget._item, 0);
+                  if (widget._item != null) {
+                    countModel.setField1(widget._item!, 0);
+                  } else {
+                    countModel.setField1ByPath(widget._path!, 0);
+                  }
                   _controller.text = '0';
                 } else {
                   final int newValue = currentValue + 1;
-                  countModel.setField1(widget._item, newValue);
+                  if (widget._item != null) {
+                    countModel.setField1(widget._item!, newValue);
+                  } else {
+                    countModel.setField1ByPath(widget._path!, newValue);
+                  }
                   _controller.text = newValue.toString();
                 }
               },
@@ -1026,7 +1140,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
 
   @override
   Widget buildBumpDisplay(BuildContext context, Item item) {
-    return _BoxesAndStacksBumpDisplay(
+    return _BoxesAndStacksBumpDisplay.item(
       item: item,
       perBox: perBox,
       perStack: perStack,
@@ -1042,15 +1156,26 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
 }
 
 class _BoxesAndStacksBumpDisplay extends StatefulWidget {
-  const _BoxesAndStacksBumpDisplay({
+  const _BoxesAndStacksBumpDisplay.item({
     required Item item,
     required int perBox,
     required int perStack,
   }) : _perStack = perStack,
        _perBox = perBox,
-       _item = item;
+       _item = item,
+       _path = null;
 
-  final Item _item;
+  const _BoxesAndStacksBumpDisplay.path({
+    required String path,
+    required int perBox,
+    required int perStack,
+  }) : _perStack = perStack,
+       _perBox = perBox,
+       _item = null,
+       _path = path;
+
+  final Item? _item;
+  final String? _path;
   final int _perBox;
   final int _perStack;
 
@@ -1082,7 +1207,9 @@ class _BoxesAndStacksBumpDisplayState
   Widget build(BuildContext context) {
     return Consumer<CountModel>(
       builder: (context, countModel, child) {
-        final ItemCountType? itemCountType = countModel.getCount(widget._item);
+        final ItemCountType? itemCountType = widget._item != null
+            ? countModel.getCount(widget._item!)
+            : countModel.getCountEntry(widget._path!)?.countType;
         final isNotCounted = itemCountType is ItemNotCounted;
         final ItemCount? itemCount = itemCountType is ItemCount
             ? itemCountType
@@ -1123,11 +1250,25 @@ class _BoxesAndStacksBumpDisplayState
                           : () {
                               final int currentValue = boxes ?? 0;
                               if (currentValue <= 0) {
-                                countModel.setField1(widget._item, null);
+                                if (widget._item != null) {
+                                  countModel.setField1(widget._item!, null);
+                                } else {
+                                  countModel.setField1ByPath(
+                                    widget._path!,
+                                    null,
+                                  );
+                                }
                                 _boxController.text = '';
                               } else {
                                 final int newValue = currentValue - 1;
-                                countModel.setField1(widget._item, newValue);
+                                if (widget._item != null) {
+                                  countModel.setField1(widget._item!, newValue);
+                                } else {
+                                  countModel.setField1ByPath(
+                                    widget._path!,
+                                    newValue,
+                                  );
+                                }
                                 _boxController.text = newValue.toString();
                               }
                             },
@@ -1162,7 +1303,14 @@ class _BoxesAndStacksBumpDisplayState
                           },
                           onChanged: (value) {
                             final int? intValue = int.tryParse(value);
-                            countModel.setField1(widget._item, intValue);
+                            if (widget._item != null) {
+                              countModel.setField1(widget._item!, intValue);
+                            } else {
+                              countModel.setField1ByPath(
+                                widget._path!,
+                                intValue,
+                              );
+                            }
                           },
                         ),
                       ),
@@ -1173,11 +1321,19 @@ class _BoxesAndStacksBumpDisplayState
                       onPressed: () {
                         final currentValue = boxes;
                         if (currentValue == null) {
-                          countModel.setField1(widget._item, 1);
+                          if (widget._item != null) {
+                            countModel.setField1(widget._item!, 1);
+                          } else {
+                            countModel.setField1ByPath(widget._path!, 1);
+                          }
                           _boxController.text = '1';
                         } else {
                           final int newValue = currentValue + 1;
-                          countModel.setField1(widget._item, newValue);
+                          if (widget._item != null) {
+                            countModel.setField1(widget._item!, newValue);
+                          } else {
+                            countModel.setField1ByPath(widget._path!, newValue);
+                          }
                           _boxController.text = newValue.toString();
                         }
                       },
@@ -1200,11 +1356,25 @@ class _BoxesAndStacksBumpDisplayState
                           : () {
                               final int currentValue = stacks ?? 0;
                               if (currentValue <= 0) {
-                                countModel.setField2(widget._item, null);
+                                if (widget._item != null) {
+                                  countModel.setField2(widget._item!, null);
+                                } else {
+                                  countModel.setField2ByPath(
+                                    widget._path!,
+                                    null,
+                                  );
+                                }
                                 _stackController.text = '';
                               } else {
                                 final int newValue = currentValue - 1;
-                                countModel.setField2(widget._item, newValue);
+                                if (widget._item != null) {
+                                  countModel.setField2(widget._item!, newValue);
+                                } else {
+                                  countModel.setField2ByPath(
+                                    widget._path!,
+                                    newValue,
+                                  );
+                                }
                                 _stackController.text = newValue.toString();
                               }
                             },
@@ -1239,7 +1409,14 @@ class _BoxesAndStacksBumpDisplayState
                           },
                           onChanged: (value) {
                             final int? intValue = int.tryParse(value);
-                            countModel.setField2(widget._item, intValue);
+                            if (widget._item != null) {
+                              countModel.setField2(widget._item!, intValue);
+                            } else {
+                              countModel.setField2ByPath(
+                                widget._path!,
+                                intValue,
+                              );
+                            }
                           },
                         ),
                       ),
@@ -1250,11 +1427,19 @@ class _BoxesAndStacksBumpDisplayState
                       onPressed: () {
                         final currentValue = stacks;
                         if (currentValue == null) {
-                          countModel.setField2(widget._item, 1);
+                          if (widget._item != null) {
+                            countModel.setField2(widget._item!, 1);
+                          } else {
+                            countModel.setField2ByPath(widget._path!, 1);
+                          }
                           _stackController.text = '1';
                         } else {
                           final int newValue = currentValue + 1;
-                          countModel.setField2(widget._item, newValue);
+                          if (widget._item != null) {
+                            countModel.setField2(widget._item!, newValue);
+                          } else {
+                            countModel.setField2ByPath(widget._path!, newValue);
+                          }
                           _stackController.text = newValue.toString();
                         }
                       },

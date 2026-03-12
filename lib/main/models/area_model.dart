@@ -385,6 +385,199 @@ class AreaModel extends SyncChangeNotifier {
     setAreas(currentAreas);
   }
 
+  void moveShelfToArea({
+    required int sourceAreaIndex,
+    required int shelfIndex,
+    required int targetAreaIndex,
+  }) {
+    if (sourceAreaIndex == targetAreaIndex) {
+      return;
+    }
+
+    final List<Area> currentAreas = getAreas();
+    final shelf = currentAreas[sourceAreaIndex][shelfIndex] as Shelf;
+    final Map<Item, String> oldPathsByItem = {};
+
+    shelf.forEach((item) {
+      oldPathsByItem[item] = item.path;
+    });
+
+    final StorageObject removed = currentAreas[sourceAreaIndex].removeAt(
+      shelfIndex,
+    );
+    currentAreas[targetAreaIndex].insert(
+      currentAreas[targetAreaIndex].numItemsAndShelves,
+      removed,
+    );
+
+    shelf.forEach((item) {
+      final String? oldPath = oldPathsByItem[item];
+      if (oldPath != null) {
+        countModel.moveCountPath(oldPath, item);
+      }
+    });
+
+    setAreas(currentAreas);
+  }
+
+  void moveItemToDestination({
+    required List<int> sourceOrder,
+    required int targetAreaIndex,
+    int? targetShelfIndex,
+  }) {
+    final List<Area> currentAreas = getAreas();
+
+    final int sourceAreaIndex = sourceOrder[0];
+    final int sourceIndex = sourceOrder[1];
+    final int? sourceShelfIndex = sourceOrder.elementAtOrNull(2) != null
+        ? sourceOrder[1]
+        : null;
+
+    final bool sameDestination =
+        sourceAreaIndex == targetAreaIndex &&
+        sourceShelfIndex == targetShelfIndex;
+    if (sameDestination) {
+      return;
+    }
+
+    final Item item;
+    if (sourceOrder.length == 2) {
+      item = currentAreas[sourceAreaIndex][sourceIndex] as Item;
+    } else {
+      final sourceShelf =
+          currentAreas[sourceAreaIndex][sourceOrder[1]] as Shelf;
+      item = sourceShelf[sourceOrder[2]];
+    }
+
+    final String oldPath = item.path;
+
+    if (sourceOrder.length == 2) {
+      currentAreas[sourceAreaIndex].removeAt(sourceIndex);
+    } else {
+      (currentAreas[sourceAreaIndex][sourceOrder[1]] as Shelf).removeAt(
+        sourceOrder[2],
+      );
+    }
+
+    if (targetShelfIndex == null) {
+      currentAreas[targetAreaIndex].insert(
+        currentAreas[targetAreaIndex].numItemsAndShelves,
+        item,
+      );
+    } else {
+      final targetShelf =
+          currentAreas[targetAreaIndex][targetShelfIndex] as Shelf;
+      targetShelf.insert(targetShelf.numItems, item);
+    }
+
+    countModel.moveCountPath(oldPath, item);
+    setAreas(currentAreas);
+  }
+
+  bool ensurePathExistsForCountEntry(String path, CountEntry entry) {
+    final List<String> parts = path
+        .split(' > ')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.length < 2 || parts.length > 3) {
+      return false;
+    }
+
+    final List<Area> currentAreas = getAreas();
+    final String areaPath = parts[0];
+    final String itemPath = parts.last;
+
+    int areaIndex = currentAreas.indexWhere((area) => area.path == areaPath);
+    if (areaIndex == -1) {
+      currentAreas.add(Area(areaPath));
+      areaIndex = currentAreas.length - 1;
+    }
+
+    final ItemCountType countType = entry.countType;
+    final CountStrategy strategy;
+    if (countType is ItemCount) {
+      strategy = countType.strategy;
+    } else {
+      strategy = SingularCountStrategy();
+    }
+    final String? countName = itemPath == entry.name ? null : entry.name;
+
+    if (parts.length == 2) {
+      if (_hasDirectItemWithPath(currentAreas[areaIndex], path)) {
+        return false;
+      }
+
+      currentAreas[areaIndex].insert(
+        currentAreas[areaIndex].numItemsAndShelves,
+        Item(
+          itemPath,
+          strategy: strategy,
+          countName: countName,
+          countPhase: entry.phase,
+        ),
+      );
+      setAreas(currentAreas);
+      return true;
+    }
+
+    final shelfPath = '${parts[0]} > ${parts[1]}';
+    int shelfIndex = _findShelfIndexByPath(currentAreas[areaIndex], shelfPath);
+    if (shelfIndex == -1) {
+      currentAreas[areaIndex].insert(
+        currentAreas[areaIndex].numItemsAndShelves,
+        Shelf(parts[1]),
+      );
+      shelfIndex = _findShelfIndexByPath(currentAreas[areaIndex], shelfPath);
+      if (shelfIndex == -1) {
+        return false;
+      }
+    }
+
+    final shelf = currentAreas[areaIndex][shelfIndex] as Shelf;
+    final bool itemAlreadyExists = [
+      for (var i = 0; i < shelf.numItems; i++) shelf[i],
+    ].any((item) => item.path == path);
+    if (itemAlreadyExists) {
+      return false;
+    }
+
+    shelf.insert(
+      shelf.numItems,
+      Item(
+        itemPath,
+        strategy: strategy,
+        countName: countName,
+        countPhase: entry.phase,
+      ),
+    );
+    setAreas(currentAreas);
+    return true;
+  }
+
+  bool _hasDirectItemWithPath(Area area, String path) {
+    for (var i = 0; i < area.numItemsAndShelves; i++) {
+      final StorageObject child = area[i];
+      if (child is Item && child.path == path) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  int _findShelfIndexByPath(Area area, String path) {
+    for (var i = 0; i < area.numItemsAndShelves; i++) {
+      final StorageObject child = area[i];
+      if (child is Shelf && child.path == path) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
   void removeItem(List<int> selectedOrder) {
     final List<Area> currentAreas = getAreas();
 

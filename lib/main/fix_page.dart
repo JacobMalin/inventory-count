@@ -3,11 +3,10 @@ import 'package:provider/provider.dart';
 
 import 'models/area_model.dart';
 import 'models/count_model.dart';
+import 'models/data/count_strategy.dart';
 import 'models/data/export_entry.dart';
 import 'models/data/inventory_models.dart';
 import 'models/export_model.dart';
-
-// TODO: let the user know if any counted item is not expressed in area
 
 class FixPage extends StatefulWidget {
   const FixPage({super.key});
@@ -101,9 +100,22 @@ class _FixPageState extends State<FixPage> {
     CountPhase phase,
     bool isNotCounted,
     AreaModel areaModel,
+    CountModel countModel,
   ) async {
     final List<Item> items = areaModel.findItemsByName(itemName, phase);
-    if (items.isEmpty) return;
+    final Set<String> itemPaths = items.map((item) => item.path).toSet();
+    final List<MapEntry<String, CountEntry>> missingEntries =
+        countModel.itemCounts.entries
+            .where(
+              (entry) =>
+                  entry.value.name == itemName &&
+                  entry.value.phase == phase &&
+                  !itemPaths.contains(entry.key),
+            )
+            .toList()
+          ..sort((a, b) => a.key.compareTo(b.key));
+
+    if (items.isEmpty && missingEntries.isEmpty) return;
 
     await showDialog(
       context: context,
@@ -150,14 +162,20 @@ class _FixPageState extends State<FixPage> {
                           const Spacer(),
                           Consumer<CountModel>(
                             builder: (context, countModel, child) {
+                              final ItemCountType? count = countModel.getCount(
+                                item,
+                              );
+
                               return Checkbox(
-                                value: countModel.getCount(item)?.doubleChecked,
-                                onChanged: (value) {
-                                  countModel.setDoubleChecked(
-                                    item,
-                                    doubleChecked: value ?? false,
-                                  );
-                                },
+                                value: count?.doubleChecked ?? false,
+                                onChanged: count == null
+                                    ? null
+                                    : (value) {
+                                        countModel.setDoubleChecked(
+                                          item,
+                                          doubleChecked: value ?? false,
+                                        );
+                                      },
                               );
                             },
                           ),
@@ -165,6 +183,121 @@ class _FixPageState extends State<FixPage> {
                       ),
                       const SizedBox(height: 8),
                       item.strategy.buildBumpDisplay(context, item),
+                    ],
+                  );
+                },
+              ),
+            for (final entry in missingEntries)
+              Builder(
+                builder: (context) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  entry.key,
+                                  style: DefaultTextStyle.of(context).style
+                                      .copyWith(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.normal,
+                                      ),
+                                  // overflow: TextOverflow.ellipsis,
+                                ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'This counted field is missing.',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.error,
+                                            ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () async {
+                                        final bool added = areaModel
+                                            .ensurePathExistsForCountEntry(
+                                              entry.key,
+                                              entry.value,
+                                            );
+
+                                        if (!context.mounted) return;
+
+                                        Navigator.of(dialogContext).pop();
+                                        if (added) {
+                                          await _showBumpCountDialog(
+                                            context,
+                                            itemName,
+                                            phase,
+                                            isNotCounted,
+                                            areaModel,
+                                            countModel,
+                                          );
+                                        }
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          4,
+                                          12,
+                                          6,
+                                          12,
+                                        ),
+                                        minimumSize: const Size(0, 24),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        visualDensity: VisualDensity.compact,
+                                        textStyle: const TextStyle(
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.add, size: 16),
+                                          SizedBox(width: 4),
+                                          Text('Add'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Consumer<CountModel>(
+                            builder: (context, countModel, child) {
+                              final CountEntry? currentEntry = countModel
+                                  .getCountEntry(entry.key);
+
+                              return Checkbox(
+                                value:
+                                    currentEntry?.countType.doubleChecked ??
+                                    false,
+                                onChanged: currentEntry == null
+                                    ? null
+                                    : (value) {
+                                        countModel.setDoubleCheckedByPath(
+                                          entry.key,
+                                          doubleChecked: value ?? false,
+                                        );
+                                      },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildMissingEntryEditor(context, entry.key),
                     ],
                   );
                 },
@@ -244,7 +377,7 @@ class _FixPageState extends State<FixPage> {
                       !entry.isNotCounted &&
                       !currentTitleHidden &&
                       !currentTitleNotCounted) {
-                    if (areaModel.getPathsForItem(entry.name).isNotEmpty) {
+                    if (countModel.hasCountsForItem(entry.name)) {
                       final TableRow? row = _buildItemRow(
                         context,
                         entry,
@@ -564,6 +697,50 @@ class _FixPageState extends State<FixPage> {
       item.name,
       CountPhase.out,
     );
+    final InlineSpan backSumSpan = _buildPhaseNotationSpan(
+      context,
+      item.name,
+      CountPhase.back,
+      areaModel,
+      countModel,
+    );
+    final InlineSpan cabinetSumSpan = _buildPhaseNotationSpan(
+      context,
+      item.name,
+      CountPhase.cabinet,
+      areaModel,
+      countModel,
+    );
+    final InlineSpan outSumSpan = _buildPhaseNotationSpan(
+      context,
+      item.name,
+      CountPhase.out,
+      areaModel,
+      countModel,
+    );
+
+    final bool backHasOrphanedCounts = _hasOrphanedCountsForPhase(
+      item.name,
+      CountPhase.back,
+      areaModel,
+      countModel,
+    );
+    final bool cabinetHasOrphanedCounts = _hasOrphanedCountsForPhase(
+      item.name,
+      CountPhase.cabinet,
+      areaModel,
+      countModel,
+    );
+    final bool outHasOrphanedCounts = _hasOrphanedCountsForPhase(
+      item.name,
+      CountPhase.out,
+      areaModel,
+      countModel,
+    );
+    final bool totalHasOrphanedCounts =
+        backHasOrphanedCounts ||
+        cabinetHasOrphanedCounts ||
+        outHasOrphanedCounts;
 
     final backIsNotCounted = backCount == -1;
     final cabinetIsNotCounted = cabinetCount == -1;
@@ -632,6 +809,7 @@ class _FixPageState extends State<FixPage> {
           CountPhase.back,
           backIsNotCounted,
           backCount != null || backIsNotCounted,
+          richTextSpan: backHasOrphanedCounts ? backSumSpan : null,
           backgroundColor: backIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (backCount == null ? Colors.red.withValues(alpha: 0.1) : null),
@@ -643,6 +821,7 @@ class _FixPageState extends State<FixPage> {
           CountPhase.cabinet,
           cabinetIsNotCounted,
           cabinetCount != null || cabinetIsNotCounted,
+          richTextSpan: cabinetHasOrphanedCounts ? cabinetSumSpan : null,
           backgroundColor: cabinetIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (cabinetCount == null
@@ -656,6 +835,7 @@ class _FixPageState extends State<FixPage> {
           CountPhase.out,
           outIsNotCounted,
           outCount != null || outIsNotCounted,
+          richTextSpan: outHasOrphanedCounts ? outSumSpan : null,
           backgroundColor: outIsNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : (outCount == null ? Colors.red.withValues(alpha: 0.1) : null),
@@ -664,6 +844,9 @@ class _FixPageState extends State<FixPage> {
           context,
           totalStr,
           TextAlign.center,
+          textColor: totalHasOrphanedCounts
+              ? Theme.of(context).colorScheme.error
+              : null,
           backgroundColor: anyNotCounted
               ? Colors.yellow.withValues(alpha: 0.3)
               : ((backCount == null || cabinetCount == null || outCount == null)
@@ -684,6 +867,73 @@ class _FixPageState extends State<FixPage> {
         ),
       ],
     );
+  }
+
+  bool _hasOrphanedCountsForPhase(
+    String itemName,
+    CountPhase phase,
+    AreaModel areaModel,
+    CountModel countModel,
+  ) {
+    final Set<String> validPaths = areaModel.getPathsForItem(itemName).toSet();
+
+    for (final MapEntry<String, CountEntry> entry
+        in countModel.itemCounts.entries) {
+      if (entry.value.name == itemName &&
+          entry.value.phase == phase &&
+          !validPaths.contains(entry.key)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  InlineSpan _buildPhaseNotationSpan(
+    BuildContext context,
+    String itemName,
+    CountPhase phase,
+    AreaModel areaModel,
+    CountModel countModel,
+  ) {
+    final TextStyle baseStyle =
+        Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    final Color errorColor = Theme.of(context).colorScheme.error;
+    final Set<String> validPaths = areaModel.getPathsForItem(itemName).toSet();
+
+    final List<InlineSpan> spans = [];
+    var isFirst = true;
+
+    for (final MapEntry<String, CountEntry> entry
+        in countModel.itemCounts.entries) {
+      if (entry.value.name != itemName || entry.value.phase != phase) {
+        continue;
+      }
+
+      if (!isFirst) {
+        spans.add(TextSpan(text: ' + ', style: baseStyle));
+      }
+
+      final ItemCountType countType = entry.value.countType;
+      if (countType is ItemNotCounted) {
+        spans.add(TextSpan(text: '-', style: baseStyle));
+      } else if (countType is ItemCount) {
+        final bool isOrphan = !validPaths.contains(entry.key);
+        spans.add(
+          TextSpan(
+            text: '${countType.count ?? ''}',
+            style: baseStyle.copyWith(color: isOrphan ? errorColor : null),
+          ),
+        );
+        if (countType.doubleChecked) {
+          spans.add(TextSpan(text: ' ✓', style: baseStyle));
+        }
+      }
+
+      isFirst = false;
+    }
+
+    return TextSpan(style: baseStyle, children: spans);
   }
 
   TableRow _buildTitleRow(BuildContext context, ExportTitle title) {
@@ -745,11 +995,13 @@ class _FixPageState extends State<FixPage> {
     bool isNotCounted,
     bool hasCounted, {
     Color? backgroundColor,
+    Color? textColor,
+    InlineSpan? richTextSpan,
   }) {
     return Container(
       color: backgroundColor,
-      child: Consumer<AreaModel>(
-        builder: (context, areaModel, child) {
+      child: Consumer2<AreaModel, CountModel>(
+        builder: (context, areaModel, countModel, child) {
           return InkWell(
             onTap: (isNotCounted || hasCounted)
                 ? () => _showBumpCountDialog(
@@ -758,21 +1010,88 @@ class _FixPageState extends State<FixPage> {
                     phase,
                     isNotCounted,
                     areaModel,
+                    countModel,
                   )
                 : null,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(
-                  text,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
+                child: richTextSpan != null
+                    ? RichText(text: richTextSpan)
+                    : Text(
+                        text,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: textColor),
+                      ),
               ),
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildMissingEntryEditor(BuildContext context, String path) {
+    return Consumer<CountModel>(
+      builder: (context, countModel, child) {
+        final CountEntry? currentEntry = countModel.getCountEntry(path);
+        if (currentEntry == null) {
+          return Text(
+            'This counted field was removed.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          );
+        }
+
+        final ItemCountType countType = currentEntry.countType;
+        if (countType is ItemNotCounted) {
+          return Row(
+            children: [
+              Text(
+                'Not Counted.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const Spacer(),
+              OutlinedButton.icon(
+                iconAlignment: IconAlignment.end,
+                onPressed: () {
+                  countModel.removeCountByPath(path);
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.error,
+                    width: 1.25,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 14,
+                  ),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  textStyle: const TextStyle(fontSize: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.delete, size: 16),
+                label: const Text('Delete Entry'),
+              ),
+            ],
+          );
+        }
+
+        if (countType is ItemCount) {
+          return countType.strategy.buildOrphanBumpDisplay(context, path);
+        }
+
+        return Text(
+          'No count data',
+          style: Theme.of(context).textTheme.bodyMedium,
+        );
+      },
     );
   }
 }
