@@ -59,6 +59,15 @@ class _FakeCountLocalRepository implements CountLocalRepository {
 
   @override
   Future<void> writeRememberedProfile(Profile profile) async {}
+
+  @override
+  Map<String, int> readExpectedByNameForDate(String dateKey) => {};
+
+  @override
+  Future<void> writeExpectedByNameForDate(
+    String dateKey,
+    Map<String, int> value,
+  ) async {}
 }
 
 class _FakeCountSyncRepository implements CountSyncRepository {

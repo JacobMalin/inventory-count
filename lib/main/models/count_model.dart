@@ -40,12 +40,15 @@ class CountModel extends SyncChangeNotifier {
   StreamSubscription<CountSyncRecord?>? _countSubscription;
   DateTime? _lastTimestamp;
 
-  static String _normalizeKey(String key) =>
-      key.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  static String _normalizeKey(String key) => key
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .replaceAll('&', '');
 
   int? getExpectedValue(String itemName, String? omniName) {
     final Map<String, int> expectedByName = _localRepository
-        .readExpectedByName();
+        .readExpectedByNameForDate(_countRowName);
     if (expectedByName.isEmpty) return null;
     return expectedByName[_normalizeKey(omniName ?? itemName)] ??
         expectedByName[_normalizeKey(itemName)];
@@ -148,7 +151,7 @@ class CountModel extends SyncChangeNotifier {
     }
 
     try {
-      final Object decoded = jsonDecode(response.actual);
+      final Object? decoded = jsonDecode(response.actual);
       if (decoded is! Json || decoded['itemCounts'] == null) {
         _lastTimestamp = response.updatedAt;
         return;
@@ -176,7 +179,12 @@ class CountModel extends SyncChangeNotifier {
                 newExpected[_normalizeKey(entry.key.toString())] = value;
               }
             }
-            unawaited(_localRepository.writeExpectedByName(newExpected));
+            unawaited(
+              _localRepository.writeExpectedByNameForDate(
+                _countRowName,
+                newExpected,
+              ),
+            );
           }
         } on Exception {
           // Leave _expectedByName unchanged if parsing fails

@@ -608,9 +608,12 @@ class _FixPageState extends State<FixPage> {
       item.name,
       item.omniName,
     );
-    final diffStr = (totalInt != null && expectedValue != null)
-        ? (expectedValue - totalInt).toString()
-        : '';
+    final int? diffValue = (totalInt != null && expectedValue != null)
+        ? totalInt - expectedValue
+        : null;
+    final diffStr = diffValue == null
+        ? ''
+        : (diffValue > 0 ? '+$diffValue' : diffValue.toString());
 
     return TableRow(
       children: [
@@ -667,7 +670,18 @@ class _FixPageState extends State<FixPage> {
                     ? Colors.red.withValues(alpha: 0.1)
                     : null),
         ),
-        _buildDataCell(context, diffStr, TextAlign.center),
+        _buildDataCell(
+          context,
+          diffStr,
+          TextAlign.center,
+          textColor: diffValue == null
+              ? null
+              : (diffValue < 0
+                    ? const Color.fromARGB(255, 239, 74, 62)
+                    : (diffValue == 0
+                          ? Colors.grey.withValues(alpha: 0.35)
+                          : null)),
+        ),
       ],
     );
   }
@@ -702,6 +716,7 @@ class _FixPageState extends State<FixPage> {
     String text,
     TextAlign textAlign, {
     Color? backgroundColor,
+    Color? textColor,
   }) {
     return Container(
       color: backgroundColor,
@@ -714,7 +729,9 @@ class _FixPageState extends State<FixPage> {
         child: Text(
           text,
           textAlign: textAlign,
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: textColor),
         ),
       ),
     );
