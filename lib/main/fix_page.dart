@@ -95,15 +95,6 @@ class _FixPageState extends State<FixPage> {
     }
   }
 
-  double _getTextWidth(BuildContext context, String text, TextStyle? style) {
-    final textPainter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
-      maxLines: 1,
-    )..layout();
-    return textPainter.width;
-  }
-
   Future<void> _showBumpCountDialog(
     BuildContext context,
     String itemName,
@@ -285,13 +276,12 @@ class _FixPageState extends State<FixPage> {
                         .titleMedium
                         ?.copyWith(fontWeight: FontWeight.bold);
 
-                    final Map<String, double> columnWidths = {
-                      'Back': _getTextWidth(context, 'Back', textStyle) + 24.0,
-                      'Cabinet':
-                          _getTextWidth(context, 'Cabinet', textStyle) + 24.0,
-                      'Out': _getTextWidth(context, 'Out', textStyle) + 24.0,
-                      'Total':
-                          _getTextWidth(context, 'Total', textStyle) + 24.0,
+                    final columnWidths = <String, double>{
+                      'Back': 50.0,
+                      'Cabinet': 50.0,
+                      'Out': 50.0,
+                      'Total': 50.0,
+                      'Diff': 50.0,
                     };
 
                     // Show message if no items
@@ -369,6 +359,7 @@ class _FixPageState extends State<FixPage> {
                               2: FixedColumnWidth(columnWidths['Cabinet']!),
                               3: FixedColumnWidth(columnWidths['Out']!),
                               4: FixedColumnWidth(columnWidths['Total']!),
+                              5: FixedColumnWidth(columnWidths['Diff']!),
                             },
                             children: [
                               // Header row
@@ -382,6 +373,7 @@ class _FixPageState extends State<FixPage> {
                                     'Item',
                                     TextAlign.left,
                                     textStyle,
+                                    horizontalPadding: 12,
                                   ),
                                   _buildHeaderCell(
                                     context,
@@ -404,6 +396,12 @@ class _FixPageState extends State<FixPage> {
                                   _buildHeaderCell(
                                     context,
                                     'Total',
+                                    TextAlign.center,
+                                    textStyle,
+                                  ),
+                                  _buildHeaderCell(
+                                    context,
+                                    'Diff',
                                     TextAlign.center,
                                     textStyle,
                                   ),
@@ -520,10 +518,14 @@ class _FixPageState extends State<FixPage> {
     BuildContext context,
     String text,
     TextAlign textAlign,
-    TextStyle? textStyle,
-  ) {
+    TextStyle? textStyle, {
+    double horizontalPadding = 4,
+  }) {
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: 12,
+      ),
       child: Text(
         text,
         textAlign: textAlign,
@@ -585,11 +587,13 @@ class _FixPageState extends State<FixPage> {
         (!cabinetIsNotCounted && cabinetCount != null) ||
         (!outIsNotCounted && outCount != null);
 
+    final int? totalInt = hasAnyValue
+        ? (backCount ?? 0) + (cabinetCount ?? 0) + (outCount ?? 0)
+        : null;
+
     final String totalStr;
     if (hasAnyValue) {
-      final int total =
-          (backCount ?? 0) + (cabinetCount ?? 0) + (outCount ?? 0);
-      totalStr = total.toString();
+      totalStr = totalInt!.toString();
     } else if (anyNotCounted) {
       totalStr = '-';
     } else {
@@ -600,6 +604,13 @@ class _FixPageState extends State<FixPage> {
 
     final bool isMarkedToFix = countModel.itemsToFix.containsKey(item.name);
     final bool isFixed = countModel.itemsToFix[item.name] ?? false;
+    final int? expectedValue = countModel.getExpectedValue(
+      item.name,
+      item.omniName,
+    );
+    final diffStr = (totalInt != null && expectedValue != null)
+        ? (expectedValue - totalInt).toString()
+        : '';
 
     return TableRow(
       children: [
@@ -656,6 +667,7 @@ class _FixPageState extends State<FixPage> {
                     ? Colors.red.withValues(alpha: 0.1)
                     : null),
         ),
+        _buildDataCell(context, diffStr, TextAlign.center),
       ],
     );
   }
@@ -676,6 +688,7 @@ class _FixPageState extends State<FixPage> {
             softWrap: false,
           ),
         ),
+        const SizedBox(),
         const SizedBox(),
         const SizedBox(),
         const SizedBox(),

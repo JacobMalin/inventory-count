@@ -64,7 +64,7 @@ Function Print_From_Json(Json)
                 End If
                 If Json(GroupName)(ItemName).Exists("Expected") Then
                     Dim expectedDiff
-                    expectedDiff = Json(GroupName)(ItemName)("Expected") - Json(GroupName)(ItemName)("Total")
+                    expectedDiff = Json(GroupName)(ItemName)("Total") - Json(GroupName)(ItemName)("Expected")
 
                     If expectedDiff <> 0 Then
                         Row.Cells(12).Value = expectedDiff

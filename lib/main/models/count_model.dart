@@ -40,6 +40,17 @@ class CountModel extends SyncChangeNotifier {
   StreamSubscription<CountSyncRecord?>? _countSubscription;
   DateTime? _lastTimestamp;
 
+  static String _normalizeKey(String key) =>
+      key.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+  int? getExpectedValue(String itemName, String? omniName) {
+    final Map<String, int> expectedByName = _localRepository
+        .readExpectedByName();
+    if (expectedByName.isEmpty) return null;
+    return expectedByName[_normalizeKey(omniName ?? itemName)] ??
+        expectedByName[_normalizeKey(itemName)];
+  }
+
   ExportModel? exportModel;
 
   final DateFormat _dateFormat = DateFormat('EEEE, MMMM d, yyyy');
@@ -149,6 +160,29 @@ class CountModel extends SyncChangeNotifier {
       }
 
       await _localRepository.writeCount(date, remoteCount);
+
+      final String? expectedJson = response.expected;
+      if (expectedJson != null && expectedJson.trim().isNotEmpty) {
+        try {
+          final Object? decodedExpected = jsonDecode(expectedJson);
+          if (decodedExpected is Map) {
+            final newExpected = <String, int>{};
+            for (final MapEntry<dynamic, dynamic> entry
+                in decodedExpected.entries) {
+              final int? value = entry.value is int
+                  ? entry.value as int
+                  : int.tryParse(entry.value?.toString() ?? '');
+              if (value != null) {
+                newExpected[_normalizeKey(entry.key.toString())] = value;
+              }
+            }
+            unawaited(_localRepository.writeExpectedByName(newExpected));
+          }
+        } on Exception {
+          // Leave _expectedByName unchanged if parsing fails
+        }
+      }
+
       _lastTimestamp = response.updatedAt;
       notifyListeners();
     } on Exception {

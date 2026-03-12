@@ -17,6 +17,9 @@ abstract class CountLocalRepository {
 
   Count? readCount(String dateKey);
   Future<void> writeCount(String dateKey, Count count);
+
+  Map<String, int> readExpectedByName();
+  Future<void> writeExpectedByName(Map<String, int> value);
 }
 
 class HiveCountLocalRepository implements CountLocalRepository {
@@ -86,5 +89,19 @@ class HiveCountLocalRepository implements CountLocalRepository {
   @override
   Future<void> writeCount(String dateKey, Count count) {
     return _countBox.put(dateKey, count);
+  }
+
+  @override
+  Map<String, int> readExpectedByName() {
+    final dynamic value = _settingsBox.get('expectedByName');
+    if (value is Map) {
+      return value.map((k, v) => MapEntry(k.toString(), v as int));
+    }
+    return {};
+  }
+
+  @override
+  Future<void> writeExpectedByName(Map<String, int> value) {
+    return _settingsBox.put('expectedByName', value);
   }
 }
