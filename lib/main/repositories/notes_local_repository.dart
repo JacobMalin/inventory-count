@@ -1,106 +1,57 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/types/json.dart';
 
-class NotesChecklistItem {
-  const NotesChecklistItem({required this.label, required this.checked});
-
-  factory NotesChecklistItem.fromJson(Map<dynamic, dynamic> json) {
-    return NotesChecklistItem(
-      label: json['label']?.toString() ?? '',
-      checked: json['checked'] == true,
-    );
-  }
-
-  final String label;
-  final bool checked;
-
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{'label': label, 'checked': checked};
-  }
-
-  NotesChecklistItem copyWith({String? label, bool? checked}) {
-    return NotesChecklistItem(
-      label: label ?? this.label,
-      checked: checked ?? this.checked,
-    );
-  }
-}
-
 class NotesDayData {
-  const NotesDayData({required this.text, required this.checklist});
+  const NotesDayData({required this.text});
 
-  const NotesDayData.empty()
-    : text = '',
-      checklist = const <NotesChecklistItem>[];
+  const NotesDayData.empty() : text = '';
 
   final String text;
-  final List<NotesChecklistItem> checklist;
 
-  bool get isEmpty => text.trim().isEmpty && checklist.isEmpty;
+  bool get isEmpty => text.trim().isEmpty;
 
-  NotesDayData copyWith({String? text, List<NotesChecklistItem>? checklist}) {
-    return NotesDayData(
-      text: text ?? this.text,
-      checklist: checklist ?? this.checklist,
-    );
+  NotesDayData copyWith({String? text}) {
+    return NotesDayData(text: text ?? this.text);
   }
 }
 
 abstract class NotesLocalRepository {
-  Future<void> ensureInitialized();
-
-  NotesDayData readNotesForDay(String dayKey);
-  Future<void> writeNotesForDay(String dayKey, NotesDayData data);
+  NotesDayData readNotesForDay(DateTime day);
+  Future<void> writeNotesForDay(DateTime day, NotesDayData data);
 }
 
 class HiveNotesLocalRepository implements NotesLocalRepository {
   HiveNotesLocalRepository({Box<dynamic>? notesBox})
     : _notesBox = notesBox ?? Hive.box('notes');
 
-  static const String _dayPrefix = 'day:';
-
   final Box<dynamic> _notesBox;
 
-  String _storageKey(String dayKey) => '$_dayPrefix$dayKey';
+  DateFormat keyDateFormat = DateFormat('yyyy-MM-dd');
 
   NotesDayData _parseDayData(Json raw) {
     final String text = raw['text']?.toString() ?? '';
-    final dynamic rawChecklist = raw['checklist'];
-    final List<NotesChecklistItem> checklist = rawChecklist is List
-        ? rawChecklist
-              .whereType<Map>()
-              .map(NotesChecklistItem.fromJson)
-              .toList()
-        : <NotesChecklistItem>[];
-    return NotesDayData(text: text, checklist: checklist);
+    return NotesDayData(text: text);
   }
 
   @override
-  Future<void> ensureInitialized() async {
-    // No legacy migration needed
-    return;
-  }
-
-  @override
-  NotesDayData readNotesForDay(String dayKey) {
-    final dynamic raw = _notesBox.get(_storageKey(dayKey));
-    if (raw is Json) {
-      return _parseDayData(raw);
+  NotesDayData readNotesForDay(DateTime day) {
+    final dynamic raw = _notesBox.get(keyDateFormat.format(day));
+    if (raw is Map) {
+      return _parseDayData(Json.from(raw));
     } else {
       return const NotesDayData.empty();
     }
   }
 
   @override
-  Future<void> writeNotesForDay(String dayKey, NotesDayData data) {
+  Future<void> writeNotesForDay(DateTime day, NotesDayData data) {
+    final String dayKey = keyDateFormat.format(day);
     if (data.isEmpty) {
-      return _notesBox.delete(_storageKey(dayKey));
+      return _notesBox.delete(dayKey);
     }
 
-    return _notesBox.put(_storageKey(dayKey), <String, dynamic>{
-      'text': data.text,
-      'checklist': data.checklist.map((item) => item.toJson()).toList(),
-    });
+    return _notesBox.put(dayKey, <String, dynamic>{'text': data.text});
   }
 }

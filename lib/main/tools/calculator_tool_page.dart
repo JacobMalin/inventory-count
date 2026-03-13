@@ -157,7 +157,14 @@ class _CalculatorToolPageState extends State<CalculatorToolPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calculator')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Calculator'),
+      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(

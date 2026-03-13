@@ -20,9 +20,7 @@ class _NotesToolPageState extends State<NotesToolPage> {
 
   late final _NotesEditingController _controller;
   final FocusNode _notesFocusNode = FocusNode();
-  final Map<String, NotesDayData> _notesByDay = <String, NotesDayData>{};
   late final NotesLocalRepository _notesRepository;
-  String? _activeDayKey;
   bool _isAdjustingSelection = false;
   int _prevOffset = 0;
 
@@ -32,11 +30,13 @@ class _NotesToolPageState extends State<NotesToolPage> {
     _controller = _NotesEditingController(
       uncheckedBox: _uncheckedBox,
       checkedBox: _checkedBox,
-      onCheckboxTap: _toggleCheckboxAtIndex,
+      onCheckboxTap: (index) => _toggleCheckboxAtIndex(
+        context.read<CountModel>().selectedDate,
+        index,
+      ),
     );
     _controller.addListener(_normalizeSelection);
     _notesRepository = context.read<NotesLocalRepository>();
-    unawaited(_initializeNotes());
   }
 
   @override
@@ -47,35 +47,9 @@ class _NotesToolPageState extends State<NotesToolPage> {
     super.dispose();
   }
 
-  String _dayKey(DateTime day) {
-    final String year = day.year.toString().padLeft(4, '0');
-    final String month = day.month.toString().padLeft(2, '0');
-    final String date = day.day.toString().padLeft(2, '0');
-    return '$year-$month-$date';
-  }
-
-  Future<void> _initializeNotes() async {
-    await _notesRepository.ensureInitialized();
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {});
-  }
-
-  void _ensureControllerForDay(String dayKey) {
-    if (_activeDayKey == dayKey) {
-      return;
-    }
-
-    _activeDayKey = dayKey;
-    final NotesDayData noteData =
-        _notesByDay[dayKey] ?? _notesRepository.readNotesForDay(dayKey);
+  void _ensureControllerForDay(DateTime day) {
+    final NotesDayData noteData = _notesRepository.readNotesForDay(day);
     final String editorText = _buildEditorText(noteData);
-    _notesByDay[dayKey] = noteData.copyWith(
-      text: editorText,
-      checklist: const [],
-    );
     _controller.value = TextEditingValue(
       text: editorText,
       selection: TextSelection.collapsed(offset: editorText.length),
@@ -88,25 +62,15 @@ class _NotesToolPageState extends State<NotesToolPage> {
       sections.add(data.text);
     }
 
-    if (data.checklist.isNotEmpty) {
-      sections.addAll(
-        data.checklist.map(
-          (item) =>
-              '${item.checked ? _checkedBox : _uncheckedBox} ${item.label}',
-        ),
-      );
-    }
-
     return sections.join('\n');
   }
 
-  void _onNoteChanged(String dayKey, String note) {
-    final updated = NotesDayData(text: note, checklist: const []);
-    _notesByDay[dayKey] = updated;
-    unawaited(_notesRepository.writeNotesForDay(dayKey, updated));
+  void _onNoteChanged(DateTime day, String note) {
+    final updated = NotesDayData(text: note);
+    unawaited(_notesRepository.writeNotesForDay(day, updated));
   }
 
-  void _insertCheckbox(String dayKey) {
+  void _insertCheckbox(DateTime day) {
     final TextSelection selection = _controller.selection;
     final String text = _controller.text;
     final int cursorOffset = selection.isValid ? selection.start : text.length;
@@ -137,14 +101,12 @@ class _NotesToolPageState extends State<NotesToolPage> {
       selection: TextSelection.collapsed(offset: updatedCursorOffset),
       composing: composing,
     );
-    _onNoteChanged(dayKey, updatedText);
+    _onNoteChanged(day, updatedText);
     // Request focus to keep cursor visible
     _notesFocusNode.requestFocus();
   }
 
-  void _toggleCheckboxAtIndex(int index) {
-    final String dayKey =
-        _activeDayKey ?? _dayKey(DateUtils.dateOnly(DateTime.now()));
+  void _toggleCheckboxAtIndex(DateTime day, int index) {
     final String text = _controller.text;
     if (index < 0 || index >= text.length) {
       return;
@@ -165,7 +127,7 @@ class _NotesToolPageState extends State<NotesToolPage> {
       text: updatedText,
       selection: TextSelection.collapsed(offset: index + 1),
     );
-    _onNoteChanged(dayKey, updatedText);
+    _onNoteChanged(day, updatedText);
   }
 
   void _normalizeSelection() {
@@ -247,56 +209,62 @@ class _NotesToolPageState extends State<NotesToolPage> {
 
   @override
   Widget build(BuildContext context) {
-    final CountModel countModel = context.watch<CountModel>();
-    final DateTime selectedDay = DateUtils.dateOnly(countModel.selectedDate);
-    final String formattedDate = MaterialLocalizations.of(
-      context,
-    ).formatMediumDate(selectedDay);
-    final String selectedDayKey = _dayKey(selectedDay);
-    _ensureControllerForDay(selectedDayKey);
+    return Consumer<CountModel>(
+      builder: (context, countModel, child) {
+        final DateTime selectedDate = countModel.selectedDate;
+        final String formattedDate = MaterialLocalizations.of(
+          context,
+        ).formatMediumDate(selectedDate);
 
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.checklist),
-            onPressed: () => _insertCheckbox(selectedDayKey),
-          ),
-        ],
-        title: Text('Notes for $formattedDate'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: TextField(
-          focusNode: _notesFocusNode,
-          controller: _controller,
-          inputFormatters: [
-            _CheckboxLineStartFormatter(
-              uncheckedBox: _uncheckedBox,
-              checkedBox: _checkedBox,
+        // Ensure controller is updated for the selected day
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _ensureControllerForDay(selectedDate);
+        });
+
+        return Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new),
+              onPressed: () => Navigator.of(context).maybePop(),
             ),
-          ],
-          maxLines: null,
-          expands: true,
-          textAlignVertical: TextAlignVertical.top,
-          autocorrect: true,
-          onChanged: (value) => _onNoteChanged(selectedDayKey, value),
-          decoration: const InputDecoration(
-            hintText: 'Enter notes for this day',
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            disabledBorder: InputBorder.none,
-            errorBorder: InputBorder.none,
-            focusedErrorBorder: InputBorder.none,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.checklist),
+                onPressed: () => _insertCheckbox(selectedDate),
+              ),
+            ],
+            title: Text('Notes for $formattedDate'),
           ),
-        ),
-      ),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              focusNode: _notesFocusNode,
+              controller: _controller,
+              inputFormatters: [
+                _CheckboxLineStartFormatter(
+                  uncheckedBox: _uncheckedBox,
+                  checkedBox: _checkedBox,
+                ),
+              ],
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              autocorrect: true,
+              onChanged: (value) => _onNoteChanged(selectedDate, value),
+              decoration: const InputDecoration(
+                hintText: 'Enter notes for this day',
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -455,6 +423,7 @@ class _NotesEditingController extends TextEditingController {
             child: Transform.scale(
               scale: 0.9,
               child: Checkbox(
+                key: ValueKey(index),
                 value: character == checkedBox,
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

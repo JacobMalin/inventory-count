@@ -18,6 +18,7 @@ class ExportModel extends SyncChangeNotifier {
     ExportLocalRepository? localRepository,
     ExportSyncRepository? syncRepository,
     super.syncRuntime,
+    super.disableSync,
   }) : _localRepository = localRepository ?? HiveExportLocalRepository(),
        _syncRepository = syncRepository ?? SupabaseExportSyncRepository(),
        _deviceIdRepository = deviceIdRepository,

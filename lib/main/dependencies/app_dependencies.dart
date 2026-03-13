@@ -88,6 +88,7 @@ class AppDependencies {
           deviceIdRepository: deviceIdRepository,
           syncCoordinator: syncCoordinator,
           syncRuntime: syncRuntime,
+          disableSync: disableSync,
         ),
       ),
       ChangeNotifierProxyProvider<ExportModel, CountModel>(
