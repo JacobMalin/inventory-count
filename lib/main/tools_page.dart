@@ -1,30 +1,50 @@
 import 'package:flutter/material.dart';
 
+import 'tools/calculator_tool_page.dart';
 import 'tools/notes_tool_page.dart';
+import 'tools/restock_tool_page.dart';
 
 class ToolsPage extends StatefulWidget {
   const ToolsPage({super.key});
+
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   @override
   State<ToolsPage> createState() => _ToolsPageState();
 }
 
 class _ToolsPageState extends State<ToolsPage> {
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  Future<void> _openRestockHelper() async {
+    await ToolsPage.navigatorKey.currentState?.push<void>(
+      MaterialPageRoute<void>(builder: (_) => const RestockToolPage()),
+    );
+  }
+  // Use static navigatorKey for global access
 
   Future<void> _openNotes() async {
-    await _navigatorKey.currentState?.push<void>(
+    await ToolsPage.navigatorKey.currentState?.push<void>(
       MaterialPageRoute<void>(builder: (_) => const NotesToolPage()),
+    );
+  }
+
+  Future<void> _openCalculator() async {
+    await ToolsPage.navigatorKey.currentState?.push<void>(
+      MaterialPageRoute<void>(builder: (_) => const CalculatorToolPage()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Navigator(
-      key: _navigatorKey,
+      key: ToolsPage.navigatorKey,
       onGenerateRoute: (_) {
         return MaterialPageRoute<void>(
-          builder: (_) => _ToolsHomeView(openNotes: _openNotes),
+          builder: (_) => _ToolsHomeView(
+            openNotes: _openNotes,
+            openCalculator: _openCalculator,
+            restockHelper: _openRestockHelper,
+          ),
         );
       },
     );
@@ -32,10 +52,17 @@ class _ToolsPageState extends State<ToolsPage> {
 }
 
 class _ToolsHomeView extends StatelessWidget {
-  const _ToolsHomeView({required VoidCallback openNotes})
-    : _openNotes = openNotes;
+  const _ToolsHomeView({
+    required VoidCallback openNotes,
+    required VoidCallback openCalculator,
+    required VoidCallback restockHelper,
+  }) : _openNotes = openNotes,
+       _openCalculator = openCalculator,
+       _openRestockHelper = restockHelper;
 
   final VoidCallback _openNotes;
+  final VoidCallback _openCalculator;
+  final VoidCallback _openRestockHelper;
 
   @override
   Widget build(BuildContext context) {
@@ -58,18 +85,14 @@ class _ToolsHomeView extends StatelessWidget {
                 title: 'Calculator',
                 description:
                     'Quick calculations for quantities and adjustments',
-                onTap: () {
-                  // TODO: Implement calculator tool
-                },
+                onTap: _openCalculator,
               ),
               const SizedBox(height: 12),
               ToolCard(
                 icon: Icons.inventory_2,
                 title: 'Restock Helper',
-                description: 'Manage stock levels and reorder quantities',
-                onTap: () {
-                  // TODO: Implement restock helper tool
-                },
+                description: 'Write restock numbers for easy reference',
+                onTap: _openRestockHelper,
               ),
               const SizedBox(height: 12),
               ToolCard(

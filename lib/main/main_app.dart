@@ -77,9 +77,16 @@ class _HomePageState extends State<HomePage> {
                     child: NavigationBar(
                       height: 60,
                       onDestinationSelected: (index) {
-                        setState(() {
-                          _currentPageIndex = index;
-                        });
+                        if (index == 4 && _currentPageIndex == 4) {
+                          // If Tools is reselected, pop to tool selection
+                          ToolsPage.navigatorKey.currentState?.popUntil(
+                            (route) => route.isFirst,
+                          );
+                        } else {
+                          setState(() {
+                            _currentPageIndex = index;
+                          });
+                        }
                       },
                       selectedIndex: _currentPageIndex,
                       destinations: const <Widget>[
