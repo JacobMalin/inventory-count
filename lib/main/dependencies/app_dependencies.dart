@@ -27,6 +27,7 @@ class AppDependencies {
     DeviceIdRepository? deviceIdRepository,
     SyncCoordinator? syncCoordinator,
     SyncRuntime? syncRuntime,
+    bool disableSync = false,
   }) {
     final DeviceIdRepository resolvedDeviceIdRepository =
         deviceIdRepository ?? FlutterUdidDeviceIdRepository();
@@ -46,6 +47,7 @@ class AppDependencies {
       syncCoordinator:
           syncCoordinator ??
           SyncCoordinator(deviceIdRepository: resolvedDeviceIdRepository),
+      disableSync: disableSync,
     );
   }
 
@@ -60,7 +62,9 @@ class AppDependencies {
     required this.deviceIdRepository,
     required this.syncRuntime,
     required this.syncCoordinator,
+    required this.disableSync,
   });
+  final bool disableSync;
 
   final CountLocalRepository countLocalRepository;
   final CountSyncRepository countSyncRepository;
@@ -93,6 +97,7 @@ class AppDependencies {
           exportLocalRepository: exportLocalRepository,
           exportModel: context.read<ExportModel>(),
           syncRuntime: syncRuntime,
+          disableSync: disableSync,
         ),
         update: (context, exportModel, countModel) {
           if (countModel != null) {
@@ -106,6 +111,7 @@ class AppDependencies {
             exportLocalRepository: exportLocalRepository,
             exportModel: exportModel,
             syncRuntime: syncRuntime,
+            disableSync: disableSync,
           );
         },
       ),
@@ -117,6 +123,7 @@ class AppDependencies {
           deviceIdRepository: deviceIdRepository,
           syncCoordinator: syncCoordinator,
           syncRuntime: syncRuntime,
+          disableSync: disableSync,
         ),
         update: (context, countModel, areaModel) {
           areaModel?.countModel = countModel;
@@ -131,6 +138,7 @@ class AppDependencies {
             deviceIdRepository: deviceIdRepository,
             syncCoordinator: syncCoordinator,
             syncRuntime: syncRuntime,
+            disableSync: disableSync,
           );
         },
       ),

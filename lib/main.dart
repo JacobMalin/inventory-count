@@ -10,6 +10,10 @@ import 'main/main_app.dart';
 import 'main/models/data/inventory_models.dart';
 
 void main() async {
+  // Read DISABLE_SYNC flag from environment
+  // ignore: do_not_use_environment
+  const disableSync = String.fromEnvironment('DISABLE_SYNC') == 'true';
+
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
@@ -45,7 +49,9 @@ void main() async {
       isToolbarVisible: false,
       builder: (context) => hiveError != null
           ? HiveErrorPage(errorMessage: hiveError)
-          : const MainApp(),
+          // False positive
+          // ignore: avoid_redundant_argument_values
+          : const MainApp(disableSync: disableSync),
     ),
   );
 }

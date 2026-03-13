@@ -23,13 +23,14 @@ class AreaModel extends SyncChangeNotifier {
     AreaLocalRepository? localRepository,
     AreaSyncRepository? syncRepository,
     super.syncRuntime,
+    super.disableSync,
   }) : _localRepository = localRepository ?? HiveAreaLocalRepository(),
        _syncRepository = syncRepository ?? SupabaseAreaSyncRepository(),
        _deviceIdRepository = deviceIdRepository,
        _syncCoordinator = syncCoordinator {
     unawaited(_localRepository.ensureInitialized());
 
-    // initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
+    initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
   }
 
   RealtimeChannel? _setupsSubscription;

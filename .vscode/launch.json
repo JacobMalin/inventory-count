@@ -10,6 +10,15 @@
             "type": "dart"
         },
         {
+            "name": "Inventory Count (Disable Sync)",
+            "request": "launch",
+            "type": "dart",
+            "toolArgs": [
+                "--dart-define",
+                "DISABLE_SYNC=true"
+            ]
+        },
+        {
             "name": "Companion",
             "request": "launch",
             "type": "dart",

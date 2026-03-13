@@ -5,15 +5,17 @@ import 'package:flutter/foundation.dart';
 import '../repositories/sync_runtime.dart';
 
 abstract class SyncChangeNotifier extends ChangeNotifier {
-  SyncChangeNotifier({SyncRuntime? syncRuntime})
+  SyncChangeNotifier({SyncRuntime? syncRuntime, this.disableSync = false})
     : _syncRuntime = syncRuntime ?? SyncRuntime();
 
   final SyncRuntime _syncRuntime;
+  final bool disableSync;
 
   void initializeSync({
     required Future<void> Function() fetchInitial,
     required Future<void> Function() listenForChanges,
   }) {
+    if (disableSync) return;
     unawaited(() async {
       await fetchInitial();
       await listenForChanges();

@@ -14,14 +14,20 @@ import 'widgets/date_picker.dart';
 import 'widgets/profile_selection.dart';
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key, AppDependencies? dependencies})
-    : _dependencies = dependencies;
+  const MainApp({
+    super.key,
+    AppDependencies? dependencies,
+    bool disableSync = false,
+  }) : _disableSync = disableSync,
+       _dependencies = dependencies;
 
   final AppDependencies? _dependencies;
+  final bool _disableSync;
 
   @override
   Widget build(BuildContext context) {
-    final AppDependencies dependencies = _dependencies ?? AppDependencies();
+    final AppDependencies dependencies =
+        _dependencies ?? AppDependencies(disableSync: _disableSync);
 
     return MultiProvider(
       providers: dependencies.createProviders(),
