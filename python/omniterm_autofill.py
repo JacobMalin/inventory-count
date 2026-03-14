@@ -165,7 +165,7 @@ def main():
             texts = _pw_timed("Name field.texts", lambda item=item: item.texts())
             if texts and texts[0] == "Name":
                 name_field = item
-            elif texts and texts[0] == "Expected":
+            elif texts and texts[0] == "Calc. Qty":
                 expected_field = item
                 
             if name_field and expected_field:
