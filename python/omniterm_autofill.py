@@ -176,7 +176,7 @@ def main():
         expected_text = _pw_timed("Expected field.legacy_properties", lambda: expected_field.legacy_properties())["Value"]
         
         expected_digits = "".join(ch for ch in expected_text if ch.isdigit() or ch == '.')
-        expected_value = int(double(expected_digits)) if expected_digits else 0
+        expected_value = int(float(expected_digits)) if expected_digits else 0
 
         expected[name] = expected_value
 
