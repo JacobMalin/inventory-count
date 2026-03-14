@@ -163,6 +163,7 @@ def main():
         expected_field = None
         for item in children:
             texts = _pw_timed("Name field.texts", lambda item=item: item.texts())
+            print(texts)
             if texts and texts[0] == "Name":
                 name_field = item
             elif texts and texts[0] == "Calc. Qty":
@@ -172,12 +173,8 @@ def main():
                 break
             
         name = _pw_timed("Name field.legacy_properties", lambda: name_field.legacy_properties())["Value"].lower().strip()
-        expected_text = str(
-            _pw_timed(
-                "Expected field.legacy_properties",
-                lambda: expected_field.legacy_properties(),
-            )["Value"]
-        )
+        expected_text = _pw_timed("Expected field.legacy_properties", lambda: expected_field.legacy_properties())["Value"]
+        
         expected_digits = "".join(ch for ch in expected_text if ch.isdigit())
         expected_value = int(expected_digits) if expected_digits else 0
 
