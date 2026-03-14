@@ -47,11 +47,11 @@ def _load_json(args: argparse.Namespace):
     raise ValueError("No JSON input provided. Pass --json or pipe JSON via stdin.")
 
 
-def _extract_values(json):
+def _extract_values(json_text):
     export_totals = {}
     export_damages = {}
 
-    for section in json.values():
+    for section in json_text.values():
         for item_name, item_value in section.items():
             omni_name = item_value.get("omniName")
             normalized_name = (
@@ -76,8 +76,8 @@ def _extract_values(json):
 
 def main():
     args = _parse_args()
-    json = _load_json(args)
-    totals, damages = _extract_values(json)
+    json_text = _load_json(args)
+    totals, damages = _extract_values(json_text)
     expected = {}
 
     if not totals:
