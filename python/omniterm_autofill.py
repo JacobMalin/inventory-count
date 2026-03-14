@@ -166,7 +166,7 @@ def main():
             print(texts)
             if texts and texts[0] == "Name":
                 name_field = item
-            elif texts and texts[0] == "Calc. Qty":
+            elif texts and texts[0] == "Calc. Qty \xa0":
                 expected_field = item
                 
             if name_field and expected_field:
