@@ -172,7 +172,7 @@ def main():
         expected_field = None
         for item in children:
             texts = _pw_timed("Name field.texts", lambda item=item: item.texts())
-            print(texts)
+
             if texts and texts[0] == "Name":
                 name_field = item
             elif texts and texts[0] == "Calc. Qty \xa0":
