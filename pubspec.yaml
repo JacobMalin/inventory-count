@@ -41,3 +41,4 @@ flutter:
     - assets/PrintCount.vbs
     - assets/VbsJson.vbs
     - assets/omniterm_autofill.exe
+    - assets/lets-encrypt-r3.pem
