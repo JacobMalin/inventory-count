@@ -32,6 +32,11 @@ def _parse_args() -> argparse.Namespace:
         dest="json_text",
         help="Raw JSON string from count output.",
     )
+    parser.add_argument(
+        "--finish-early",
+        action="store_true",
+        help="Short-circuit and print empty expected.",
+    )
     return parser.parse_args()
 
 
@@ -79,6 +84,10 @@ def main():
     json_text = _load_json(args)
     totals, damages = _extract_values(json_text)
     expected = {}
+    
+    if args.finish_early:
+        print(json.dumps({}))
+        return
 
     if not totals:
         raise ValueError("No total values found in JSON input.")

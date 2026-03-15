@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
+import 'package:window_manager/window_manager.dart';
 
 Process? _activePythonProcess;
 bool _pythonCancelRequested = false;
@@ -22,6 +24,12 @@ class OmnitermInteraction {
       args: {'json': json},
     );
 
+    // Refocus the app window after script execution
+    await windowManager.show();
+    await windowManager.setAlwaysOnTop(true);
+    await windowManager.setAlwaysOnTop(false);
+    await windowManager.focus();
+
     if (output.isNotEmpty) {
       final dynamic decoded = jsonDecode(output);
       if (decoded is Map) {
@@ -40,7 +48,7 @@ class OmnitermInteraction {
 
 Future<String> runPythonScript(
   String scriptPath, {
-  Map<String, String>? args,
+  Map<String, String?>? args,
 }) async {
   if (!Platform.isWindows) {
     throw UnsupportedError(
@@ -49,10 +57,10 @@ Future<String> runPythonScript(
   }
 
   final cliArgs = <String>[
-    for (final MapEntry<String, String> entry
-        in (args ?? <String, String>{}).entries) ...<String>[
+    for (final MapEntry<String, String?> entry
+        in (args ?? <String, String?>{}).entries) ...[
       '--${entry.key}',
-      entry.value,
+      if (entry.value != null) entry.value!,
     ],
   ];
 
@@ -85,6 +93,7 @@ Future<String> runPythonScript(
 
     if (exitCode != 0) {
       final rawError = stderrText.isNotEmpty ? stderrText : stdoutText;
+      if (kDebugMode) print('Python script error output: $rawError');
 
       final runtimeErrorRegex = RegExp(
         r'^\s*(.+Error:\s*.+)$',
