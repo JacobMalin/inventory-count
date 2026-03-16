@@ -41,4 +41,4 @@ flutter:
     - assets/PrintCount.vbs
     - assets/VbsJson.vbs
     - assets/omniterm_autofill.exe
-    - assets/lets-encrypt-r3.pem
+    - assets/Sectigo Public Server Authentication CA DV E36.crt

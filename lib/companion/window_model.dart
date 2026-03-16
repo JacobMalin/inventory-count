@@ -68,6 +68,13 @@ class WindowModel {
       unawaited(_box.put('countExcelPath', value));
     }
   }
+
+  static Future<void> refocusWindow() async {
+    await windowManager.show();
+    await windowManager.setAlwaysOnTop(true);
+    await windowManager.setAlwaysOnTop(false);
+    await windowManager.focus();
+  }
 }
 
 class WindowSetupWatcher extends StatefulWidget {

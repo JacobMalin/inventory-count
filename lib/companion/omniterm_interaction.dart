@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
 
+import 'window_model.dart';
+
 Process? _activePythonProcess;
 bool _pythonCancelRequested = false;
 
@@ -25,10 +27,7 @@ class OmnitermInteraction {
     );
 
     // Refocus the app window after script execution
-    await windowManager.show();
-    await windowManager.setAlwaysOnTop(true);
-    await windowManager.setAlwaysOnTop(false);
-    await windowManager.focus();
+    await WindowModel.refocusWindow();
 
     if (output.isNotEmpty) {
       final dynamic decoded = jsonDecode(output);

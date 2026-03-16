@@ -32,8 +32,12 @@ void main() async {
 
     await windowSetup();
 
-    ByteData data = await PlatformAssetBundle().load('assets/lets-encrypt-r3.pem');
-    SecurityContext.defaultContext.setTrustedCertificatesBytes(data.buffer.asUint8List());
+    final ByteData data = await PlatformAssetBundle().load(
+      'assets/Sectigo Public Server Authentication CA DV E36.crt',
+    );
+    SecurityContext.defaultContext.setTrustedCertificatesBytes(
+      data.buffer.asUint8List(),
+    );
 
     runApp(const CompanionApp());
 

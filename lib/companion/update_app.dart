@@ -102,7 +102,16 @@ class _UpdateAppState extends State<UpdateApp> {
       final String reason = error.toString().replaceFirst('Exception: ', '');
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to check for updates: $reason')),
+        SnackBar(
+          content: Text('Unable to check for updates: $reason'),
+          duration: const Duration(days: 1),
+          action: SnackBarAction(
+            label: 'Dismiss',
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
       );
     }
   }

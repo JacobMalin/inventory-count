@@ -49,8 +49,7 @@ Future<void> windowSetup() async {
       await windowManager.setPosition(const Offset(10, 10));
     }
 
-    await windowManager.show();
-    await windowManager.focus();
+    await WindowModel.refocusWindow();
   });
 }
 
