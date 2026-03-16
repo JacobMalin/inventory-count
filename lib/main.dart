@@ -1,4 +1,4 @@
-import 'dart.io';
+import 'dart:io';
 
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
