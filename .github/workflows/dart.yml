@@ -265,24 +265,12 @@ jobs:
           architecture: x64
       - run: flutter pub get
 
-      - name: Detect Python build input changes
-        id: python-changes
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            python:
-              - 'python/**'
-              - 'omniterm_autofill.spec'
-              - 'omniterm.spec'
-
       - name: Set up Python
-        if: steps.python-changes.outputs.python == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
       - name: Rebuild Python executable
-        if: steps.python-changes.outputs.python == 'true'
         run: |
           py -m pip install --upgrade pip
           py -m pip install -r python/requirements.txt
