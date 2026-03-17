@@ -276,6 +276,20 @@ jobs:
           py -m pip install -r python/requirements.txt
           py -m PyInstaller --onefile python/omniterm_autofill.py --distpath assets
 
+      - name: Commit and push updated executable
+        run: |
+          $EXE_PATH="assets/omniterm_autofill.exe"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git pull
+          if git status --porcelain "$EXE_PATH" | grep -q "$EXE_PATH"; then
+            git add "$EXE_PATH"
+            git commit -m "chore: update omniterm_autofill.exe [skip ci]" || echo "No changes to commit"
+            git push
+          else
+            echo "Executable unchanged, no commit needed."
+          fi
+
       - run: flutter build windows --release --dart-define=COMPANION=true
 
       - name: Create release archive

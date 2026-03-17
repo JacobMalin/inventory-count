@@ -1,4 +1,3 @@
-Attribute VB_Name = "PrintModule"
 ' Macro PrintModule.Print_Single_Sided
 '
 ' Prints each page seperately
