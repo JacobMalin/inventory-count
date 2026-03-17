@@ -9,7 +9,7 @@ import 'window_model.dart';
 const minSize = Size(450, 350);
 
 Future<void> companionHiveSetup() async {
-  await Hive.initFlutter('inventory_count');
+  await Hive.initFlutter('Inventory Count');
 
   await Hive.openBox('window');
 }
