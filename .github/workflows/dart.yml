@@ -282,13 +282,14 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git pull
-          if git status --porcelain "$EXE_PATH" | grep -q "$EXE_PATH"; then
-            git add "$EXE_PATH"
-            git commit -m "chore: update omniterm_autofill.exe [skip ci]" || echo "No changes to commit"
+          $status = git status --porcelain $EXE_PATH
+          if ($status) {
+            git add $EXE_PATH
+            git commit -m "chore: update omniterm_autofill.exe [skip ci]" | Out-Null
             git push
-          else
-            echo "Executable unchanged, no commit needed."
-          fi
+          } else {
+            Write-Host "Executable unchanged, no commit needed."
+          }
 
       - run: flutter build windows --release --dart-define=COMPANION=true
 
