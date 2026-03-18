@@ -65,6 +65,7 @@ def _extract_values(json_text):
                 else item_name.lower()
             )
             normalized_name = normalized_name.replace("&", "")
+            normalized_name = "".join(normalized_name.split())
             
             if "Total" in item_value and item_value["Total"] is not None:
                 total = item_value["Total"]
@@ -190,6 +191,7 @@ def main():
         expected[name] = expected_value
 
         name = name.replace("&", "")
+        name = "".join(name.split())
 
         all_keys += "{BACKSPACE}"
         
