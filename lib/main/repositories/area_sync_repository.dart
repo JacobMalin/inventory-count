@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/types/json.dart';
@@ -28,10 +27,42 @@ class AreaSyncRecord {
     required this.udid,
   });
 
+  factory AreaSyncRecord.fromJson(Json row) {
+    final name = row['name'] as String?;
+    final udid = row['udid'] as String?;
+    final DateTime? updatedAt = row['updated_at'] != null
+        ? DateTime.tryParse(row['updated_at'].toString())
+        : null;
+
+    if (name == null || udid == null || updatedAt == null) {
+      throw ArgumentError('Invalid row data: missing required fields');
+    }
+
+    final String json = row['json'] is String
+        ? row['json'] as String
+        : jsonEncode(row['json']);
+
+    return AreaSyncRecord(
+      name: name,
+      updatedAt: updatedAt,
+      json: json,
+      udid: udid,
+    );
+  }
+
   final String name;
   final DateTime updatedAt;
   final String json;
   final String udid;
+
+  Json toJson() {
+    return {
+      'name': name,
+      'updated_at': updatedAt.toIso8601String(),
+      'json': json,
+      'udid': udid,
+    };
+  }
 }
 
 class AreaSyncChange {
@@ -54,6 +85,8 @@ class AreaSyncChange {
 
 abstract class AreaSyncRepository {
   Future<List<AreaSyncRecord>> fetchProfiles();
+  Future<void> upsertProfile(AreaSyncRecord record);
+  Future<void> deleteProfile(String profileName);
 
   RealtimeChannel subscribeProfileChanges({
     required String excludedUdid,
@@ -61,40 +94,31 @@ abstract class AreaSyncRepository {
   });
 
   Future<void> batchUpsertProfiles(List<AreaSyncRecord> records);
-
-  Future<void> upsertProfile(AreaSyncRecord record);
-
-  Future<void> deleteProfile(String profileName);
 }
 
 class SupabaseAreaSyncRepository implements AreaSyncRepository {
-  SupabaseAreaSyncRepository({
-    SupabaseClient? client,
-    FetchProfilesRows? fetchProfilesRows,
-    SubscribeProfileChanges? subscribeProfileChanges,
-    UpsertProfilesRows? upsertProfilesRows,
-    UpsertProfileRow? upsertProfileRow,
-    DeleteProfileByName? deleteProfileByName,
-  }) : _client = client ?? Supabase.instance.client,
-       _fetchProfilesRows = fetchProfilesRows,
-       _subscribeProfileChanges = subscribeProfileChanges,
-       _upsertProfilesRows = upsertProfilesRows,
-       _upsertProfileRow = upsertProfileRow,
-       _deleteProfileByName = deleteProfileByName;
+  SupabaseAreaSyncRepository({SupabaseClient? client})
+    : _client = client ?? Supabase.instance.client;
 
   final SupabaseClient _client;
-  final FetchProfilesRows? _fetchProfilesRows;
-  final SubscribeProfileChanges? _subscribeProfileChanges;
-  final UpsertProfilesRows? _upsertProfilesRows;
-  final UpsertProfileRow? _upsertProfileRow;
-  final DeleteProfileByName? _deleteProfileByName;
 
   @override
   Future<List<AreaSyncRecord>> fetchProfiles() async {
-    final List<Json> response =
-        await (_fetchProfilesRows ?? _defaultFetchProfilesRows)();
+    final PostgrestList response = await _client.from('profiles').select();
 
-    return response.map(_parseRecord).nonNulls.toList();
+    return response
+        .map((row) => AreaSyncRecord.fromJson(Json.from(row as Map)))
+        .toList();
+  }
+
+  @override
+  Future<void> upsertProfile(AreaSyncRecord record) {
+    return _client.from('profiles').upsert(record.toJson());
+  }
+
+  @override
+  Future<void> deleteProfile(String profileName) {
+    return _client.from('profiles').delete().eq('name', profileName);
   }
 
   @override
@@ -102,61 +126,23 @@ class SupabaseAreaSyncRepository implements AreaSyncRepository {
     required String excludedUdid,
     required Future<void> Function(AreaSyncChange change) onChange,
   }) {
-    return (_subscribeProfileChanges ?? _defaultSubscribeProfileChanges)(
-      excludedUdid: excludedUdid,
-      onInsertRow: (row) async {
-        final AreaSyncRecord? record = _parseRecord(row);
-        if (record == null) return;
-
-        await onChange(AreaSyncChange.insert(record));
-      },
-      onUpdateRow: (row) async {
-        final AreaSyncRecord? record = _parseRecord(row);
-        if (record == null) return;
-
-        await onChange(AreaSyncChange.update(record));
-      },
-      onDeleteRow: (row) async {
-        final deletedName = row['name'] as String?;
-        if (deletedName == null) return;
-
-        await onChange(AreaSyncChange.delete(deletedName));
-      },
-    );
-  }
-
-  @override
-  Future<void> batchUpsertProfiles(List<AreaSyncRecord> records) {
-    if (records.isEmpty) {
-      return Future<void>.value();
+    Future<void> onInsertRow(Json newRow) async {
+      final record = AreaSyncRecord.fromJson(newRow);
+      await onChange(AreaSyncChange.insert(record));
     }
 
-    return (_upsertProfilesRows ?? _defaultUpsertProfilesRows)(
-      records.map(_toPayload).toList(),
-    );
-  }
+    Future<void> onUpdateRow(Json newRow) async {
+      final record = AreaSyncRecord.fromJson(newRow);
+      await onChange(AreaSyncChange.update(record));
+    }
 
-  @override
-  Future<void> upsertProfile(AreaSyncRecord record) {
-    return (_upsertProfileRow ?? _defaultUpsertProfileRow)(_toPayload(record));
-  }
+    Future<void> onDeleteRow(Json oldRow) async {
+      final deletedName = oldRow['name'] as String?;
+      if (deletedName == null) return;
 
-  @override
-  Future<void> deleteProfile(String profileName) {
-    return (_deleteProfileByName ?? _defaultDeleteProfileByName)(profileName);
-  }
+      await onChange(AreaSyncChange.delete(deletedName));
+    }
 
-  Future<List<Json>> _defaultFetchProfilesRows() async {
-    final PostgrestList response = await _client.from('profiles').select();
-    return response.map((row) => Json.from(row as Map)).toList();
-  }
-
-  RealtimeChannel _defaultSubscribeProfileChanges({
-    required String excludedUdid,
-    required Future<void> Function(Json newRow) onInsertRow,
-    required Future<void> Function(Json newRow) onUpdateRow,
-    required Future<void> Function(Json oldRow) onDeleteRow,
-  }) {
     return _client
         .channel('public:profiles')
         .onPostgresChanges(
@@ -190,57 +176,12 @@ class SupabaseAreaSyncRepository implements AreaSyncRepository {
         .subscribe();
   }
 
-  Future<void> _defaultUpsertProfilesRows(List<Json> rows) {
-    return _client.from('profiles').upsert(rows);
-  }
+  @override
+  Future<void> batchUpsertProfiles(List<AreaSyncRecord> records) {
+    if (records.isEmpty) return Future<void>.value();
 
-  Future<void> _defaultUpsertProfileRow(Json row) {
-    return _client.from('profiles').upsert(row);
-  }
-
-  Future<void> _defaultDeleteProfileByName(String profileName) {
-    return _client.from('profiles').delete().eq('name', profileName);
-  }
-
-  @visibleForTesting
-  AreaSyncRecord? parseRecordForTest(Json row) {
-    return _parseRecord(row);
-  }
-
-  @visibleForTesting
-  Json toPayloadForTest(AreaSyncRecord record) {
-    return _toPayload(record);
-  }
-
-  Json _toPayload(AreaSyncRecord record) {
-    return {
-      'name': record.name,
-      'updated_at': record.updatedAt.toIso8601String(),
-      'json': record.json,
-      'udid': record.udid,
-    };
-  }
-
-  AreaSyncRecord? _parseRecord(Json row) {
-    final name = row['name'] as String?;
-    final udid = row['udid'] as String?;
-    final DateTime? updatedAt = row['updated_at'] != null
-        ? DateTime.tryParse(row['updated_at'].toString())
-        : null;
-
-    if (name == null || udid == null || updatedAt == null) {
-      return null;
-    }
-
-    final String json = row['json'] is String
-        ? row['json'] as String
-        : jsonEncode(row['json']);
-
-    return AreaSyncRecord(
-      name: name,
-      updatedAt: updatedAt,
-      json: json,
-      udid: udid,
-    );
+    return _client
+        .from('profiles')
+        .upsert(records.map((record) => record.toJson()).toList());
   }
 }

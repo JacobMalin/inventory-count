@@ -25,7 +25,6 @@ class ExportModel extends SyncChangeNotifier {
        _syncCoordinator = syncCoordinator {
     unawaited(_localRepository.ensureInitialized());
 
-    // TODO: Figure out why this causes debugging disconnection
     initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
   }
 

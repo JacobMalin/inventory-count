@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'models/area_model.dart';
+import 'setup/building_setup_page.dart';
 import 'setup/export_setup_page.dart';
-import 'setup/shelf_setup_page.dart';
 
 class SetupPage extends StatefulWidget {
   const SetupPage({super.key});
@@ -13,8 +13,8 @@ class SetupPage extends StatefulWidget {
 }
 
 class _SetupPageState extends State<SetupPage> {
-  final GlobalKey<State<ShelfSetupPage>> _shelfSetupPageKey =
-      GlobalKey<State<ShelfSetupPage>>();
+  final GlobalKey<State<BuildingSetupPage>> _shelfSetupPageKey =
+      GlobalKey<State<BuildingSetupPage>>();
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +25,7 @@ class _SetupPageState extends State<SetupPage> {
           child: Scaffold(
             body: TabBarView(
               children: [
-                ShelfSetupPage(key: _shelfSetupPageKey),
+                BuildingSetupPage(key: _shelfSetupPageKey),
                 const ExportSetupPage(),
               ],
             ),
@@ -39,7 +39,7 @@ class _SetupPageState extends State<SetupPage> {
                     ],
                     onTap: (index) {
                       if (index == 0) {
-                        final State<ShelfSetupPage>? state =
+                        final State<BuildingSetupPage>? state =
                             _shelfSetupPageKey.currentState;
                         if (state != null) {
                           (state as dynamic).reset();

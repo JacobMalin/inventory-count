@@ -2,26 +2,23 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/area_model.dart';
-import '../models/data/count_strategy.dart';
-import '../models/data/export_entry.dart';
-import '../models/data/inventory_models.dart';
-import '../models/export_model.dart';
+import '../../models/area_model.dart';
+import '../../models/data/count_strategy.dart';
+import '../../models/data/export_entry.dart';
+import '../../models/data/inventory_models.dart';
+import '../../models/export_model.dart';
 import 'setup_helpers.dart';
 
 class ItemPage extends StatelessWidget {
   const ItemPage({
-    required dynamic Function() deselect,
     required Item item,
-    required List<int> selectedOrder,
+    required Future<void> Function({StorageObject? object}) select,
     super.key,
-  }) : _selectedOrder = selectedOrder,
-       _item = item,
-       _deselect = deselect;
+  }) : _item = item,
+       _select = select;
 
-  final Function() _deselect;
   final Item _item;
-  final List<int> _selectedOrder;
+  final Future<void> Function({StorageObject? object}) _select;
 
   Future<void> _moveItem(BuildContext context, AreaModel areaModel) async {
     int selectedAreaIndex = _selectedOrder[0];

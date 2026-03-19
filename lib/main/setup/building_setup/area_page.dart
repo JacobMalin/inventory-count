@@ -2,24 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 
-import '../models/area_model.dart';
-import '../models/data/inventory_models.dart';
+import '../../models/area_model.dart';
+import '../../models/data/inventory_models.dart';
 import 'setup_helpers.dart';
 import 'setup_tiles.dart';
 
 class AreaPage extends StatelessWidget {
   const AreaPage({
-    required void Function(int) select,
-    required void Function() deselect,
-    required List<int> selectedOrder,
+    required Area area,
+    required Future<void> Function({StorageObject? object}) select,
     super.key,
-  }) : _selectedOrder = selectedOrder,
-       _deselect = deselect,
+  }) : _area = area,
        _select = select;
 
-  final void Function(int) _select;
-  final void Function() _deselect;
-  final List<int> _selectedOrder;
+  final Area _area;
+  final Future<void> Function({StorageObject? object}) _select;
 
   @override
   Widget build(BuildContext context) {
@@ -28,15 +25,15 @@ class AreaPage extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              areaModel.getArea(_selectedOrder.last).name,
-              style: Theme.of(context).textTheme.headlineLarge!.copyWith(
-                color: areaModel.getArea(_selectedOrder.last).color,
-              ),
+              _area.name,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineLarge!.copyWith(color: _area.color),
             ),
             centerTitle: true,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new),
-              onPressed: _deselect,
+              onPressed: () => _select(null),
             ),
             actions: [
               IconButton(

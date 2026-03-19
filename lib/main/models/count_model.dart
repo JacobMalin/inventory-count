@@ -113,26 +113,26 @@ class CountModel extends SyncChangeNotifier {
 
   Future<void> _listenForChanges() async {
     try {
-      registerReconnectCallback(_reconnectCountSubscription);
-      await _reconnectCountSubscription();
+      Future<void> reconnect() async {
+        await _countSubscription?.cancel();
+
+        _countSubscription = _syncRepository
+            .watchRow(rowName: _countRowName)
+            .listen(
+              (row) {
+                unawaited(_updateFromResponse(row));
+              },
+              onError: (Object e) {
+                logSyncError('Error listening to count changes', e);
+              },
+            );
+      }
+
+      registerReconnectCallback(reconnect);
+      await reconnect();
     } on Exception catch (e) {
       logSyncError('Failed to register count reconnect callback', e);
     }
-  }
-
-  Future<void> _reconnectCountSubscription() async {
-    await _countSubscription?.cancel();
-
-    _countSubscription = _syncRepository
-        .watchRow(rowName: _countRowName)
-        .listen(
-          (row) {
-            unawaited(_updateFromResponse(row));
-          },
-          onError: (Object e) {
-            logSyncError('Error listening to count changes', e);
-          },
-        );
   }
 
   Future<void> _updateFromResponse(CountSyncRecord? response) async {

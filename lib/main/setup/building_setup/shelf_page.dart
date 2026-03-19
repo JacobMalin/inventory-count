@@ -2,27 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 
-import '../models/area_model.dart';
-import '../models/data/inventory_models.dart';
+import '../../models/area_model.dart';
+import '../../models/data/inventory_models.dart';
 import 'setup_helpers.dart';
 import 'setup_tiles.dart';
 
 class ShelfPage extends StatelessWidget {
   const ShelfPage({
-    required void Function(int) select,
-    required void Function() deselect,
     required Shelf shelf,
-    required List<int> selectedOrder,
+    required Future<void> Function({StorageObject? object}) select,
     super.key,
-  }) : _selectedOrder = selectedOrder,
-       _shelf = shelf,
-       _deselect = deselect,
+  }) : _shelf = shelf,
        _select = select;
 
-  final void Function(int) _select;
-  final void Function() _deselect;
   final Shelf _shelf;
-  final List<int> _selectedOrder;
+  final Future<void> Function({StorageObject? object}) _select;
 
   Future<void> _moveShelf(BuildContext context, AreaModel areaModel) async {
     final int sourceAreaIndex = _selectedOrder[0];

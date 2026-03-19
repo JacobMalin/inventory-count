@@ -2,16 +2,16 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'count_page.dart';
-import 'dependencies/app_dependencies.dart';
-import 'export_page.dart';
-import 'fix_page.dart';
-import 'models/count_model.dart';
-import 'models/data/inventory_models.dart';
-import 'setup_page.dart';
-import 'tools_page.dart';
-import 'widgets/date_picker.dart';
-import 'widgets/profile_selection.dart';
+import 'main/count_page.dart';
+import 'main/dependencies/app_dependencies.dart';
+import 'main/export_page.dart';
+import 'main/fix_page.dart';
+import 'main/models/count_model.dart';
+import 'main/models/data/inventory_models.dart';
+import 'main/setup_page.dart';
+import 'main/tools_page.dart';
+import 'main/widgets/date_picker.dart';
+import 'main/widgets/profile_selection.dart';
 
 class MainApp extends StatelessWidget {
   const MainApp({

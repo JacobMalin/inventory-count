@@ -314,25 +314,29 @@ class AreaModel extends SyncChangeNotifier {
     setAreas(currentAreas);
   }
 
-  void removeArea(int index) {
+  void removeArea(Area area) {
     final List<Area> currentAreas = getAreas();
     // Remove all items in the area from count list
-    currentAreas[index].forEachItem(countModel.removeFromCountList);
+    area.forEachItem(countModel.removeFromCountList);
 
-    currentAreas.removeAt(index);
+    currentAreas.remove(area);
     setAreas(currentAreas);
   }
 
   Area getArea(int index) => getAreas()[index];
 
-  void moveArea(int oldIndex, int newIndex) {
+  void moveArea(Area area, int newIndex) {
     final List<Area> currentAreas = getAreas();
+    final int oldIndex = currentAreas.indexOf(area);
+    if (oldIndex == -1) return;
     currentAreas.insert(newIndex, currentAreas.removeAt(oldIndex));
     setAreas(currentAreas);
   }
 
-  void renameArea(int index, String newName) {
+  void renameArea(Area area, String newName) {
     final List<Area> currentAreas = getAreas();
+    final int index = currentAreas.indexOf(area);
+    if (index == -1) return;
     currentAreas[index].name = newName;
     setAreas(currentAreas);
   }

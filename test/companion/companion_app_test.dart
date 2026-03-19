@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:inventory_count/companion/companion_app.dart';
 import 'package:inventory_count/companion/inventory_counts_page.dart';
 import 'package:inventory_count/companion/window_model.dart';
+import 'package:inventory_count/companion_app.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
