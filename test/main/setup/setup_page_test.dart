@@ -10,7 +10,6 @@ import 'package:inventory_count/main/models/export_model.dart';
 import 'package:inventory_count/main/models/sync_coordinator.dart';
 import 'package:inventory_count/main/repositories/area_local_repository.dart';
 import 'package:inventory_count/main/repositories/area_sync_repository.dart';
-import 'package:inventory_count/main/repositories/device_id_repository.dart';
 import 'package:inventory_count/main/repositories/export_local_repository.dart';
 import 'package:inventory_count/main/repositories/export_sync_repository.dart';
 import 'package:inventory_count/main/repositories/sync_runtime.dart';
@@ -87,11 +86,6 @@ class _FakeExportSyncRepository implements ExportSyncRepository {
   Stream<ExportSyncRecord?> watchLatest() => const Stream.empty();
 }
 
-class _FakeDeviceIdRepository implements DeviceIdRepository {
-  @override
-  Future<String> getDeviceId() async => 'test-device';
-}
-
 void main() {
   setUpAll(initializeTestHive);
   tearDownAll(disposeTestHive);
@@ -101,25 +95,18 @@ void main() {
     testWidgets('shows tab labels and areas tab content by default', (
       tester,
     ) async {
-      final deviceIdRepository = _FakeDeviceIdRepository();
       final syncRuntime = SyncRuntime.forTest(
         statusChanges: const Stream.empty(),
       );
       final areaModel = AreaModel(
         countModel: CountModel(),
-        deviceIdRepository: deviceIdRepository,
-        syncCoordinator: SyncCoordinator(
-          deviceIdRepository: deviceIdRepository,
-        ),
+        syncCoordinator: SyncCoordinator(),
         localRepository: _InMemoryAreaLocalRepository(),
         syncRepository: _FakeAreaSyncRepository(),
         syncRuntime: syncRuntime,
       );
       final exportModel = ExportModel(
-        deviceIdRepository: deviceIdRepository,
-        syncCoordinator: SyncCoordinator(
-          deviceIdRepository: deviceIdRepository,
-        ),
+        syncCoordinator: SyncCoordinator(),
         localRepository: _InMemoryExportLocalRepository(),
         syncRepository: _FakeExportSyncRepository(),
         syncRuntime: syncRuntime,
@@ -142,25 +129,18 @@ void main() {
     });
 
     testWidgets('switches to export tab when tapped', (tester) async {
-      final deviceIdRepository = _FakeDeviceIdRepository();
       final syncRuntime = SyncRuntime.forTest(
         statusChanges: const Stream.empty(),
       );
       final areaModel = AreaModel(
         countModel: CountModel(),
-        deviceIdRepository: deviceIdRepository,
-        syncCoordinator: SyncCoordinator(
-          deviceIdRepository: deviceIdRepository,
-        ),
+        syncCoordinator: SyncCoordinator(),
         localRepository: _InMemoryAreaLocalRepository(),
         syncRepository: _FakeAreaSyncRepository(),
         syncRuntime: syncRuntime,
       );
       final exportModel = ExportModel(
-        deviceIdRepository: deviceIdRepository,
-        syncCoordinator: SyncCoordinator(
-          deviceIdRepository: deviceIdRepository,
-        ),
+        syncCoordinator: SyncCoordinator(),
         localRepository: _InMemoryExportLocalRepository(),
         syncRepository: _FakeExportSyncRepository(),
         syncRuntime: syncRuntime,

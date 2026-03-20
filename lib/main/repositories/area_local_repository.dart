@@ -1,8 +1,9 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/data/inventory_models.dart';
+import 'repository.dart';
 
-abstract class AreaLocalRepository {
+abstract class AreaLocalRepository extends LocalRepository {
   Future<void> ensureInitialized();
 
   Map<Profile, List<Area>> readProfiles();

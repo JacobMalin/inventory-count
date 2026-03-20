@@ -1,0 +1,3 @@
+class SyncRepository {}
+
+class LocalRepository {}

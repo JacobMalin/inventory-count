@@ -14,7 +14,7 @@ import 'data/inventory_models.dart';
 import 'export_model.dart';
 import 'sync_change_notifier.dart';
 
-class CountModel extends SyncChangeNotifier {
+class CountModel extends LocalSyncChangeNotifier {
   CountModel({
     CountLocalRepository? localRepository,
     CountSyncRepository? syncRepository,

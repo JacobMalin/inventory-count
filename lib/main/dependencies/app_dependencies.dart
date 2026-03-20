@@ -9,7 +9,6 @@ import '../repositories/area_local_repository.dart';
 import '../repositories/area_sync_repository.dart';
 import '../repositories/count_local_repository.dart';
 import '../repositories/count_sync_repository.dart';
-import '../repositories/device_id_repository.dart';
 import '../repositories/export_local_repository.dart';
 import '../repositories/export_sync_repository.dart';
 import '../repositories/notes_local_repository.dart';
@@ -24,14 +23,10 @@ class AppDependencies {
     ExportLocalRepository? exportLocalRepository,
     ExportSyncRepository? exportSyncRepository,
     NotesLocalRepository? notesLocalRepository,
-    DeviceIdRepository? deviceIdRepository,
     SyncCoordinator? syncCoordinator,
     SyncRuntime? syncRuntime,
     bool disableSync = false,
   }) {
-    final DeviceIdRepository resolvedDeviceIdRepository =
-        deviceIdRepository ?? FlutterUdidDeviceIdRepository();
-
     return AppDependencies._(
       countLocalRepository: countLocalRepository ?? HiveCountLocalRepository(),
       countSyncRepository: countSyncRepository ?? SupabaseCountSyncRepository(),
@@ -42,11 +37,8 @@ class AppDependencies {
       exportSyncRepository:
           exportSyncRepository ?? SupabaseExportSyncRepository(),
       notesLocalRepository: notesLocalRepository ?? HiveNotesLocalRepository(),
-      deviceIdRepository: resolvedDeviceIdRepository,
       syncRuntime: syncRuntime ?? SyncRuntime(),
-      syncCoordinator:
-          syncCoordinator ??
-          SyncCoordinator(deviceIdRepository: resolvedDeviceIdRepository),
+      syncCoordinator: syncCoordinator ?? SyncCoordinator(),
       disableSync: disableSync,
     );
   }
@@ -59,7 +51,6 @@ class AppDependencies {
     required this.exportLocalRepository,
     required this.exportSyncRepository,
     required this.notesLocalRepository,
-    required this.deviceIdRepository,
     required this.syncRuntime,
     required this.syncCoordinator,
     required this.disableSync,
@@ -73,7 +64,6 @@ class AppDependencies {
   final ExportLocalRepository exportLocalRepository;
   final ExportSyncRepository exportSyncRepository;
   final NotesLocalRepository notesLocalRepository;
-  final DeviceIdRepository deviceIdRepository;
   final SyncRuntime syncRuntime;
   final SyncCoordinator syncCoordinator;
 
@@ -85,7 +75,6 @@ class AppDependencies {
         create: (context) => ExportModel(
           localRepository: exportLocalRepository,
           syncRepository: exportSyncRepository,
-          deviceIdRepository: deviceIdRepository,
           syncCoordinator: syncCoordinator,
           syncRuntime: syncRuntime,
           disableSync: disableSync,
@@ -121,7 +110,6 @@ class AppDependencies {
           countModel: context.read<CountModel>(),
           localRepository: areaLocalRepository,
           syncRepository: areaSyncRepository,
-          deviceIdRepository: deviceIdRepository,
           syncCoordinator: syncCoordinator,
           syncRuntime: syncRuntime,
           disableSync: disableSync,
@@ -136,7 +124,6 @@ class AppDependencies {
             countModel: countModel,
             localRepository: areaLocalRepository,
             syncRepository: areaSyncRepository,
-            deviceIdRepository: deviceIdRepository,
             syncCoordinator: syncCoordinator,
             syncRuntime: syncRuntime,
             disableSync: disableSync,

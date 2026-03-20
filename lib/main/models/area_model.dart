@@ -8,25 +8,22 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/types/json.dart';
 import '../repositories/area_local_repository.dart';
 import '../repositories/area_sync_repository.dart';
-import '../repositories/device_id_repository.dart';
+import '../repositories/device_id.dart';
 import 'count_model.dart';
 import 'data/count_strategy.dart';
 import 'data/inventory_models.dart';
 import 'sync_change_notifier.dart';
 import 'sync_coordinator.dart';
 
-class AreaModel extends SyncChangeNotifier {
+class AreaModel extends LocalSyncChangeNotifier {
   AreaModel({
     required this.countModel,
-    required DeviceIdRepository deviceIdRepository,
     required SyncCoordinator syncCoordinator,
     AreaLocalRepository? localRepository,
     AreaSyncRepository? syncRepository,
-    super.syncRuntime,
     super.disableSync,
   }) : _localRepository = localRepository ?? HiveAreaLocalRepository(),
        _syncRepository = syncRepository ?? SupabaseAreaSyncRepository(),
-       _deviceIdRepository = deviceIdRepository,
        _syncCoordinator = syncCoordinator {
     unawaited(_localRepository.ensureInitialized());
 
@@ -37,12 +34,14 @@ class AreaModel extends SyncChangeNotifier {
 
   final AreaLocalRepository _localRepository;
   final AreaSyncRepository _syncRepository;
-  final DeviceIdRepository _deviceIdRepository;
   final SyncCoordinator _syncCoordinator;
 
   CountModel countModel;
 
   final _notYetDeletedProfiles = <Profile>{};
+
+  // TODO: Merge many of these functions into the sync repository
+  // TODO: Make storageobjects save themselves
 
   Future<void> _fetch() async {
     try {
@@ -65,7 +64,7 @@ class AreaModel extends SyncChangeNotifier {
 
         await _fetch();
         await _setupsSubscription?.unsubscribe();
-        final String ownUdid = await _deviceIdRepository.getDeviceId();
+        final String ownUdid = await DeviceId.getDeviceId();
         _setupsSubscription = _syncRepository.subscribeProfileChanges(
           excludedUdid: ownUdid,
           onChange: _updateSingleFromResponse,
@@ -178,7 +177,7 @@ class AreaModel extends SyncChangeNotifier {
     if (profilesToUpdate.isEmpty) return;
 
     try {
-      final String ownUdid = await _deviceIdRepository.getDeviceId();
+      final String ownUdid = await DeviceId.getDeviceId();
       final List<AreaSyncRecord> batchData = [];
 
       // Add updates
@@ -219,7 +218,7 @@ class AreaModel extends SyncChangeNotifier {
     _updatedAtMap = newUpdatedAtMap;
 
     unawaited(() async {
-      final String ownUdid = await _deviceIdRepository.getDeviceId();
+      final String ownUdid = await DeviceId.getDeviceId();
 
       await _syncRepository
           .upsertProfile(

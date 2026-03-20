@@ -1,8 +1,9 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/data/export_entry.dart';
+import 'repository.dart';
 
-abstract class ExportLocalRepository {
+abstract class ExportLocalRepository extends LocalRepository {
   Future<void> ensureInitialized();
 
   List<ExportEntry> readExportList();

@@ -134,15 +134,6 @@ class _FakeExportSyncRepository implements ExportSyncRepository {
   Stream<ExportSyncRecord?> watchLatest() => const Stream.empty();
 }
 
-class _FakeDeviceIdRepository implements DeviceIdRepository {
-  _FakeDeviceIdRepository(this._id);
-
-  final String _id;
-
-  @override
-  Future<String> getDeviceId() async => _id;
-}
-
 class _RemoteRecord {
   _RemoteRecord({required this.udid, required this.updatedAt});
 
@@ -206,13 +197,10 @@ void main() {
       final areaSyncRepository = _FakeAreaSyncRepository();
       final exportLocalRepository = _FakeExportLocalRepository();
       final exportSyncRepository = _FakeExportSyncRepository();
-      final deviceIdRepository = _FakeDeviceIdRepository('device-1');
       final syncRuntime = SyncRuntime.forTest(
         statusChanges: const Stream.empty(),
       );
-      final syncCoordinator = SyncCoordinator(
-        deviceIdRepository: _FakeDeviceIdRepository('device-2'),
-      );
+      final syncCoordinator = SyncCoordinator();
 
       final dependencies = AppDependencies(
         countLocalRepository: countLocalRepository,
@@ -221,7 +209,6 @@ void main() {
         areaSyncRepository: areaSyncRepository,
         exportLocalRepository: exportLocalRepository,
         exportSyncRepository: exportSyncRepository,
-        deviceIdRepository: deviceIdRepository,
         syncRuntime: syncRuntime,
         syncCoordinator: syncCoordinator,
       );
@@ -250,45 +237,8 @@ void main() {
         identical(dependencies.exportSyncRepository, exportSyncRepository),
         isTrue,
       );
-      expect(
-        identical(dependencies.deviceIdRepository, deviceIdRepository),
-        isTrue,
-      );
       expect(identical(dependencies.syncRuntime, syncRuntime), isTrue);
       expect(identical(dependencies.syncCoordinator, syncCoordinator), isTrue);
-    });
-
-    test('builds syncCoordinator with resolved deviceIdRepository', () async {
-      final dependencies = AppDependencies(
-        countLocalRepository: _FakeCountLocalRepository(),
-        countSyncRepository: _FakeCountSyncRepository(),
-        areaLocalRepository: _FakeAreaLocalRepository(),
-        areaSyncRepository: _FakeAreaSyncRepository(),
-        exportLocalRepository: _FakeExportLocalRepository(),
-        exportSyncRepository: _FakeExportSyncRepository(),
-        deviceIdRepository: _FakeDeviceIdRepository('local-device'),
-        syncRuntime: SyncRuntime.forTest(statusChanges: const Stream.empty()),
-      );
-
-      var pulled = false;
-      var pushed = false;
-      final DateTime now = DateTime.now().toUtc();
-
-      await dependencies.syncCoordinator.reconcileSingle<_RemoteRecord>(
-        remoteRecord: _RemoteRecord(udid: 'local-device', updatedAt: now),
-        remoteUdid: (record) => record.udid,
-        remoteUpdatedAt: (record) => record.updatedAt,
-        localUpdatedAt: now.subtract(const Duration(minutes: 5)),
-        onPullRemote: (record, remoteUpdatedAt) async {
-          pulled = true;
-        },
-        onPushLocal: () async {
-          pushed = true;
-        },
-      );
-
-      expect(pulled, isFalse);
-      expect(pushed, isFalse);
     });
 
     test('creates expected defaults when optional values are omitted', () {
@@ -306,10 +256,6 @@ void main() {
       expect(
         dependencies.exportLocalRepository,
         isA<HiveExportLocalRepository>(),
-      );
-      expect(
-        dependencies.deviceIdRepository,
-        isA<FlutterUdidDeviceIdRepository>(),
       );
       expect(identical(dependencies.syncRuntime, SyncRuntime()), isTrue);
       expect(dependencies.syncCoordinator, isA<SyncCoordinator>());
@@ -356,51 +302,6 @@ void main() {
       );
       expect(dependencies.syncCoordinator, isA<SyncCoordinator>());
     });
-
-    test(
-      'prefers provided syncCoordinator over implicit construction',
-      () async {
-        final providedDeviceRepository = _FakeDeviceIdRepository(
-          'provided-device',
-        );
-        final coordinatorDeviceRepository = _FakeDeviceIdRepository(
-          'coordinator-device',
-        );
-        final providedCoordinator = SyncCoordinator(
-          deviceIdRepository: coordinatorDeviceRepository,
-        );
-
-        final dependencies = AppDependencies(
-          areaLocalRepository: _FakeAreaLocalRepository(),
-          areaSyncRepository: _FakeAreaSyncRepository(),
-          exportLocalRepository: _FakeExportLocalRepository(),
-          exportSyncRepository: _FakeExportSyncRepository(),
-          deviceIdRepository: providedDeviceRepository,
-          syncRuntime: SyncRuntime.forTest(statusChanges: const Stream.empty()),
-          syncCoordinator: providedCoordinator,
-        );
-
-        var pulled = false;
-        final DateTime now = DateTime.now().toUtc();
-
-        await dependencies.syncCoordinator.reconcileSingle<_RemoteRecord>(
-          remoteRecord: _RemoteRecord(udid: 'provided-device', updatedAt: now),
-          remoteUdid: (record) => record.udid,
-          remoteUpdatedAt: (record) => record.updatedAt,
-          localUpdatedAt: now.subtract(const Duration(minutes: 5)),
-          onPullRemote: (record, remoteUpdatedAt) async {
-            pulled = true;
-          },
-          onPushLocal: () async {},
-        );
-
-        expect(
-          identical(dependencies.syncCoordinator, providedCoordinator),
-          isTrue,
-        );
-        expect(pulled, isTrue);
-      },
-    );
 
     test('uses singleton SyncRuntime when runtime is omitted', () {
       final dependencies = AppDependencies(

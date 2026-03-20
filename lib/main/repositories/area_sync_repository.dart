@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/types/json.dart';
+import 'repository.dart';
 
 enum AreaSyncChangeType { insert, update, delete }
 
@@ -28,15 +29,18 @@ class AreaSyncRecord {
   });
 
   factory AreaSyncRecord.fromJson(Json row) {
-    final name = row['name'] as String?;
-    final udid = row['udid'] as String?;
-    final DateTime? updatedAt = row['updated_at'] != null
-        ? DateTime.tryParse(row['updated_at'].toString())
-        : null;
-
-    if (name == null || udid == null || updatedAt == null) {
+    final requiredFields = <String>['name', 'updated_at', 'json', 'udid'];
+    if (!requiredFields.every((field) => row.containsKey(field))) {
       throw ArgumentError('Invalid row data: missing required fields');
     }
+
+    final name = row['name'] as String;
+    final udid = row['udid'] as String;
+    final DateTime updatedAt =
+        DateTime.tryParse(row['updated_at'].toString())?.toUtc() ??
+        (throw ArgumentError(
+          'Invalid row data: updated_at is not a valid DateTime',
+        ));
 
     final String json = row['json'] is String
         ? row['json'] as String
@@ -83,7 +87,7 @@ class AreaSyncChange {
   final String? deletedName;
 }
 
-abstract class AreaSyncRepository {
+abstract class AreaSyncRepository extends SyncRepository {
   Future<List<AreaSyncRecord>> fetchProfiles();
   Future<void> upsertProfile(AreaSyncRecord record);
   Future<void> deleteProfile(String profileName);

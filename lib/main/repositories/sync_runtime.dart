@@ -4,41 +4,17 @@ import 'package:flutter/foundation.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class SyncRuntime {
-  factory SyncRuntime() => _instance;
+  static final Stream<InternetConnectionStatus> onStatusChange =
+      InternetConnectionChecker.instance.onStatusChange;
 
-  SyncRuntime._({
-    Stream<InternetConnectionStatus>? statusChanges,
-    void Function(String message, Object error)? errorLogger,
-  }) : _statusChanges =
-           statusChanges ?? InternetConnectionChecker.instance.onStatusChange,
-       _errorLogger = errorLogger ?? SyncRuntime.logError;
-
-  @visibleForTesting
-  factory SyncRuntime.forTest({
-    required Stream<InternetConnectionStatus> statusChanges,
-    void Function(String message, Object error)? errorLogger,
-  }) {
-    return SyncRuntime._(
-      statusChanges: statusChanges,
-      errorLogger: errorLogger,
-    );
-  }
-
-  static final SyncRuntime _instance = SyncRuntime._();
-
-  final Stream<InternetConnectionStatus> _statusChanges;
-  final void Function(String message, Object error) _errorLogger;
-
-  StreamSubscription<InternetConnectionStatus>? _sharedSubscription;
-  final Map<Object, Future<void> Function()> _reconnectCallbacks = {};
+  static StreamSubscription<InternetConnectionStatus>? _sharedSubscription;
+  static final Map<Object, Future<void> Function()> _reconnectCallbacks = {};
 
   static void logError(String message, Object error) {
-    if (kDebugMode) {
-      print('$message: $error');
-    }
+    if (kDebugMode) print('$message: $error');
   }
 
-  void registerReconnectCallback(
+  static void registerReconnectCallback(
     Object owner,
     Future<void> Function() onConnected,
   ) {
@@ -50,7 +26,7 @@ class SyncRuntime {
     }
   }
 
-  Future<void> unregisterReconnectCallback(Object owner) async {
+  static Future<void> unregisterReconnectCallback(Object owner) async {
     _reconnectCallbacks.remove(owner);
 
     // Stop listening if no more callbacks
@@ -59,8 +35,8 @@ class SyncRuntime {
     }
   }
 
-  void _startListening() {
-    _sharedSubscription ??= _statusChanges.listen(
+  static void _startListening() {
+    _sharedSubscription ??= onStatusChange.listen(
       (status) async {
         if (status != InternetConnectionStatus.connected) return;
 
@@ -70,17 +46,17 @@ class SyncRuntime {
           try {
             await callback();
           } on Exception catch (e) {
-            _errorLogger('Error in reconnect callback', e);
+            logError('Error in reconnect callback', e);
           }
         }
       },
       onError: (e) {
-        _errorLogger('Connectivity listener error', e);
+        logError('Connectivity listener error', e);
       },
     );
   }
 
-  Future<void> _stopListening() async {
+  static Future<void> _stopListening() async {
     await _sharedSubscription?.cancel();
     _sharedSubscription = null;
   }

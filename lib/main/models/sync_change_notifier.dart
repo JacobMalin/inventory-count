@@ -4,11 +4,9 @@ import 'package:flutter/foundation.dart';
 
 import '../repositories/sync_runtime.dart';
 
-abstract class SyncChangeNotifier extends ChangeNotifier {
-  SyncChangeNotifier({SyncRuntime? syncRuntime, this.disableSync = false})
-    : _syncRuntime = syncRuntime ?? SyncRuntime();
+abstract class LocalSyncChangeNotifier extends ChangeNotifier {
+  LocalSyncChangeNotifier({this.disableSync = false});
 
-  final SyncRuntime _syncRuntime;
   final bool disableSync;
 
   void initializeSync({
@@ -23,11 +21,11 @@ abstract class SyncChangeNotifier extends ChangeNotifier {
   }
 
   void registerReconnectCallback(Future<void> Function() callback) {
-    _syncRuntime.registerReconnectCallback(this, callback);
+    SyncRuntime.registerReconnectCallback(this, callback);
   }
 
   Future<void> unregisterReconnectCallbacks() {
-    return _syncRuntime.unregisterReconnectCallback(this);
+    return SyncRuntime.unregisterReconnectCallback(this);
   }
 
   @protected

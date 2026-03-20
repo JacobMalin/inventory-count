@@ -11,9 +11,8 @@ import 'data/export_entry.dart';
 import 'sync_change_notifier.dart';
 import 'sync_coordinator.dart';
 
-class ExportModel extends SyncChangeNotifier {
+class ExportModel extends LocalSyncChangeNotifier {
   ExportModel({
-    required DeviceIdRepository deviceIdRepository,
     required SyncCoordinator syncCoordinator,
     ExportLocalRepository? localRepository,
     ExportSyncRepository? syncRepository,
@@ -21,7 +20,6 @@ class ExportModel extends SyncChangeNotifier {
     super.disableSync,
   }) : _localRepository = localRepository ?? HiveExportLocalRepository(),
        _syncRepository = syncRepository ?? SupabaseExportSyncRepository(),
-       _deviceIdRepository = deviceIdRepository,
        _syncCoordinator = syncCoordinator {
     unawaited(_localRepository.ensureInitialized());
 
@@ -30,7 +28,6 @@ class ExportModel extends SyncChangeNotifier {
 
   final ExportLocalRepository _localRepository;
   final ExportSyncRepository _syncRepository;
-  final DeviceIdRepository _deviceIdRepository;
   final SyncCoordinator _syncCoordinator;
 
   StreamSubscription<ExportSyncRecord?>? _setupsSubscription;
@@ -95,7 +92,7 @@ class ExportModel extends SyncChangeNotifier {
     _lastTimestamp = now;
 
     unawaited(() async {
-      final String ownUdid = await _deviceIdRepository.getDeviceId();
+      final String ownUdid = await DeviceId.getDeviceId();
 
       await _syncRepository
           .upsertLatest(
