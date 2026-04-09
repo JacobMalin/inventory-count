@@ -111,7 +111,6 @@ class AppDependencies {
           localRepository: areaLocalRepository,
           syncRepository: areaSyncRepository,
           syncCoordinator: syncCoordinator,
-          syncRuntime: syncRuntime,
           disableSync: disableSync,
         ),
         update: (context, countModel, areaModel) {
@@ -125,7 +124,6 @@ class AppDependencies {
             localRepository: areaLocalRepository,
             syncRepository: areaSyncRepository,
             syncCoordinator: syncCoordinator,
-            syncRuntime: syncRuntime,
             disableSync: disableSync,
           );
         },

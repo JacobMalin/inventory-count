@@ -1,11 +1,11 @@
+import 'dart:async';
+
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/data/inventory_models.dart';
 import 'repository.dart';
 
 abstract class CountLocalRepository extends LocalRepository {
-  Future<void> ensureInitialized();
-
   bool readHideCountedItems();
   Future<void> writeHideCountedItems(bool value);
 
@@ -33,14 +33,15 @@ class HiveCountLocalRepository implements CountLocalRepository {
     Box<Map<String, int>>? expectedBox,
   }) : _settingsBox = settingsBox ?? Hive.box('settings'),
        _countBox = countBox ?? Hive.box<Count>('counts'),
-       _expectedBox = expectedBox ?? Hive.box<Map<String, int>>('expected');
+       _expectedBox = expectedBox ?? Hive.box<Map<String, int>>('expected') {
+    unawaited(_ensureInitialized());
+  }
 
   final Box<dynamic> _settingsBox;
   final Box<Count> _countBox;
   final Box<Map<String, int>> _expectedBox;
 
-  @override
-  Future<void> ensureInitialized() async {
+  Future<void> _ensureInitialized() async {
     if (_settingsBox.get('hideCountedItems') == null) {
       await _settingsBox.put('hideCountedItems', false);
     }

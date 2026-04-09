@@ -100,8 +100,11 @@ abstract class AreaSyncRepository extends SyncRepository {
   Future<void> batchUpsertProfiles(List<AreaSyncRecord> records);
 }
 
-class SupabaseAreaSyncRepository implements AreaSyncRepository {
-  SupabaseAreaSyncRepository({SupabaseClient? client})
+class SupabaseAreaSyncRepository extends AreaSyncRepository {
+  SupabaseAreaSyncRepository({
+    SupabaseClient? client,
+    super.disableSync = false,
+  })
     : _client = client ?? Supabase.instance.client;
 
   final SupabaseClient _client;

@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 
 import '../../core/types/json.dart';
-import '../repositories/device_id_repository.dart';
+import '../repositories/device_id.dart';
 import '../repositories/export_local_repository.dart';
 import '../repositories/export_sync_repository.dart';
 import 'data/export_entry.dart';

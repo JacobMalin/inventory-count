@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/types/json.dart';
 import '../repositories/count_local_repository.dart';
@@ -12,32 +13,25 @@ import 'data/count_strategy.dart';
 import 'data/export_entry.dart';
 import 'data/inventory_models.dart';
 import 'export_model.dart';
-import 'sync_change_notifier.dart';
 
-class CountModel extends LocalSyncChangeNotifier {
+class CountModel extends ChangeNotifier {
   CountModel({
-    CountLocalRepository? localRepository,
-    CountSyncRepository? syncRepository,
-    ExportLocalRepository? exportLocalRepository,
+    required ExportLocalRepository exportLocalRepository,
     this.exportModel,
-    super.syncRuntime,
-    super.disableSync,
-  }) : _localRepository = localRepository ?? HiveCountLocalRepository(),
-       _syncRepository = syncRepository ?? NoopCountSyncRepository(),
-       _exportLocalRepository =
-           exportLocalRepository ?? HiveExportLocalRepository() {
-    unawaited(_localRepository.ensureInitialized());
-    unawaited(_exportLocalRepository.ensureInitialized());
-
-    initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
-  }
+    bool disableSync = false,
+  }) : selectedDate = DateTime.now().subtract(const Duration(hours: 3)),
+       _localRepository = HiveCountLocalRepository(),
+       _syncRepository = SupabaseCountSyncRepository(
+         selectedDate: DateTime.now().subtract(const Duration(hours: 3)),
+         disableSync: disableSync,
+       ),
+       _exportLocalRepository = exportLocalRepository;
 
   final CountLocalRepository _localRepository;
   final CountSyncRepository _syncRepository;
   final ExportLocalRepository _exportLocalRepository;
 
-  StreamSubscription<CountSyncRecord?>? _countSubscription;
-  DateTime? _lastTimestamp;
+  DateTime selectedDate;
 
   static String _normalizeKey(String key) => key
       .trim()
@@ -47,7 +41,7 @@ class CountModel extends LocalSyncChangeNotifier {
 
   int? getExpectedValue(String itemName, String? omniName) {
     final Map<String, int> expectedByName = _localRepository
-        .readExpectedByNameForDate(_countRowName);
+        .readExpectedByNameForDate(_syncRepository.rowName(selectedDate));
     if (expectedByName.isEmpty) return null;
     return expectedByName[_normalizeKey(omniName ?? itemName)] ??
         expectedByName[_normalizeKey(itemName)];
@@ -60,10 +54,6 @@ class CountModel extends LocalSyncChangeNotifier {
 
   String get date => _dateFormat.format(selectedDate);
 
-  DateTime selectedDate = DateTime.now().subtract(const Duration(hours: 3));
-
-  String get _countRowName => DateFormat('yyyy-MM-dd').format(selectedDate);
-
   bool get hideCountedItems => _localRepository.readHideCountedItems();
   set hideCountedItems(bool value) {
     unawaited(_localRepository.writeHideCountedItems(value));
@@ -71,7 +61,7 @@ class CountModel extends LocalSyncChangeNotifier {
 
   void setSelectedDate(DateTime date) {
     selectedDate = date;
-    unawaited(_reconnectCountSubscription());
+    unawaited(_syncRepository.reconnect(selectedDate));
     notifyListeners();
   }
 
@@ -98,103 +88,6 @@ class CountModel extends LocalSyncChangeNotifier {
     selectedDate = DateTime.now();
     unawaited(_reconnectCountSubscription());
     notifyListeners();
-  }
-
-  Future<void> _fetch() async {
-    try {
-      final CountSyncRecord? response = await _syncRepository.fetchRow(
-        rowName: _countRowName,
-      );
-      await _updateFromResponse(response);
-    } on Exception catch (e) {
-      logSyncError('Failed to fetch counts from Supabase', e);
-    }
-  }
-
-  Future<void> _listenForChanges() async {
-    try {
-      Future<void> reconnect() async {
-        await _countSubscription?.cancel();
-
-        _countSubscription = _syncRepository
-            .watchRow(rowName: _countRowName)
-            .listen(
-              (row) {
-                unawaited(_updateFromResponse(row));
-              },
-              onError: (Object e) {
-                logSyncError('Error listening to count changes', e);
-              },
-            );
-      }
-
-      registerReconnectCallback(reconnect);
-      await reconnect();
-    } on Exception catch (e) {
-      logSyncError('Failed to register count reconnect callback', e);
-    }
-  }
-
-  Future<void> _updateFromResponse(CountSyncRecord? response) async {
-    if (response == null) {
-      return;
-    }
-
-    if (response.name != _countRowName) {
-      return;
-    }
-
-    if (_lastTimestamp != null &&
-        !response.updatedAt.isAfter(_lastTimestamp!)) {
-      return;
-    }
-
-    try {
-      final Object? decoded = jsonDecode(response.actual);
-      if (decoded is! Json || decoded['itemCounts'] == null) {
-        _lastTimestamp = response.updatedAt;
-        return;
-      }
-
-      final remoteCount = Count.fromJson(decoded);
-      if (response.profile.isNotEmpty) {
-        remoteCount.profile = Profile(response.profile);
-      }
-
-      await _localRepository.writeCount(date, remoteCount);
-
-      final String? expectedJson = response.expected;
-      if (expectedJson != null && expectedJson.trim().isNotEmpty) {
-        try {
-          final Object? decodedExpected = jsonDecode(expectedJson);
-          if (decodedExpected is Map) {
-            final newExpected = <String, int>{};
-            for (final MapEntry<dynamic, dynamic> entry
-                in decodedExpected.entries) {
-              final int? value = entry.value is int
-                  ? entry.value as int
-                  : int.tryParse(entry.value?.toString() ?? '');
-              if (value != null) {
-                newExpected[_normalizeKey(entry.key.toString())] = value;
-              }
-            }
-            unawaited(
-              _localRepository.writeExpectedByNameForDate(
-                _countRowName,
-                newExpected,
-              ),
-            );
-          }
-        } on Exception {
-          // Leave _expectedByName unchanged if parsing fails
-        }
-      }
-
-      _lastTimestamp = response.updatedAt;
-      notifyListeners();
-    } on Exception {
-      _lastTimestamp = response.updatedAt;
-    }
   }
 
   Count get _thisCount =>
@@ -465,11 +358,15 @@ class CountModel extends LocalSyncChangeNotifier {
     final String actual = jsonEncode(_thisCount.toJson());
 
     try {
+      final String exportName = DateFormat('yyyy-MM-dd').format(selectedDate);
       await _syncRepository.upsertCount(
-        when: selectedDate,
-        profile: selectedProfile?.name ?? 'Default',
-        json: json,
-        actual: actual,
+        CountSyncRecord(
+          name: exportName,
+          updatedAt: DateTime.now().toUtc(),
+          profile: selectedProfile?.name ?? 'Default',
+          json: json,
+          actual: actual,
+        ),
       );
 
       _lastTimestamp = DateTime.now().toUtc();

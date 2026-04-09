@@ -66,8 +66,11 @@ abstract class ExportSyncRepository extends SyncRepository {
   Stream<ExportSyncRecord?> watchLatest();
 }
 
-class SupabaseExportSyncRepository implements ExportSyncRepository {
-  SupabaseExportSyncRepository({SupabaseClient? client})
+class SupabaseExportSyncRepository extends ExportSyncRepository {
+  SupabaseExportSyncRepository({
+    SupabaseClient? client,
+    super.disableSync = false,
+  })
     : _client = client ?? Supabase.instance.client;
 
   final SupabaseClient _client;

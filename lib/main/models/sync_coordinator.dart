@@ -1,4 +1,4 @@
-import '../repositories/device_id_repository.dart';
+import '../repositories/device_id.dart';
 import '../repositories/sync_timestamp_merge.dart';
 
 class SyncCoordinator {

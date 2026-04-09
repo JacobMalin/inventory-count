@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - prerelease
 
 permissions:
   contents: write
@@ -24,16 +25,29 @@ jobs:
       - name: Bump version if same as latest release
         id: get-version
         run: |
+          IS_PRERELEASE=false
+          if [ "${GITHUB_REF_NAME}" = "prerelease" ]; then
+            IS_PRERELEASE=true
+          fi
+
           CURRENT_VERSION=$(yq '.version' pubspec.yaml)
           echo "Current pubspec version: $CURRENT_VERSION"
+          echo "Prerelease branch: $IS_PRERELEASE"
 
           # Get latest release tag from GitHub API (strip a leading 'v' if present).
-          LATEST_TAG=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name // empty')
+          if [ "$IS_PRERELEASE" = true ]; then
+            LATEST_TAG=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" | jq -r '[.[] | select(.prerelease == true)][0].tag_name // empty')
+          else
+            LATEST_TAG=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name // empty')
+          fi
           LATEST_TAG=${LATEST_TAG#v}
           echo "Latest release tag: ${LATEST_TAG:-<none>}"
 
           SHOULD_BUMP=false
-          if [ -z "$LATEST_TAG" ]; then
+          if [ "$IS_PRERELEASE" = true ] && ! [[ "$CURRENT_VERSION" =~ ^0\.0\.0\.[0-9]+$ ]]; then
+            echo "Current version is not in 0.0.0.x format; will bump into prerelease stream."
+            SHOULD_BUMP=true
+          elif [ -z "$LATEST_TAG" ]; then
             echo "No latest release found; will bump version."
             SHOULD_BUMP=true
           elif [ "$LATEST_TAG" = "$CURRENT_VERSION" ]; then
@@ -45,9 +59,20 @@ jobs:
           fi
 
           if [ "$SHOULD_BUMP" = true ]; then
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-            NEW_PATCH=$((PATCH + 1))
-            NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+            if [ "$IS_PRERELEASE" = true ]; then
+              PRE_NUM=0
+              if [[ "$LATEST_TAG" =~ ^0\.0\.0\.([0-9]+)$ ]]; then
+                PRE_NUM="${BASH_REMATCH[1]}"
+              elif [[ "$CURRENT_VERSION" =~ ^0\.0\.0\.([0-9]+)$ ]]; then
+                PRE_NUM="${BASH_REMATCH[1]}"
+              fi
+              PRE_NUM=$((PRE_NUM + 1))
+              NEW_VERSION="0.0.0.$PRE_NUM"
+            else
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+              NEW_PATCH=$((PATCH + 1))
+              NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+            fi
             yq -i ".version = \"$NEW_VERSION\"" pubspec.yaml
             echo "Bumped version from $CURRENT_VERSION to $NEW_VERSION"
             echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -73,7 +98,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_TAG: v${{ needs.get-and-bump-version.outputs.version }}
         run: |
-          gh release view "$VERSION_TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$VERSION_TAG" -R "$GITHUB_REPOSITORY" --title "$VERSION_TAG" --notes "Automated release"
+          IS_PRERELEASE=false
+          if [ "${GITHUB_REF_NAME}" = "prerelease" ]; then
+            IS_PRERELEASE=true
+          fi
+
+          if gh release view "$VERSION_TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            if [ "$IS_PRERELEASE" = true ]; then
+              gh release edit "$VERSION_TAG" -R "$GITHUB_REPOSITORY" --prerelease
+            fi
+          else
+            if [ "$IS_PRERELEASE" = true ]; then
+              gh release create "$VERSION_TAG" -R "$GITHUB_REPOSITORY" --title "$VERSION_TAG" --notes "Automated prerelease" --prerelease
+            else
+              gh release create "$VERSION_TAG" -R "$GITHUB_REPOSITORY" --title "$VERSION_TAG" --notes "Automated release"
+            fi
+          fi
 
   build-ios:
     name: 🎉 iOS Build
@@ -161,44 +201,55 @@ jobs:
           DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v${{ needs.get-and-bump-version.outputs.version }}/InventoryCount.ipa"
           echo "DOWNLOAD_URL=$DOWNLOAD_URL" >> $GITHUB_ENV
 
-      - name: Update app_description.json
+          if [ "${GITHUB_REF_NAME}" = "prerelease" ]; then
+            TARGET_FILES="ios/prerelease_app_description.json"
+          else
+            TARGET_FILES="ios/app_description.json ios/prerelease_app_description.json"
+          fi
+          echo "TARGET_FILES=$TARGET_FILES" >> $GITHUB_ENV
+
+      - name: Update app description file(s)
         env:
           IPA_SIZE: ${{ needs.build-ios.outputs.ipa-size }}
         run: |
-          jq \
-            --arg v "${{ needs.get-and-bump-version.outputs.version }}" \
-            --arg d "$VERSION_DATE" \
-            --argjson s "$IPA_SIZE" \
-            --arg u "$DOWNLOAD_URL" \
-            '.apps[0].version = $v | .apps[0].versionDate = $d | .apps[0].size = $s | .apps[0].downloadURL = $u' \
-            ios/app_description.json > ios/app_description.json.tmp && mv ios/app_description.json.tmp ios/app_description.json
+          for FILE in $TARGET_FILES; do
+            jq \
+              --arg v "${{ needs.get-and-bump-version.outputs.version }}" \
+              --arg d "$VERSION_DATE" \
+              --argjson s "$IPA_SIZE" \
+              --arg u "$DOWNLOAD_URL" \
+              '.apps[0].version = $v | .apps[0].versionDate = $d | .apps[0].size = $s | .apps[0].downloadURL = $u' \
+              "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
+          done
 
       - name: Add version to app's versions list
         env:
           IPA_SIZE: ${{ needs.build-ios.outputs.ipa-size }}
         run: |
-          # Update the versions array inside the first app object
-          jq \
-            --arg v "${{ needs.get-and-bump-version.outputs.version }}" \
-            --arg d "$VERSION_DATE" \
-            --argjson s "$IPA_SIZE" \
-            --arg u "$DOWNLOAD_URL" \
-            '(.apps[0].versions // []) as $versions | .apps[0].versions = (
-              if ($versions | map(.version == $v) | any) then
-                ($versions | map(if .version == $v then .version = $v | .date = $d | .size = $s | .downloadURL = $u else . end))
-              else
-                ([{version: $v, date: $d, size: $s, downloadURL: $u}] + $versions)
-              end
-            )' \
-            ios/app_description.json > ios/app_description.json.tmp && mv ios/app_description.json.tmp ios/app_description.json
+          # Update the versions array inside the first app object.
+          for FILE in $TARGET_FILES; do
+            jq \
+              --arg v "${{ needs.get-and-bump-version.outputs.version }}" \
+              --arg d "$VERSION_DATE" \
+              --argjson s "$IPA_SIZE" \
+              --arg u "$DOWNLOAD_URL" \
+              '(.apps[0].versions // []) as $versions | .apps[0].versions = (
+                if ($versions | map(.version == $v) | any) then
+                  ($versions | map(if .version == $v then .version = $v | .date = $d | .size = $s | .downloadURL = $u else . end))
+                else
+                  ([{version: $v, date: $d, size: $s, downloadURL: $u}] + $versions)
+                end
+              )' \
+              "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
+          done
       
-      - name: Commit and push updated app_description.json
+      - name: Commit and push updated app description file(s)
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git pull
-          git add ios/app_description.json
-          git commit -m "chore: update app_description.json [skip ci]" || echo "No changes to commit"
+          git add $TARGET_FILES
+          git commit -m "chore: update app description files [skip ci]" || echo "No changes to commit"
           git push
   build-android:
     name: 🤖 Android Build

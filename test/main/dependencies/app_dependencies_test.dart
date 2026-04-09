@@ -10,7 +10,7 @@ import 'package:inventory_count/main/repositories/area_local_repository.dart';
 import 'package:inventory_count/main/repositories/area_sync_repository.dart';
 import 'package:inventory_count/main/repositories/count_local_repository.dart';
 import 'package:inventory_count/main/repositories/count_sync_repository.dart';
-import 'package:inventory_count/main/repositories/device_id_repository.dart';
+import 'package:inventory_count/main/repositories/device_id.dart';
 import 'package:inventory_count/main/repositories/export_local_repository.dart';
 import 'package:inventory_count/main/repositories/export_sync_repository.dart';
 import 'package:inventory_count/main/repositories/sync_runtime.dart';
@@ -34,7 +34,7 @@ class _FakeCountLocalRepository implements CountLocalRepository {
   Future<void> clearRememberedProfile() async {}
 
   @override
-  Future<void> ensureInitialized() async {}
+  Future<void> _ensureInitialized() async {}
 
   @override
   Count? readCount(String dateKey) => null;
