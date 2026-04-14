@@ -481,15 +481,6 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
                 }
               }
 
-              final String jsonString = count['json'] is String
-                  ? count['json'] as String
-                  : jsonEncode(count['json']);
-              final String? expectedJsonString = count['expected'] == null
-                  ? null
-                  : count['expected'] is String
-                  ? count['expected'] as String
-                  : jsonEncode(count['expected']);
-
               return ListTile(
                 title: Text(
                   formattedCountName.isNotEmpty ? formattedCountName : 'Count',
@@ -522,10 +513,6 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
                       builder: (context) => InventoryCountActionsDialog(
                         countKey: countName,
                         countName: formattedCountName,
-                        time: time,
-                        profile: profile,
-                        jsonString: jsonString,
-                        expectedJsonString: expectedJsonString,
                         hostContext: hostContext,
                         onPrintJson: printJson,
                       ),

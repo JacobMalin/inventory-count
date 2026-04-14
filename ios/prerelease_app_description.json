@@ -4,7 +4,7 @@
   "sourceURL": "https://apps.jacobmalin.com",
   "apps": [
     {
-      "name": "Inventory Count",
+      "name": "Inventory Count Prerelease",
       "bundleIdentifier": "com.rexvos.inventoryCount",
       "developerName": "RexVos",
       "version": "0.1.65",
