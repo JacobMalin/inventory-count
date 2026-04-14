@@ -35,11 +35,7 @@ jobs:
           echo "Prerelease branch: $IS_PRERELEASE"
 
           # Get latest release tag from GitHub API (strip a leading 'v' if present).
-          if [ "$IS_PRERELEASE" = true ]; then
-            LATEST_TAG=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" | jq -r '[.[] | select(.prerelease == true)][0].tag_name // empty')
-          else
-            LATEST_TAG=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name // empty')
-          fi
+          LATEST_TAG=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" | jq -r '[.[] | select(.prerelease == true)][0].tag_name // empty')
           LATEST_TAG=${LATEST_TAG#v}
           echo "Latest release tag: ${LATEST_TAG:-<none>}"
 
