@@ -34,19 +34,38 @@ jobs:
           echo "Current pubspec version: $CURRENT_VERSION"
           echo "Prerelease branch: $IS_PRERELEASE"
 
-          # Get latest release tag from GitHub API (strip a leading 'v' if present).
+          # Get latest stable release tag (strip a leading 'v' if present).
+          LATEST_STABLE_TAG=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name // empty')
+          LATEST_STABLE_TAG=${LATEST_STABLE_TAG#v}
+          echo "Latest stable release tag: ${LATEST_STABLE_TAG:-<none>}"
+
           if [ "$IS_PRERELEASE" = true ]; then
             LATEST_TAG=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" | jq -r '[.[] | select(.prerelease == true)][0].tag_name // empty')
           else
-            LATEST_TAG=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name // empty')
+            LATEST_TAG=$LATEST_STABLE_TAG
           fi
           LATEST_TAG=${LATEST_TAG#v}
           echo "Latest release tag: ${LATEST_TAG:-<none>}"
 
+          # Determine the base version for prereleases (the latest stable version).
+          BASE_VERSION="${LATEST_STABLE_TAG:-$CURRENT_VERSION}"
+
           SHOULD_BUMP=false
-          if [ "$IS_PRERELEASE" = true ] && ! [[ "$CURRENT_VERSION" =~ ^0\.0\.0\.[0-9]+$ ]]; then
-            echo "Current version is not in 0.0.0.x format; will bump into prerelease stream."
-            SHOULD_BUMP=true
+          if [ "$IS_PRERELEASE" = true ]; then
+            # Check if current version already follows the <BASE>.N prerelease pattern
+            if [[ "$CURRENT_VERSION" =~ ^${BASE_VERSION//./\\.}\.[0-9]+$ ]]; then
+              # Already in prerelease stream; check if bump is needed
+              if [ -n "$LATEST_TAG" ] && [ "$LATEST_TAG" = "$CURRENT_VERSION" ]; then
+                echo "Latest prerelease matches current version; will bump version."
+                SHOULD_BUMP=true
+              else
+                echo "Current version ($CURRENT_VERSION) differs from latest prerelease ($LATEST_TAG); skipping bump."
+                SHOULD_BUMP=false
+              fi
+            else
+              echo "Current version is not in ${BASE_VERSION}.x format; will bump into prerelease stream."
+              SHOULD_BUMP=true
+            fi
           elif [ -z "$LATEST_TAG" ]; then
             echo "No latest release found; will bump version."
             SHOULD_BUMP=true
@@ -61,13 +80,13 @@ jobs:
           if [ "$SHOULD_BUMP" = true ]; then
             if [ "$IS_PRERELEASE" = true ]; then
               PRE_NUM=0
-              if [[ "$LATEST_TAG" =~ ^0\.0\.0\.([0-9]+)$ ]]; then
+              if [[ "$LATEST_TAG" =~ ^${BASE_VERSION//./\\.}\.([0-9]+)$ ]]; then
                 PRE_NUM="${BASH_REMATCH[1]}"
-              elif [[ "$CURRENT_VERSION" =~ ^0\.0\.0\.([0-9]+)$ ]]; then
+              elif [[ "$CURRENT_VERSION" =~ ^${BASE_VERSION//./\\.}\.([0-9]+)$ ]]; then
                 PRE_NUM="${BASH_REMATCH[1]}"
               fi
               PRE_NUM=$((PRE_NUM + 1))
-              NEW_VERSION="0.0.0.$PRE_NUM"
+              NEW_VERSION="${BASE_VERSION}.$PRE_NUM"
             else
               IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
               NEW_PATCH=$((PATCH + 1))
