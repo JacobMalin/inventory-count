@@ -87,33 +87,48 @@ typedef WatchCountRows = Stream<List<Json>> Function(String rowName);
 abstract class CountSyncRepository extends SyncRepository {
   CountSyncRepository({super.disableSync = false});
 
+  void init(Function updateFromResponse, DateTime selectedDate);
+  void reinit(DateTime selectedDate);
+
   String rowName(DateTime selectedDate);
 
-  Future<void> reconnect(DateTime selectedDate);
-
   Future<CountSyncRecord?> fetchRow({required String rowName});
+  Future<List<CountSyncRecord>> fetchRecentRows({
+    required int days,
+    required DateTime fromDate,
+  });
   Future<void> upsertCount(CountSyncRecord record);
 
   Stream<CountSyncRecord?> watchRow({required String rowName});
+
+  Future<void> dispose();
 }
 
 class SupabaseCountSyncRepository extends CountSyncRepository {
-  SupabaseCountSyncRepository({
-    required DateTime selectedDate,
-    required Future<void> Function(CountSyncRecord?) updateFromResponse,
-    super.disableSync = false,
-  }) : _updateFromResponse = updateFromResponse {
+  SupabaseCountSyncRepository({super.disableSync = false});
+
+  final SupabaseClient _client = Supabase.instance.client;
+
+  StreamSubscription<CountSyncRecord?>? _countSubscription;
+
+  late Function _updateFromResponse;
+
+  @override
+  void init(Function updateFromResponse, DateTime selectedDate) {
+    _updateFromResponse = updateFromResponse;
     initializeSync(
       fetchInitial: () => _fetch(selectedDate),
-      listenForChanges: () => _listenForChanges(selectedDate),
+      listenForChanges: () => listenForChanges(selectedDate),
     );
   }
 
-  final SupabaseClient _client = Supabase.instance.client;
-  final Future<void> Function(CountSyncRecord?) _updateFromResponse;
-
-  StreamSubscription<CountSyncRecord?>? _countSubscription;
-  DateTime? _lastTimestamp;
+  @override
+  void reinit(DateTime selectedDate) {
+    initializeSync(
+      fetchInitial: () => _fetch(selectedDate),
+      listenForChanges: () => listenForChanges(selectedDate),
+    );
+  }
 
   @override
   String rowName(DateTime selectedDate) =>
@@ -130,6 +145,26 @@ class SupabaseCountSyncRepository extends CountSyncRepository {
 
     if (response.isEmpty) return null;
     return CountSyncRecord.fromJson(response.first);
+  }
+
+  @override
+  Future<List<CountSyncRecord>> fetchRecentRows({
+    required int days,
+    required DateTime fromDate,
+  }) async {
+    final String endName = rowName(fromDate);
+    final String startName = rowName(
+      fromDate.subtract(Duration(days: days)),
+    );
+
+    final PostgrestList response = await _client
+        .from('counts')
+        .select()
+        .gte('name', startName)
+        .lt('name', endName)
+        .order('updated_at');
+
+    return response.map(CountSyncRecord.fromJson).toList();
   }
 
   @override
@@ -162,17 +197,17 @@ class SupabaseCountSyncRepository extends CountSyncRepository {
     }
   }
 
-  Future<void> _listenForChanges(DateTime selectedDate) async {
+  Future<void> listenForChanges(DateTime selectedDate) async {
     try {
-      registerReconnectCallback(() => reconnect(selectedDate));
-      await reconnect(selectedDate);
+      await unregisterReconnectCallbacks();
+      await registerReconnectCallback(() => _reconnect(selectedDate));
+      await _reconnect(selectedDate);
     } on Exception catch (e) {
       logSyncError('Failed to register count reconnect callback', e);
     }
   }
 
-  @override
-  Future<void> reconnect(DateTime selectedDate) async {
+  Future<void> _reconnect(DateTime selectedDate) async {
     await _countSubscription?.cancel();
 
     _countSubscription = watchRow(rowName: rowName(selectedDate)).listen(
@@ -183,5 +218,11 @@ class SupabaseCountSyncRepository extends CountSyncRepository {
         logSyncError('Error listening to count changes', e);
       },
     );
+  }
+
+  @override
+  Future<void> dispose() async {
+    await unregisterReconnectCallbacks();
+    await _countSubscription?.cancel();
   }
 }

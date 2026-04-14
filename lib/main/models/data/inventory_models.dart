@@ -259,6 +259,10 @@ class Area extends StorageObject {
       }
     }
   }
+
+  int indexOf(StorageObject object) {
+    return _shelvesAndItems.indexOf(object);
+  }
 }
 
 @HiveType(typeId: 1)

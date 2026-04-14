@@ -92,7 +92,7 @@ abstract class CountStrategy {
   List<Widget> buildConfigFields({
     required TextEditingController controller1,
     required TextEditingController controller2,
-    required List<int> selectedOrder,
+    required Item item,
     required AreaModel areaModel,
   }) => [];
 
@@ -394,7 +394,7 @@ class NegativeCountStrategy extends CountStrategy {
   List<Widget> buildConfigFields({
     required TextEditingController controller1,
     required TextEditingController controller2,
-    required List<int> selectedOrder,
+    required Item item,
     required AreaModel areaModel,
   }) {
     return [
@@ -409,7 +409,7 @@ class NegativeCountStrategy extends CountStrategy {
         onChanged: (value) {
           final int intValue = value.isEmpty ? 0 : (int.tryParse(value) ?? 0);
           from = intValue;
-          areaModel.editItem(selectedOrder, newStrategy: this);
+          areaModel.editItem(item, newStrategy: this);
         },
       ),
     ];
@@ -767,7 +767,7 @@ class StacksCountStrategy extends CountStrategy {
   List<Widget> buildConfigFields({
     required TextEditingController controller1,
     required TextEditingController controller2,
-    required List<int> selectedOrder,
+    required Item item,
     required AreaModel areaModel,
   }) {
     return [
@@ -782,11 +782,11 @@ class StacksCountStrategy extends CountStrategy {
         onChanged: (value) {
           if (value.isEmpty) {
             perStack = 1;
-            areaModel.editItem(selectedOrder, newStrategy: this);
+            areaModel.editItem(item, newStrategy: this);
           } else {
             final int? intValue = int.tryParse(value);
             perStack = intValue ?? 1;
-            areaModel.editItem(selectedOrder, newStrategy: this);
+            areaModel.editItem(item, newStrategy: this);
           }
         },
       ),
@@ -1035,7 +1035,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
   List<Widget> buildConfigFields({
     required TextEditingController controller1,
     required TextEditingController controller2,
-    required List<int> selectedOrder,
+    required Item item,
     required AreaModel areaModel,
   }) {
     return [
@@ -1053,11 +1053,11 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
               onChanged: (value) {
                 if (value.isEmpty) {
                   perBox = 1;
-                  areaModel.editItem(selectedOrder, newStrategy: this);
+                  areaModel.editItem(item, newStrategy: this);
                 } else {
                   final int? intValue = int.tryParse(value);
                   perBox = intValue ?? 1;
-                  areaModel.editItem(selectedOrder, newStrategy: this);
+                  areaModel.editItem(item, newStrategy: this);
                 }
               },
             ),
@@ -1074,11 +1074,11 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
               onChanged: (value) {
                 if (value.isEmpty) {
                   perStack = 1;
-                  areaModel.editItem(selectedOrder, newStrategy: this);
+                  areaModel.editItem(item, newStrategy: this);
                 } else {
                   final int? intValue = int.tryParse(value);
                   perStack = intValue ?? 1;
-                  areaModel.editItem(selectedOrder, newStrategy: this);
+                  areaModel.editItem(item, newStrategy: this);
                 }
               },
             ),

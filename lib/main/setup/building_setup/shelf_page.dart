@@ -10,17 +10,20 @@ import 'setup_tiles.dart';
 class ShelfPage extends StatelessWidget {
   const ShelfPage({
     required Shelf shelf,
-    required Future<void> Function({StorageObject? object}) select,
+    required void Function({StorageObject? object}) select,
     super.key,
   }) : _shelf = shelf,
        _select = select;
 
   final Shelf _shelf;
-  final Future<void> Function({StorageObject? object}) _select;
+  final void Function({StorageObject? object}) _select;
 
   Future<void> _moveShelf(BuildContext context, AreaModel areaModel) async {
-    final int sourceAreaIndex = _selectedOrder[0];
-    final int shelfIndex = _selectedOrder[1];
+    final int sourceAreaIndex = areaModel.getAreas().indexOf(_shelf.parent);
+    final int shelfIndex = _shelf.parent.indexOf(_shelf);
+    if (sourceAreaIndex == -1 || shelfIndex == -1) {
+      return;
+    }
     final List<int> targetAreaIndices = [
       for (var i = 0; i < areaModel.numAreas; i++)
         if (i != sourceAreaIndex) i,
@@ -56,7 +59,7 @@ class ShelfPage extends StatelessWidget {
       shelfIndex: shelfIndex,
       targetAreaIndex: targetAreaIndex,
     );
-    _deselect();
+    _select();
 
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -82,7 +85,7 @@ class ShelfPage extends StatelessWidget {
             centerTitle: true,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new),
-              onPressed: _deselect,
+              onPressed: _select,
             ),
             actions: [
               IconButton(
@@ -102,11 +105,7 @@ class ShelfPage extends StatelessWidget {
                         controller: controller,
                         autofocus: true,
                         onChanged: (value) {
-                          areaModel.renameShelfInArea(
-                            _selectedOrder[0],
-                            _selectedOrder[1],
-                            value,
-                          );
+                          areaModel.renameShelfInArea(_shelf, value);
                         },
                         onSubmitted: (_) => Navigator.pop(context),
                       ),
@@ -143,12 +142,9 @@ class ShelfPage extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () {
-                            areaModel.removeShelfOrItemFromArea(
-                              _selectedOrder[0],
-                              _selectedOrder[1],
-                            );
+                            areaModel.removeShelfOrItemFromArea(_shelf);
                             Navigator.pop(context);
-                            _deselect();
+                            _select();
                           },
                           child: const Text('Delete'),
                         ),
@@ -164,10 +160,10 @@ class ShelfPage extends StatelessWidget {
           body: GestureDetector(
             onHorizontalDragEnd: (details) {
               if (details.primaryVelocity! > 300) {
-                _deselect();
+                _select();
               }
             },
-            child: ItemList(select: _select, selectedOrder: _selectedOrder),
+            child: ItemList(select: _select, shelf: _shelf),
           ),
         );
       },
@@ -177,14 +173,14 @@ class ShelfPage extends StatelessWidget {
 
 class ItemList extends StatefulWidget {
   const ItemList({
-    required void Function(int) select,
-    required List<int> selectedOrder,
+    required void Function({StorageObject? object}) select,
+    required Shelf shelf,
     super.key,
   }) : _select = select,
-       _selectedOrder = selectedOrder;
+       _shelf = shelf;
 
-  final void Function(int) _select;
-  final List<int> _selectedOrder;
+  final void Function({StorageObject? object}) _select;
+  final Shelf _shelf;
 
   @override
   State<ItemList> createState() => _ItemListState();
@@ -192,6 +188,36 @@ class ItemList extends StatefulWidget {
 
 class _ItemListState extends State<ItemList> {
   final ScrollController _scrollController = ScrollController();
+
+  List<int>? _resolveItemOrder(AreaModel areaModel, Item item) {
+    final StorageObject parent = item.parent;
+    if (parent is Area) {
+      final int areaIndex = areaModel.getAreas().indexOf(parent);
+      final int itemIndex = parent.indexOf(item);
+      if (areaIndex == -1 || itemIndex == -1) {
+        return null;
+      }
+      return [areaIndex, itemIndex];
+    }
+
+    if (parent is Shelf) {
+      final int areaIndex = areaModel.getAreas().indexOf(parent.parent);
+      final int shelfIndex = parent.parent.indexOf(parent);
+      var itemIndex = -1;
+      for (var i = 0; i < parent.numItems; i++) {
+        if (identical(parent[i], item)) {
+          itemIndex = i;
+          break;
+        }
+      }
+      if (areaIndex == -1 || shelfIndex == -1 || itemIndex == -1) {
+        return null;
+      }
+      return [areaIndex, shelfIndex, itemIndex];
+    }
+
+    return null;
+  }
 
   Future<bool> _confirmDelete(String name) async {
     final bool? shouldDelete = await showDialog<bool>(
@@ -215,8 +241,7 @@ class _ItemListState extends State<ItemList> {
     return shouldDelete ?? false;
   }
 
-  Future<void> _renameItem(AreaModel areaModel, List<int> selectedOrder) async {
-    final item = areaModel.getShelfOrItem(selectedOrder) as Item;
+  Future<void> _renameItem(AreaModel areaModel, Item item) async {
     final controller = TextEditingController(text: item.name);
     controller.selection = TextSelection(
       baseOffset: 0,
@@ -247,12 +272,15 @@ class _ItemListState extends State<ItemList> {
 
     final String name = controller.text.trim();
     if (name.isNotEmpty) {
-      areaModel.editItem(selectedOrder, newName: name);
+      areaModel.editItem(item, newName: name);
     }
   }
 
-  Future<void> _moveItem(AreaModel areaModel, List<int> sourceOrder) async {
-    final item = areaModel.getShelfOrItem(sourceOrder) as Item;
+  Future<void> _moveItem(AreaModel areaModel, Item item) async {
+    final List<int>? sourceOrder = _resolveItemOrder(areaModel, item);
+    if (sourceOrder == null) {
+      return;
+    }
 
     int selectedAreaIndex = sourceOrder[0];
     int? selectedShelfIndex = sourceOrder.length == 3 ? sourceOrder[1] : null;
@@ -400,11 +428,17 @@ class _ItemListState extends State<ItemList> {
                       autofocus: true,
                       onSubmitted: (name) async {
                         if (name.isNotEmpty) {
-                          areaModel.addItemToShelf(
-                            widget._selectedOrder[0],
-                            widget._selectedOrder[1],
-                            name,
+                          final int areaIndex = areaModel.getAreas().indexOf(
+                            widget._shelf.parent,
                           );
+                          final int shelfIndex = widget._shelf.parent.indexOf(
+                            widget._shelf,
+                          );
+                          if (areaIndex == -1 || shelfIndex == -1) {
+                            return;
+                          }
+
+                          areaModel.addItemToShelf(areaIndex, shelfIndex, name);
 
                           Navigator.pop(context);
                           await _scrollToBottom();
@@ -432,27 +466,17 @@ class _ItemListState extends State<ItemList> {
                         children: <Widget>[
                           for (
                             int index = 0;
-                            index <
-                                (areaModel.getShelfOrItem(widget._selectedOrder)
-                                        as Shelf)
-                                    .numItems;
+                            index < widget._shelf.numItems;
                             index += 1
                           )
-                            Slidable(
-                              key: ValueKey(
-                                'shelf_${widget._selectedOrder[0]}_'
-                                '${widget._selectedOrder[1]}_item_$index',
-                              ),
+                            ((item) => Slidable(
+                              key: ValueKey(item.path),
                               endActionPane: ActionPane(
                                 motion: const DrawerMotion(),
                                 children: [
                                   SlidableAction(
                                     onPressed: (_) async {
-                                      await _renameItem(areaModel, [
-                                        widget._selectedOrder[0],
-                                        widget._selectedOrder[1],
-                                        index,
-                                      ]);
+                                      await _renameItem(areaModel, item);
                                     },
                                     backgroundColor: Theme.of(
                                       context,
@@ -465,11 +489,7 @@ class _ItemListState extends State<ItemList> {
                                   ),
                                   SlidableAction(
                                     onPressed: (_) async {
-                                      await _moveItem(areaModel, [
-                                        widget._selectedOrder[0],
-                                        widget._selectedOrder[1],
-                                        index,
-                                      ]);
+                                      await _moveItem(areaModel, item);
                                     },
                                     backgroundColor: Theme.of(
                                       context,
@@ -482,21 +502,10 @@ class _ItemListState extends State<ItemList> {
                                   ),
                                   SlidableAction(
                                     onPressed: (_) async {
-                                      final item =
-                                          areaModel.getShelfOrItem([
-                                                widget._selectedOrder[0],
-                                                widget._selectedOrder[1],
-                                                index,
-                                              ])
-                                              as Item;
                                       final bool shouldDelete =
                                           await _confirmDelete(item.name);
                                       if (shouldDelete) {
-                                        areaModel.removeItem([
-                                          widget._selectedOrder[0],
-                                          widget._selectedOrder[1],
-                                          index,
-                                        ]);
+                                        areaModel.removeItem(item);
                                       }
                                     },
                                     backgroundColor: Theme.of(
@@ -512,20 +521,29 @@ class _ItemListState extends State<ItemList> {
                               ),
                               child: ItemTile(
                                 key: Key('$index'),
-                                index: index,
-                                selectedOrder: widget._selectedOrder,
+                                item: item,
                                 select: widget._select,
                               ),
-                            ),
+                            ))(widget._shelf[index]),
                         ],
                         onReorder: (oldIndex, newIndex) {
                           if (newIndex > oldIndex) {
                             newIndex -= 1;
                           }
 
+                          final int areaIndex = areaModel.getAreas().indexOf(
+                            widget._shelf.parent,
+                          );
+                          final int shelfIndex = widget._shelf.parent.indexOf(
+                            widget._shelf,
+                          );
+                          if (areaIndex == -1 || shelfIndex == -1) {
+                            return;
+                          }
+
                           areaModel.moveItemInShelf(
-                            widget._selectedOrder[0],
-                            widget._selectedOrder[1],
+                            areaIndex,
+                            shelfIndex,
                             oldIndex,
                             newIndex,
                           );

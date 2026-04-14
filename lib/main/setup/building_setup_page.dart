@@ -122,9 +122,8 @@ class _AreaListState extends State<AreaList> {
   }
 
   Future<void> _renameArea(AreaModel areaModel, int index) async {
-    final controller = TextEditingController(
-      text: areaModel.getArea(index).name,
-    );
+    final Area area = areaModel.getArea(index);
+    final controller = TextEditingController(text: area.name);
     controller.selection = TextSelection(
       baseOffset: 0,
       extentOffset: controller.text.length,
@@ -154,7 +153,7 @@ class _AreaListState extends State<AreaList> {
 
     final String name = controller.text.trim();
     if (name.isNotEmpty) {
-      areaModel.renameArea(index, name);
+      areaModel.renameArea(area, name);
     }
   }
 
@@ -248,13 +247,14 @@ class _AreaListState extends State<AreaList> {
                                   ),
                                   SlidableAction(
                                     onPressed: (_) async {
-                                      final String name = areaModel
-                                          .getArea(index)
-                                          .name;
+                                      final Area area = areaModel.getArea(
+                                        index,
+                                      );
+                                      final String name = area.name;
                                       final bool shouldDelete =
                                           await _confirmDelete(name);
                                       if (shouldDelete) {
-                                        areaModel.removeArea(index);
+                                        areaModel.removeArea(area);
                                       }
                                     },
                                     backgroundColor: Theme.of(
@@ -280,7 +280,10 @@ class _AreaListState extends State<AreaList> {
                             newIndex -= 1;
                           }
 
-                          areaModel.moveArea(oldIndex, newIndex);
+                          areaModel.moveArea(
+                            areaModel.getArea(oldIndex),
+                            newIndex,
+                          );
                         },
                       ),
                     ),

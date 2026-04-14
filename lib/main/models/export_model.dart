@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/types/json.dart';
@@ -8,60 +9,22 @@ import '../repositories/device_id.dart';
 import '../repositories/export_local_repository.dart';
 import '../repositories/export_sync_repository.dart';
 import 'data/export_entry.dart';
-import 'sync_change_notifier.dart';
 import 'sync_coordinator.dart';
 
-class ExportModel extends LocalSyncChangeNotifier {
-  ExportModel({
-    required SyncCoordinator syncCoordinator,
-    ExportLocalRepository? localRepository,
-    ExportSyncRepository? syncRepository,
-    super.syncRuntime,
-    super.disableSync,
-  }) : _localRepository = localRepository ?? HiveExportLocalRepository(),
-       _syncRepository = syncRepository ?? SupabaseExportSyncRepository(),
-       _syncCoordinator = syncCoordinator {
-    unawaited(_localRepository.ensureInitialized());
-
-    initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
+class ExportModel extends ChangeNotifier {
+  ExportModel({bool disableSync = false})
+    : _localRepository = HiveExportLocalRepository(),
+      _syncRepository = SupabaseExportSyncRepository(disableSync: disableSync) {
+    _syncRepository.init(_updateFromResponse);
   }
 
   final ExportLocalRepository _localRepository;
   final ExportSyncRepository _syncRepository;
-  final SyncCoordinator _syncCoordinator;
 
-  StreamSubscription<ExportSyncRecord?>? _setupsSubscription;
   DateTime? _lastTimestamp;
 
-  Future<void> _fetch() async {
-    try {
-      final ExportSyncRecord? response = await _syncRepository.fetchLatest();
-      await _updateFromResponse(response);
-    } on Exception catch (e) {
-      logSyncError('Failed to fetch setups from Supabase', e);
-    }
-  }
-
-  Future<void> _listenForChanges() async {
-    try {
-      Future<void> reconnect() async {
-        await _setupsSubscription?.cancel();
-        _setupsSubscription = _syncRepository.watchLatest().listen(
-          _updateFromResponse,
-          onError: (e) {
-            logSyncError('Error listening to Supabase changes', e);
-          },
-        );
-      }
-
-      registerReconnectCallback(reconnect);
-    } on Exception catch (e) {
-      logSyncError('Failed to register reconnect callback', e);
-    }
-  }
-
   Future<void> _updateFromResponse(ExportSyncRecord? response) async {
-    await _syncCoordinator.reconcileSingle<ExportSyncRecord>(
+    await SyncCoordinator.reconcileSingle<ExportSyncRecord>(
       remoteRecord: response,
       remoteUdid: (record) => record.udid,
       remoteUpdatedAt: (record) => record.updatedAt,
@@ -78,8 +41,7 @@ class ExportModel extends LocalSyncChangeNotifier {
 
   @override
   Future<void> dispose() async {
-    await unregisterReconnectCallbacks();
-    await _setupsSubscription?.cancel();
+    await _syncRepository.dispose();
     super.dispose();
   }
 
@@ -104,7 +66,7 @@ class ExportModel extends LocalSyncChangeNotifier {
             ),
           )
           .catchError((error) {
-            logSyncError('Failed to upsert to Supabase', error);
+            _syncRepository.logSyncError('Failed to upsert to Supabase', error);
           });
     }());
   }

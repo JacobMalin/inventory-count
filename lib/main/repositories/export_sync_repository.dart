@@ -60,20 +60,35 @@ typedef WatchLatestRows = Stream<List<Json>> Function();
 typedef UpsertRow = Future<void> Function(Json row);
 
 abstract class ExportSyncRepository extends SyncRepository {
+  ExportSyncRepository({super.disableSync = false});
+
+  void init(Function updateFromResponse);
+
   Future<ExportSyncRecord?> fetchLatest();
   Future<void> upsertLatest(ExportSyncRecord record);
 
   Stream<ExportSyncRecord?> watchLatest();
+
+  Future<void> dispose();
 }
 
 class SupabaseExportSyncRepository extends ExportSyncRepository {
   SupabaseExportSyncRepository({
     SupabaseClient? client,
     super.disableSync = false,
-  })
-    : _client = client ?? Supabase.instance.client;
+  }) : _client = client ?? Supabase.instance.client;
 
   final SupabaseClient _client;
+
+  StreamSubscription<ExportSyncRecord?>? _setupsSubscription;
+
+  late Function _updateFromResponse;
+
+  @override
+  void init(Function updateFromResponse) {
+    _updateFromResponse = updateFromResponse;
+    initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
+  }
 
   @override
   Future<ExportSyncRecord?> fetchLatest() async {
@@ -103,5 +118,38 @@ class SupabaseExportSyncRepository extends ExportSyncRepository {
           if (rows.isEmpty) return null;
           return ExportSyncRecord.fromJson(rows.first);
         });
+  }
+
+  Future<void> _fetch() async {
+    try {
+      final ExportSyncRecord? response = await fetchLatest();
+      await _updateFromResponse(response);
+    } on Exception catch (e) {
+      logSyncError('Failed to fetch setups from Supabase', e);
+    }
+  }
+
+  Future<void> _listenForChanges() async {
+    try {
+      Future<void> reconnect() async {
+        await _setupsSubscription?.cancel();
+        _setupsSubscription = watchLatest().listen(
+          (record) => _updateFromResponse(record),
+          onError: (e) {
+            logSyncError('Error listening to Supabase changes', e);
+          },
+        );
+      }
+
+      await registerReconnectCallback(reconnect);
+    } on Exception catch (e) {
+      logSyncError('Failed to register reconnect callback', e);
+    }
+  }
+
+  @override
+  Future<void> dispose() async {
+    await unregisterReconnectCallbacks();
+    await _setupsSubscription?.cancel();
   }
 }

@@ -109,13 +109,13 @@ class AreaTile extends StatelessWidget {
 class ShelfTile extends StatelessWidget {
   const ShelfTile({
     required Shelf shelf,
-    required Future<void> Function({StorageObject? object}) select,
+    required void Function({StorageObject? object}) select,
     super.key,
   }) : _shelf = shelf,
        _select = select;
 
   final Shelf _shelf;
-  final Future<void> Function({StorageObject? object}) _select;
+  final void Function({StorageObject? object}) _select;
 
   @override
   Widget build(BuildContext context) {
@@ -153,13 +153,13 @@ class ShelfTile extends StatelessWidget {
 class ItemTile extends StatelessWidget {
   const ItemTile({
     required Item item,
-    required Future<void> Function({StorageObject? object}) select,
+    required void Function({StorageObject? object}) select,
     super.key,
   }) : _item = item,
        _select = select;
 
   final Item _item;
-  final Future<void> Function({StorageObject? object}) _select;
+  final void Function({StorageObject? object}) _select;
 
   @override
   Widget build(BuildContext context) {

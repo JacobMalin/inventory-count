@@ -941,6 +941,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.1"
+  semaphore:
+    dependency: "direct main"
+    description:
+      name: semaphore
+      sha256: "4080d67aa3f264904d3c8ad0acbeaa8266d5ec854bf8f27948620aba383915d0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   shared_preferences:
     dependency: transitive
     description:

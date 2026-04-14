@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:semaphore/semaphore.dart';
 
 class SyncRuntime {
   static final Stream<InternetConnectionStatus> onStatusChange =
@@ -9,16 +10,22 @@ class SyncRuntime {
 
   static StreamSubscription<InternetConnectionStatus>? _sharedSubscription;
   static final Map<Object, Future<void> Function()> _reconnectCallbacks = {};
+  static final LocalSemaphore callbacksLock = LocalSemaphore(1);
 
   static void logError(String message, Object error) {
     if (kDebugMode) print('$message: $error');
   }
 
-  static void registerReconnectCallback(
+  static Future<void> registerReconnectCallback(
     Object owner,
     Future<void> Function() onConnected,
-  ) {
-    _reconnectCallbacks[owner] = onConnected;
+  ) async {
+    try {
+      await callbacksLock.acquire();
+      _reconnectCallbacks[owner] = onConnected;
+    } finally {
+      callbacksLock.release();
+    }
 
     // Start listening if this is the first callback
     if (_sharedSubscription == null && _reconnectCallbacks.isNotEmpty) {
@@ -27,7 +34,12 @@ class SyncRuntime {
   }
 
   static Future<void> unregisterReconnectCallback(Object owner) async {
-    _reconnectCallbacks.remove(owner);
+    try {
+      await callbacksLock.acquire();
+      _reconnectCallbacks.remove(owner);
+    } finally {
+      callbacksLock.release();
+    }
 
     // Stop listening if no more callbacks
     if (_reconnectCallbacks.isEmpty) {
@@ -41,13 +53,18 @@ class SyncRuntime {
         if (status != InternetConnectionStatus.connected) return;
 
         // Call all registered callbacks
-        for (final Future<void> Function() callback
-            in _reconnectCallbacks.values) {
-          try {
-            await callback();
-          } on Exception catch (e) {
-            logError('Error in reconnect callback', e);
+        try {
+          await callbacksLock.acquire();
+          for (final Future<void> Function() callback
+              in _reconnectCallbacks.values) {
+            try {
+              await callback();
+            } on Exception catch (e) {
+              logError('Error in reconnect callback', e);
+            }
           }
+        } finally {
+          callbacksLock.release();
         }
       },
       onError: (e) {
