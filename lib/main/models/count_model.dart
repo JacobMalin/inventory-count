@@ -7,37 +7,47 @@ import 'package:intl/intl.dart';
 import '../../core/types/json.dart';
 import '../repositories/count_local_repository.dart';
 import '../repositories/count_sync_repository.dart';
-import '../repositories/export_local_repository.dart';
 import 'data/count_strategy.dart';
 import 'data/export_entry.dart';
 import 'data/inventory_models.dart';
 import 'export_model.dart';
-import 'sync_change_notifier.dart';
 
-class CountModel extends SyncChangeNotifier {
-  CountModel({
-    CountLocalRepository? localRepository,
-    CountSyncRepository? syncRepository,
-    ExportLocalRepository? exportLocalRepository,
-    this.exportModel,
-    super.syncRuntime,
-    super.disableSync,
-  }) : _localRepository = localRepository ?? HiveCountLocalRepository(),
-       _syncRepository = syncRepository ?? NoopCountSyncRepository(),
-       _exportLocalRepository =
-           exportLocalRepository ?? HiveExportLocalRepository() {
-    unawaited(_localRepository.ensureInitialized());
-    unawaited(_exportLocalRepository.ensureInitialized());
-
-    initializeSync(fetchInitial: _fetch, listenForChanges: _listenForChanges);
+class CountModel extends ChangeNotifier {
+  CountModel({required this.exportModel, bool disableSync = false})
+    : selectedDate = DateTime.now().subtract(const Duration(hours: 3)),
+      _localRepository = HiveCountLocalRepository(),
+      _syncRepository = SupabaseCountSyncRepository(disableSync: disableSync) {
+    _syncRepository.init(_updateFromResponse, selectedDate);
+    unawaited(_prefetchLookbackDays());
   }
 
+  ExportModel exportModel;
   final CountLocalRepository _localRepository;
   final CountSyncRepository _syncRepository;
-  final ExportLocalRepository _exportLocalRepository;
 
-  StreamSubscription<CountSyncRecord?>? _countSubscription;
-  DateTime? _lastTimestamp;
+  DateTime selectedDate;
+  final Map<String, DateTime> _lastTimestamps = {};
+
+  final DateFormat _dateFormat = DateFormat('EEEE, MMMM d, yyyy');
+  static const int _lastCountLookbackDays = 14;
+
+  String get date => _dateFormat.format(selectedDate);
+
+  Future<void> _prefetchLookbackDays() async {
+    try {
+      final List<CountSyncRecord> records =
+          await _syncRepository.fetchRecentRows(
+            days: _lastCountLookbackDays,
+            fromDate: selectedDate,
+          );
+
+      for (final CountSyncRecord record in records) {
+        await _processRecord(record);
+      }
+    } on Exception {
+      // Prefetch is best-effort; don't block startup.
+    }
+  }
 
   static String _normalizeKey(String key) => key
       .trim()
@@ -47,92 +57,9 @@ class CountModel extends SyncChangeNotifier {
 
   int? getExpectedValue(String itemName, String? omniName) {
     final Map<String, int> expectedByName = _localRepository
-        .readExpectedByNameForDate(_countRowName);
+        .readExpectedByNameForDate(_syncRepository.rowName(selectedDate));
     if (expectedByName.isEmpty) return null;
-    return expectedByName[_normalizeKey(omniName ?? itemName)] ??
-        expectedByName[_normalizeKey(itemName)];
-  }
-
-  ExportModel? exportModel;
-
-  final DateFormat _dateFormat = DateFormat('EEEE, MMMM d, yyyy');
-  static const int _lastCountLookbackDays = 14;
-
-  String get date => _dateFormat.format(selectedDate);
-
-  DateTime selectedDate = DateTime.now().subtract(const Duration(hours: 3));
-
-  String get _countRowName => DateFormat('yyyy-MM-dd').format(selectedDate);
-
-  bool get hideCountedItems => _localRepository.readHideCountedItems();
-  set hideCountedItems(bool value) {
-    unawaited(_localRepository.writeHideCountedItems(value));
-  }
-
-  void setSelectedDate(DateTime date) {
-    selectedDate = date;
-    unawaited(_reconnectCountSubscription());
-    notifyListeners();
-  }
-
-  void incrementDate() {
-    selectedDate = selectedDate.add(const Duration(days: 1));
-    unawaited(_reconnectCountSubscription());
-    notifyListeners();
-  }
-
-  void decrementDate() {
-    selectedDate = selectedDate.subtract(const Duration(days: 1));
-    unawaited(_reconnectCountSubscription());
-    notifyListeners();
-  }
-
-  bool get isToday {
-    final now = DateTime.now();
-    return selectedDate.year == now.year &&
-        selectedDate.month == now.month &&
-        selectedDate.day == now.day;
-  }
-
-  void goToToday() {
-    selectedDate = DateTime.now();
-    unawaited(_reconnectCountSubscription());
-    notifyListeners();
-  }
-
-  Future<void> _fetch() async {
-    try {
-      final CountSyncRecord? response = await _syncRepository.fetchRow(
-        rowName: _countRowName,
-      );
-      await _updateFromResponse(response);
-    } on Exception catch (e) {
-      logSyncError('Failed to fetch counts from Supabase', e);
-    }
-  }
-
-  Future<void> _listenForChanges() async {
-    try {
-      registerReconnectCallback(_reconnectCountSubscription);
-      await _reconnectCountSubscription();
-    } on Exception catch (e) {
-      logSyncError('Failed to register count reconnect callback', e);
-    }
-  }
-
-  Future<void> _reconnectCountSubscription() async {
-    await _countSubscription?.cancel();
-
-    _countSubscription = _syncRepository
-        .watchRow(rowName: _countRowName)
-        .listen(
-          (row) {
-            unawaited(_updateFromResponse(row));
-          },
-          onError: (Object e) {
-            logSyncError('Error listening to count changes', e);
-          },
-        );
+    return expectedByName[_normalizeKey(omniName ?? itemName)];
   }
 
   Future<void> _updateFromResponse(CountSyncRecord? response) async {
@@ -140,19 +67,27 @@ class CountModel extends SyncChangeNotifier {
       return;
     }
 
-    if (response.name != _countRowName) {
+    if (response.name != _syncRepository.rowName(selectedDate)) {
       return;
     }
 
-    if (_lastTimestamp != null &&
-        !response.updatedAt.isAfter(_lastTimestamp!)) {
+    await _processRecord(response);
+  }
+
+  Future<void> _processRecord(CountSyncRecord response) async {
+    final String rowName = response.name;
+    if (_lastTimestamps[rowName] != null &&
+        !response.updatedAt.isAfter(_lastTimestamps[rowName]!)) {
       return;
     }
+
+    final DateTime recordDate = DateTime.parse(response.name);
+    final String dateKey = _dateFormat.format(recordDate);
 
     try {
       final Object? decoded = jsonDecode(response.actual);
       if (decoded is! Json || decoded['itemCounts'] == null) {
-        _lastTimestamp = response.updatedAt;
+        _lastTimestamps[rowName] = response.updatedAt;
         return;
       }
 
@@ -161,7 +96,7 @@ class CountModel extends SyncChangeNotifier {
         remoteCount.profile = Profile(response.profile);
       }
 
-      await _localRepository.writeCount(date, remoteCount);
+      await _localRepository.writeCount(dateKey, remoteCount);
 
       final String? expectedJson = response.expected;
       if (expectedJson != null && expectedJson.trim().isNotEmpty) {
@@ -180,7 +115,7 @@ class CountModel extends SyncChangeNotifier {
             }
             unawaited(
               _localRepository.writeExpectedByNameForDate(
-                _countRowName,
+                rowName,
                 newExpected,
               ),
             );
@@ -190,11 +125,47 @@ class CountModel extends SyncChangeNotifier {
         }
       }
 
-      _lastTimestamp = response.updatedAt;
+      _lastTimestamps[rowName] = response.updatedAt;
       notifyListeners();
     } on Exception {
-      _lastTimestamp = response.updatedAt;
+      _lastTimestamps[rowName] = response.updatedAt;
     }
+  }
+
+  bool get hideCountedItems => _localRepository.readHideCountedItems();
+  set hideCountedItems(bool value) {
+    unawaited(_localRepository.writeHideCountedItems(value));
+  }
+
+  void setSelectedDate(DateTime date) {
+    selectedDate = date;
+    _syncRepository.reinit(selectedDate);
+    notifyListeners();
+  }
+
+  void incrementDate() {
+    selectedDate = selectedDate.add(const Duration(days: 1));
+    _syncRepository.reinit(selectedDate);
+    notifyListeners();
+  }
+
+  void decrementDate() {
+    selectedDate = selectedDate.subtract(const Duration(days: 1));
+    _syncRepository.reinit(selectedDate);
+    notifyListeners();
+  }
+
+  bool get isToday {
+    final now = DateTime.now();
+    return selectedDate.year == now.year &&
+        selectedDate.month == now.month &&
+        selectedDate.day == now.day;
+  }
+
+  void goToToday() {
+    selectedDate = DateTime.now();
+    _syncRepository.reinit(selectedDate);
+    notifyListeners();
   }
 
   Count get _thisCount =>
@@ -236,8 +207,7 @@ class CountModel extends SyncChangeNotifier {
   }
 
   String exportInExportOrder() {
-    final List<ExportEntry> currentExportList =
-        exportModel?.exportList ?? _exportLocalRepository.readExportList();
+    final List<ExportEntry> currentExportList = exportModel.exportList;
 
     final Json data = {};
 
@@ -465,14 +435,19 @@ class CountModel extends SyncChangeNotifier {
     final String actual = jsonEncode(_thisCount.toJson());
 
     try {
+      final String exportName = DateFormat('yyyy-MM-dd').format(selectedDate);
       await _syncRepository.upsertCount(
-        when: selectedDate,
-        profile: selectedProfile?.name ?? 'Default',
-        json: json,
-        actual: actual,
+        CountSyncRecord(
+          name: exportName,
+          updatedAt: DateTime.now().toUtc(),
+          profile: selectedProfile?.name ?? 'Default',
+          json: json,
+          actual: actual,
+        ),
       );
 
-      _lastTimestamp = DateTime.now().toUtc();
+      _lastTimestamps[_syncRepository.rowName(selectedDate)] = DateTime.now()
+          .toUtc();
     } on Exception {
       // Keep pending flag for retry on next timer tick.
     }
@@ -480,8 +455,7 @@ class CountModel extends SyncChangeNotifier {
 
   @override
   Future<void> dispose() async {
-    await unregisterReconnectCallbacks();
-    await _countSubscription?.cancel();
+    await _syncRepository.dispose();
     super.dispose();
   }
 }

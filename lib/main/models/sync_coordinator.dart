@@ -1,13 +1,8 @@
-import '../repositories/device_id_repository.dart';
+import '../repositories/device_id.dart';
 import '../repositories/sync_timestamp_merge.dart';
 
 class SyncCoordinator {
-  SyncCoordinator({required DeviceIdRepository deviceIdRepository})
-    : _deviceIdRepository = deviceIdRepository;
-
-  final DeviceIdRepository _deviceIdRepository;
-
-  Future<void> reconcileSingle<TRemote>({
+  static Future<void> reconcileSingle<TRemote>({
     required TRemote? remoteRecord,
     required String Function(TRemote record) remoteUdid,
     required DateTime Function(TRemote record) remoteUpdatedAt,
@@ -20,7 +15,7 @@ class SyncCoordinator {
       return;
     }
 
-    final String ownDeviceId = await _deviceIdRepository.getDeviceId();
+    final String ownDeviceId = await DeviceId.getDeviceId();
     if (remoteUdid(remoteRecord) == ownDeviceId) {
       return;
     }
@@ -41,7 +36,7 @@ class SyncCoordinator {
     }
   }
 
-  Future<void> reconcileCollection<TRemote, TKey>({
+  static Future<void> reconcileCollection<TRemote, TKey>({
     required Iterable<TRemote> remoteRecords,
     required TKey Function(TRemote record) keyOf,
     required String Function(TRemote record) remoteUdid,

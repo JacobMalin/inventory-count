@@ -549,7 +549,9 @@ class _FixPageState extends State<FixPage> {
                     );
                   },
                 ),
-                if (hasItems && dataRows.isNotEmpty)
+                if (hasItems &&
+                    dataRows.isNotEmpty &&
+                    countModel.itemsToFix.isNotEmpty)
                   Positioned(
                     left: 16,
                     bottom: 16,

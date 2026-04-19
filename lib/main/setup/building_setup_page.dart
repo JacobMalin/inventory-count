@@ -4,75 +4,42 @@ import 'package:provider/provider.dart';
 
 import '../models/area_model.dart';
 import '../models/data/inventory_models.dart';
-import 'area_page.dart';
-import 'item_page.dart';
-import 'setup_tiles.dart';
-import 'shelf_page.dart';
+import 'building_setup/area_page.dart';
+import 'building_setup/item_page.dart';
+import 'building_setup/setup_tiles.dart';
+import 'building_setup/shelf_page.dart';
 
-class ShelfSetupPage extends StatefulWidget {
-  const ShelfSetupPage({super.key});
+class BuildingSetupPage extends StatefulWidget {
+  const BuildingSetupPage({super.key});
 
   @override
-  State<ShelfSetupPage> createState() => _ShelfSetupPageState();
+  State<BuildingSetupPage> createState() => _BuildingSetupPageState();
 }
 
-class _ShelfSetupPageState extends State<ShelfSetupPage> {
+class _BuildingSetupPageState extends State<BuildingSetupPage> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  final _selectedOrder = <int>[];
 
   void reset() {
-    _selectedOrder.clear();
     _navigatorKey.currentState?.popUntil((route) => route.isFirst);
   }
 
-  Future<void> _pushSelectionRoute(Widget page) async {
-    await _navigatorKey.currentState
-        ?.push<void>(MaterialPageRoute<void>(builder: (_) => page))
-        .then((_) {
-          if (_selectedOrder.isNotEmpty) {
-            _selectedOrder.removeLast();
-          }
-        });
-  }
-
-  Future<void> select(int index) async {
-    _selectedOrder.add(index);
-
-    if (_selectedOrder.length == 1) {
-      await _pushSelectionRoute(
-        AreaPage(
-          select: select,
-          deselect: deselect,
-          selectedOrder: _selectedOrder,
-        ),
-      );
-      return;
-    }
-
-    final AreaModel areaModel = context.read<AreaModel>();
-    final dynamic shelfOrItem = areaModel.getShelfOrItem(_selectedOrder);
-    if (shelfOrItem is Shelf) {
-      await _pushSelectionRoute(
-        ShelfPage(
-          select: select,
-          deselect: deselect,
-          shelf: shelfOrItem,
-          selectedOrder: _selectedOrder,
-        ),
-      );
+  Future<void> select({StorageObject? object}) async {
+    if (object == null) {
+      await _navigatorKey.currentState?.maybePop();
     } else {
-      await _pushSelectionRoute(
-        ItemPage(
-          deselect: deselect,
-          item: shelfOrItem,
-          selectedOrder: _selectedOrder,
+      final Widget page = switch (object) {
+        Area _ => AreaPage(area: object, select: select),
+        Shelf _ => ShelfPage(shelf: object, select: select),
+        Item _ => ItemPage(item: object, select: select),
+        _ => throw UnimplementedError(
+          'Unknown object type: ${object.runtimeType}',
         ),
+      };
+
+      await _navigatorKey.currentState?.push<void>(
+        MaterialPageRoute<void>(builder: (_) => page),
       );
     }
-  }
-
-  Future<void> deselect() async {
-    await _navigatorKey.currentState?.maybePop();
   }
 
   @override
@@ -89,10 +56,12 @@ class _ShelfSetupPageState extends State<ShelfSetupPage> {
 }
 
 class AreasPage extends StatelessWidget {
-  const AreasPage({required void Function(int) select, super.key})
-    : _select = select;
+  const AreasPage({
+    required Future<void> Function({StorageObject? object}) select,
+    super.key,
+  }) : _select = select;
 
-  final void Function(int) _select;
+  final Future<void> Function({StorageObject? object}) _select;
 
   @override
   Widget build(BuildContext context) {
@@ -116,10 +85,12 @@ class AreasPage extends StatelessWidget {
 }
 
 class AreaList extends StatefulWidget {
-  const AreaList({required void Function(int) select, super.key})
-    : _select = select;
+  const AreaList({
+    required Future<void> Function({StorageObject? object}) select,
+    super.key,
+  }) : _select = select;
 
-  final void Function(int) _select;
+  final Future<void> Function({StorageObject? object}) _select;
 
   @override
   State<AreaList> createState() => _AreaListState();
@@ -151,9 +122,8 @@ class _AreaListState extends State<AreaList> {
   }
 
   Future<void> _renameArea(AreaModel areaModel, int index) async {
-    final controller = TextEditingController(
-      text: areaModel.getArea(index).name,
-    );
+    final Area area = areaModel.getArea(index);
+    final controller = TextEditingController(text: area.name);
     controller.selection = TextSelection(
       baseOffset: 0,
       extentOffset: controller.text.length,
@@ -183,7 +153,7 @@ class _AreaListState extends State<AreaList> {
 
     final String name = controller.text.trim();
     if (name.isNotEmpty) {
-      areaModel.renameArea(index, name);
+      areaModel.renameArea(area, name);
     }
   }
 
@@ -277,13 +247,14 @@ class _AreaListState extends State<AreaList> {
                                   ),
                                   SlidableAction(
                                     onPressed: (_) async {
-                                      final String name = areaModel
-                                          .getArea(index)
-                                          .name;
+                                      final Area area = areaModel.getArea(
+                                        index,
+                                      );
+                                      final String name = area.name;
                                       final bool shouldDelete =
                                           await _confirmDelete(name);
                                       if (shouldDelete) {
-                                        areaModel.removeArea(index);
+                                        areaModel.removeArea(area);
                                       }
                                     },
                                     backgroundColor: Theme.of(
@@ -299,7 +270,7 @@ class _AreaListState extends State<AreaList> {
                               ),
                               child: AreaTile(
                                 key: Key('$index'),
-                                index: index,
+                                area: areaModel.getArea(index),
                                 select: widget._select,
                               ),
                             ),
@@ -309,7 +280,10 @@ class _AreaListState extends State<AreaList> {
                             newIndex -= 1;
                           }
 
-                          areaModel.moveArea(oldIndex, newIndex);
+                          areaModel.moveArea(
+                            areaModel.getArea(oldIndex),
+                            newIndex,
+                          );
                         },
                       ),
                     ),

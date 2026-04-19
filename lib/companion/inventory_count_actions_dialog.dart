@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/types/json.dart';
 import '../main/models/data/inventory_models.dart';
 import 'omniterm_interaction.dart';
 import 'process_cancellation.dart';
@@ -13,28 +15,16 @@ class InventoryCountActionsDialog extends StatefulWidget {
   const InventoryCountActionsDialog({
     required String countKey,
     required String countName,
-    required String time,
-    required String profile,
-    required String jsonString,
-    required String? expectedJsonString,
     required BuildContext hostContext,
     required Future<bool> Function(BuildContext, String, String?) onPrintJson,
     super.key,
   }) : _onPrintJson = onPrintJson,
        _hostContext = hostContext,
        _countKey = countKey,
-       _jsonString = jsonString,
-       _expectedJsonString = expectedJsonString,
-       _profile = profile,
-       _time = time,
        _countName = countName;
 
   final String _countKey;
   final String _countName;
-  final String _time;
-  final String _profile;
-  final String _jsonString;
-  final String? _expectedJsonString;
   final BuildContext _hostContext;
   final Future<bool> Function(
     BuildContext context,
@@ -61,6 +51,7 @@ class _InventoryCountActionsDialogState
   bool _cancelRequested = false;
   final FocusNode _keyboardFocusNode = FocusNode();
   bool _isControlPressed = false;
+  late final Stream<List<Json>> _countStream;
 
   String? _currentExpectedJsonString;
 
@@ -85,7 +76,10 @@ class _InventoryCountActionsDialogState
   void initState() {
     super.initState();
     _updateControlPressedFromKeyboardState();
-    _currentExpectedJsonString = widget._expectedJsonString;
+    _countStream = Supabase.instance.client
+        .from('counts')
+        .stream(primaryKey: ['name'])
+        .eq('name', widget._countKey);
   }
 
   @override
@@ -94,7 +88,7 @@ class _InventoryCountActionsDialogState
     super.dispose();
   }
 
-  Future<bool> _handleFillOut() async {
+  Future<bool> _handleFillOut(Profile profile, String jsonString) async {
     if (mounted) {
       setState(() {
         _isFillingOut = true;
@@ -117,7 +111,7 @@ class _InventoryCountActionsDialogState
     Map<String, int> expected;
     var success = false;
     try {
-      expected = await OmnitermInteraction.fillOutCount(widget._jsonString);
+      expected = await OmnitermInteraction.fillOutCount(jsonString);
       success = true;
 
       await Supabase.instance.client
@@ -127,7 +121,7 @@ class _InventoryCountActionsDialogState
             'updated_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('name', widget._countKey)
-          .eq('profile', widget._profile);
+          .eq('profile', profile.name);
       _currentExpectedJsonString = jsonEncode(expected);
 
       if (mounted) {
@@ -176,7 +170,7 @@ class _InventoryCountActionsDialogState
     return success;
   }
 
-  Future<bool> _handlePrint() async {
+  Future<bool> _handlePrint(String jsonString) async {
     if (mounted) {
       setState(() {
         _isPrinting = true;
@@ -199,7 +193,7 @@ class _InventoryCountActionsDialogState
     try {
       success = await widget._onPrintJson(
         widget._hostContext,
-        widget._jsonString,
+        jsonString,
         _currentExpectedJsonString,
       );
 
@@ -257,7 +251,7 @@ class _InventoryCountActionsDialogState
     return success;
   }
 
-  Future<void> _handleFillThenPrint() async {
+  Future<void> _handleFillThenPrint(Profile profile, String jsonString) async {
     if (mounted) {
       setState(() {
         _isFillThenPrintRunning = true;
@@ -266,9 +260,9 @@ class _InventoryCountActionsDialogState
     }
 
     try {
-      final bool fillSuccess = await _handleFillOut();
+      final bool fillSuccess = await _handleFillOut(profile, jsonString);
       if (!fillSuccess || _cancelRequested) return;
-      await _handlePrint();
+      await _handlePrint(jsonString);
     } finally {
       if (mounted) {
         setState(() {
@@ -329,91 +323,146 @@ class _InventoryCountActionsDialogState
         focusNode: _keyboardFocusNode,
         autofocus: true,
         onKeyEvent: (_) => _updateControlPressedFromKeyboardState(),
-        child: AlertDialog(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 16,
-          ),
-          title: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget._countName.isNotEmpty ? widget._countName : widget._time,
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Profile(widget._profile).icon,
-                    size: 16,
-                    color: Profile(widget._profile).color,
+        child: StreamBuilder<List<Json>>(
+          stream: _countStream,
+          builder: (context, asyncSnapshot) {
+            if (!asyncSnapshot.hasData ||
+                asyncSnapshot.data == null ||
+                asyncSnapshot.data!.isEmpty) {
+              return AlertDialog(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                title: Text(widget._countName),
+                content: const Center(
+                  heightFactor: 1,
+                  child: CircularProgressIndicator(),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    widget._profile,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Profile(widget._profile).color,
-                    ),
+                ],
+              );
+            }
+
+            final Json count = asyncSnapshot.data!.first;
+
+            final profile = Profile(count['profile'] ?? 'Default');
+
+            var time = '';
+            if (count['updated_at'] != null) {
+              final DateTime? dt = DateTime.tryParse(
+                count['updated_at'].toString(),
+              )?.toLocal();
+
+              if (dt != null) {
+                time = DateFormat.yMMMd().add_jm().format(dt);
+              } else {
+                time = count['updated_at'].toString();
+              }
+            }
+
+            final String jsonString = count['json'] is String
+                ? count['json'] as String
+                : jsonEncode(count['json']);
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final String? newExpected = count['expected'] == null
+                  ? null
+                  : count['expected'] is String
+                  ? count['expected'] as String
+                  : jsonEncode(count['expected']);
+              if (_currentExpectedJsonString != newExpected) {
+                _currentExpectedJsonString = newExpected;
+              }
+            });
+
+            return AlertDialog(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 16,
+              ),
+              title: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget._countName.isNotEmpty ? widget._countName : time),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(profile.icon, size: 16, color: profile.color),
+                      const SizedBox(width: 6),
+                      Text(
+                        profile.name,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: profile.color),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-          content: Builder(
-            builder: (context) {
-              if (_buildFillMessage != null || _buildPrintMessage != null) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 16,
-                  children: [
-                    // Hive analyzer version doesnt support null aware operator
-                    // ignore: use_null_aware_elements
-                    if (_buildFillMessage != null) _buildFillMessage!,
-                    // Hive analyzer version doesnt support null aware operator
-                    // ignore: use_null_aware_elements
-                    if (_buildPrintMessage != null) _buildPrintMessage!,
-                  ],
-                );
-              }
+              content: Builder(
+                builder: (context) {
+                  if (_buildFillMessage != null || _buildPrintMessage != null) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 16,
+                      children: [
+                        // Hive analyzer version doesnt support null aware
+                        // operator
+                        // ignore: use_null_aware_elements
+                        if (_buildFillMessage != null) _buildFillMessage!,
+                        // Hive analyzer version doesnt support null aware
+                        // operator
+                        // ignore: use_null_aware_elements
+                        if (_buildPrintMessage != null) _buildPrintMessage!,
+                      ],
+                    );
+                  }
 
-              return Text(
-                'Would you like to print the count or fill out Omniterm with '
-                'the count updated on ${widget._time}?',
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: _isCanceling ? null : _handleCancelPressed,
-              child: const Text('Cancel'),
-            ),
-            if (_isControlPressed)
-              TextButton(
-                onPressed: _isAnyActionRunning || _isCanceling
-                    ? null
-                    : _handleFillThenPrint,
-                child: const Text('Fill Out Omniterm + Print'),
-              )
-            else ...[
-              TextButton(
-                onPressed:
-                    _isFillingOut || _isFillThenPrintRunning || _isCanceling
-                    ? null
-                    : _handleFillOut,
-                child: const Text('Fill Out Omniterm'),
+                  return Text(
+                    'Would you like to print the count or fill out Omniterm '
+                    'with the count updated on $time?',
+                  );
+                },
               ),
-              TextButton(
-                onPressed:
-                    _isPrinting || _isFillThenPrintRunning || _isCanceling
-                    ? null
-                    : _handlePrint,
-                child: const Text('Print'),
-              ),
-            ],
-          ],
+              actions: [
+                TextButton(
+                  onPressed: _isCanceling ? null : _handleCancelPressed,
+                  child: const Text('Cancel'),
+                ),
+                if (_isControlPressed)
+                  TextButton(
+                    onPressed: _isAnyActionRunning || _isCanceling
+                        ? null
+                        : () => _handleFillThenPrint(profile, jsonString),
+                    child: const Text('Fill Out Omniterm + Print'),
+                  )
+                else ...[
+                  TextButton(
+                    onPressed:
+                        _isFillingOut || _isFillThenPrintRunning || _isCanceling
+                        ? null
+                        : () => _handleFillOut(profile, jsonString),
+                    child: const Text('Fill Out Omniterm'),
+                  ),
+                  TextButton(
+                    onPressed:
+                        _isPrinting || _isFillThenPrintRunning || _isCanceling
+                        ? null
+                        : () => _handlePrint(jsonString),
+                    child: const Text('Print'),
+                  ),
+                ],
+              ],
+            );
+          },
         ),
       ),
     );

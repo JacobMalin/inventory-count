@@ -1,22 +1,24 @@
+import 'dart:async';
+
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/data/inventory_models.dart';
+import 'repository.dart';
 
-abstract class AreaLocalRepository {
-  Future<void> ensureInitialized();
-
+abstract class AreaLocalRepository extends LocalRepository {
   Map<Profile, List<Area>> readProfiles();
   Future<void> writeProfiles(Map<Profile, List<Area>> profiles);
 }
 
 class HiveAreaLocalRepository implements AreaLocalRepository {
   HiveAreaLocalRepository({Box<dynamic>? areasBox})
-    : _areasBox = areasBox ?? Hive.box('areas');
+    : _areasBox = areasBox ?? Hive.box('areas') {
+    unawaited(_ensureInitialized());
+  }
 
   final Box<dynamic> _areasBox;
 
-  @override
-  Future<void> ensureInitialized() async {
+  Future<void> _ensureInitialized() async {
     if (_areasBox.get('profiles') == null) {
       await _areasBox.put('profiles', <Profile, List<Area>>{});
     }

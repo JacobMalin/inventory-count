@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/data/inventory_models.dart';
+import '../../models/data/inventory_models.dart';
 
 /// Helper function to extract shelf entries from an area
 List<MapEntry<int, Shelf>> getShelfEntriesForArea(Area area) {

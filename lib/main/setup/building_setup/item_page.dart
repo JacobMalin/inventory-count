@@ -2,32 +2,54 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/area_model.dart';
-import '../models/data/count_strategy.dart';
-import '../models/data/export_entry.dart';
-import '../models/data/inventory_models.dart';
-import '../models/export_model.dart';
+import '../../models/area_model.dart';
+import '../../models/data/count_strategy.dart';
+import '../../models/data/export_entry.dart';
+import '../../models/data/inventory_models.dart';
+import '../../models/export_model.dart';
 import 'setup_helpers.dart';
 
 class ItemPage extends StatelessWidget {
   const ItemPage({
-    required dynamic Function() deselect,
     required Item item,
-    required List<int> selectedOrder,
+    required void Function({StorageObject? object}) select,
     super.key,
-  }) : _selectedOrder = selectedOrder,
-       _item = item,
-       _deselect = deselect;
+  }) : _item = item,
+       _select = select;
 
-  final Function() _deselect;
   final Item _item;
-  final List<int> _selectedOrder;
+  final void Function({StorageObject? object}) _select;
 
   Future<void> _moveItem(BuildContext context, AreaModel areaModel) async {
-    int selectedAreaIndex = _selectedOrder[0];
-    int? selectedShelfIndex = _selectedOrder.length == 3
-        ? _selectedOrder[1]
-        : null;
+    final List<int> sourceOrder;
+    final StorageObject parent = _item.parent;
+    if (parent is Area) {
+      final int areaIndex = areaModel.getAreas().indexOf(parent);
+      final int itemIndex = parent.indexOf(_item);
+      if (areaIndex == -1 || itemIndex == -1) {
+        return;
+      }
+      sourceOrder = [areaIndex, itemIndex];
+    } else if (parent is Shelf) {
+      final int areaIndex = areaModel.getAreas().indexOf(parent.parent);
+      final int shelfIndex = parent.parent.indexOf(parent);
+      var itemIndex = -1;
+      for (var i = 0; i < parent.numItems; i++) {
+        if (identical(parent[i], _item)) {
+          itemIndex = i;
+          break;
+        }
+      }
+      if (areaIndex == -1 || shelfIndex == -1 || itemIndex == -1) {
+        return;
+      }
+      sourceOrder = [areaIndex, shelfIndex, itemIndex];
+    } else {
+      return;
+    }
+
+    int selectedAreaIndex = sourceOrder[0];
+    int? selectedShelfIndex = sourceOrder.length == 3 ? sourceOrder[1] : null;
 
     final bool? shouldMove = await showDialog<bool>(
       context: context,
@@ -112,12 +134,12 @@ class ItemPage extends StatelessWidget {
     }
 
     areaModel.moveItemToDestination(
-      sourceOrder: _selectedOrder,
+      sourceOrder: sourceOrder,
       targetAreaIndex: selectedAreaIndex,
       targetShelfIndex: selectedShelfIndex,
     );
 
-    _deselect();
+    _select();
 
     final String destinationArea = areaModel.getArea(selectedAreaIndex).name;
     final String destination;
@@ -149,7 +171,7 @@ class ItemPage extends StatelessWidget {
             toolbarHeight: 40,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new),
-              onPressed: _deselect,
+              onPressed: _select,
             ),
             actions: [
               IconButton(
@@ -170,7 +192,7 @@ class ItemPage extends StatelessWidget {
                         autofocus: true,
                         onChanged: (value) {
                           if (value.isNotEmpty) {
-                            areaModel.editItem(_selectedOrder, newName: value);
+                            areaModel.editItem(_item, newName: value);
                           }
                         },
                         onSubmitted: (_) => Navigator.pop(context),
@@ -208,9 +230,9 @@ class ItemPage extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () {
-                            areaModel.removeItem(_selectedOrder);
+                            areaModel.removeItem(_item);
                             Navigator.pop(context);
-                            _deselect();
+                            _select();
                           },
                           child: const Text('Delete'),
                         ),
@@ -226,10 +248,10 @@ class ItemPage extends StatelessWidget {
           body: GestureDetector(
             onHorizontalDragEnd: (details) {
               if (details.primaryVelocity! > 300) {
-                _deselect();
+                _select();
               }
             },
-            child: ItemSettings(item: _item, selectedOrder: _selectedOrder),
+            child: ItemSettings(item: _item),
           ),
         );
       },
@@ -238,15 +260,9 @@ class ItemPage extends StatelessWidget {
 }
 
 class ItemSettings extends StatefulWidget {
-  const ItemSettings({
-    required Item item,
-    required List<int> selectedOrder,
-    super.key,
-  }) : _selectedOrder = selectedOrder,
-       _item = item;
+  const ItemSettings({required Item item, super.key}) : _item = item;
 
   final Item _item;
-  final List<int> _selectedOrder;
 
   @override
   State<ItemSettings> createState() => _ItemSettingsState();
@@ -309,7 +325,7 @@ class _ItemSettingsState extends State<ItemSettings> {
 
             if (defaultCountField1 != null || defaultCountField2 != null) {
               areaModel.editItem(
-                widget._selectedOrder,
+                widget._item,
                 newDefaultCount: ItemCount(
                   _countStrategy,
                   field1: defaultCountField1,
@@ -317,10 +333,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                 ),
               );
             } else {
-              areaModel.editItem(
-                widget._selectedOrder,
-                clearDefaultCount: true,
-              );
+              areaModel.editItem(widget._item, clearDefaultCount: true);
             }
           }
 
@@ -381,15 +394,9 @@ class _ItemSettingsState extends State<ItemSettings> {
 
                     onSelected: (value) {
                       if (value == null) {
-                        areaModel.editItem(
-                          widget._selectedOrder,
-                          newCountName: '',
-                        );
+                        areaModel.editItem(widget._item, newCountName: '');
                       } else {
-                        areaModel.editItem(
-                          widget._selectedOrder,
-                          newCountName: value,
-                        );
+                        areaModel.editItem(widget._item, newCountName: value);
                       }
                     },
                   );
@@ -421,7 +428,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                       );
                     });
                     areaModel.editItem(
-                      widget._selectedOrder,
+                      widget._item,
                       newStrategy: _countStrategy,
                     );
                     updateDefaultCount();
@@ -431,7 +438,7 @@ class _ItemSettingsState extends State<ItemSettings> {
               ..._countStrategy.buildConfigFields(
                 controller1: _strategyIntController,
                 controller2: _strategyInt2Controller,
-                selectedOrder: widget._selectedOrder,
+                item: widget._item,
                 areaModel: areaModel,
               ),
               const SizedBox(height: 24),
@@ -528,7 +535,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                       _countPhase = newSelection.first;
                     });
                     areaModel.editItem(
-                      widget._selectedOrder,
+                      widget._item,
                       newCountPhase: _countPhase,
                     );
                   },
@@ -566,7 +573,7 @@ class _ItemSettingsState extends State<ItemSettings> {
                       _personalCountPhase = newSelection.firstOrNull;
                     });
                     areaModel.editItem(
-                      widget._selectedOrder,
+                      widget._item,
                       newPersonalCountPhase: _personalCountPhase,
                       clearPersonalCountPhase: _personalCountPhase == null,
                     );

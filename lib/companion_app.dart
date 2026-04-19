@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'inventory_counts_page.dart';
-import 'update_app.dart';
-import 'window_model.dart';
+import 'companion/inventory_counts_page.dart';
+import 'companion/update_app.dart';
+import 'companion/window_model.dart';
 
 class CompanionApp extends StatelessWidget {
   const CompanionApp({super.key});

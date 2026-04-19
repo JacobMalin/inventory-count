@@ -6,11 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'companion/companion_app.dart';
 import 'companion/companion_setup.dart';
+import 'companion_app.dart';
 import 'main/hive_error_page.dart';
-import 'main/main_app.dart';
 import 'main/models/data/inventory_models.dart';
+import 'main_app.dart';
 
 void main() async {
   // Read DISABLE_SYNC flag from environment

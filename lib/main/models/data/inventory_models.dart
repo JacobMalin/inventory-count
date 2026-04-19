@@ -29,6 +29,7 @@ Future<void> hiveSetup() async {
 
   await Hive.openBox('areas');
   await Hive.openBox<Count>('counts');
+  await Hive.openBox<Map<String, int>>('expected');
   await Hive.openBox('settings');
   await Hive.openBox('notes');
 }
@@ -257,6 +258,10 @@ class Area extends StorageObject {
           ..parent = this;
       }
     }
+  }
+
+  int indexOf(StorageObject object) {
+    return _shelvesAndItems.indexOf(object);
   }
 }
 

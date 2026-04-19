@@ -1,10 +1,11 @@
+import 'dart:async';
+
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/data/inventory_models.dart';
+import 'repository.dart';
 
-abstract class CountLocalRepository {
-  Future<void> ensureInitialized();
-
+abstract class CountLocalRepository extends LocalRepository {
   bool readHideCountedItems();
   Future<void> writeHideCountedItems(bool value);
 
@@ -26,21 +27,31 @@ abstract class CountLocalRepository {
 }
 
 class HiveCountLocalRepository implements CountLocalRepository {
-  HiveCountLocalRepository({Box<dynamic>? settingsBox, Box<Count>? countBox})
-    : _settingsBox = settingsBox ?? Hive.box('settings'),
-      _countBox = countBox ?? Hive.box<Count>('counts');
+  HiveCountLocalRepository({
+    Box<dynamic>? settingsBox,
+    Box<Count>? countBox,
+    Box<Map<String, int>>? expectedBox,
+  }) : _settingsBox = settingsBox ?? Hive.box('settings'),
+       _countBox = countBox ?? Hive.box<Count>('counts'),
+       _expectedBox = expectedBox ?? Hive.box<Map<String, int>>('expected') {
+    unawaited(_ensureInitialized());
+  }
 
   final Box<dynamic> _settingsBox;
   final Box<Count> _countBox;
+  final Box<Map<String, int>> _expectedBox;
 
-  @override
-  Future<void> ensureInitialized() async {
+  Future<void> _ensureInitialized() async {
     if (_settingsBox.get('hideCountedItems') == null) {
       await _settingsBox.put('hideCountedItems', false);
     }
 
     if (_settingsBox.get('isProfileRemembered') == null) {
       await _settingsBox.put('isProfileRemembered', false);
+    }
+
+    if (_settingsBox.get('rememberedProfile') == null) {
+      await _settingsBox.put('rememberedProfile', null);
     }
   }
 
@@ -96,7 +107,7 @@ class HiveCountLocalRepository implements CountLocalRepository {
 
   @override
   Map<String, int> readExpectedByNameForDate(String dateKey) {
-    final dynamic value = _settingsBox.get('expectedByName:$dateKey');
+    final dynamic value = _expectedBox.get('expectedByName:$dateKey');
     if (value is Map) {
       return value.map((k, v) => MapEntry(k.toString(), v as int));
     }
@@ -108,6 +119,6 @@ class HiveCountLocalRepository implements CountLocalRepository {
     String dateKey,
     Map<String, int> value,
   ) {
-    return _settingsBox.put('expectedByName:$dateKey', value);
+    return _expectedBox.put('expectedByName:$dateKey', value);
   }
 }

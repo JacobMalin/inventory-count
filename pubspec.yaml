@@ -1,7 +1,7 @@
 name: inventory_count
 description: ""
 publish_to: 'none'
-version: 0.1.64
+version: 1.0.0
 environment:
   sdk: ^3.10.4
 dependencies:
@@ -25,6 +25,7 @@ dependencies:
   package_info_plus: ^8.3.1
   path: ^1.9.1
   provider: ^6.1.5+1
+  semaphore: ^1.0.1
   supabase_flutter: ^2.12.0
   win32: ^5.15.0
   window_manager: ^0.5.1
