@@ -36,17 +36,22 @@ class _ToolsPageState extends State<ToolsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Navigator(
-      key: ToolsPage.navigatorKey,
-      onGenerateRoute: (_) {
-        return MaterialPageRoute<void>(
-          builder: (_) => _ToolsHomeView(
-            openNotes: _openNotes,
-            openCalculator: _openCalculator,
-            restockHelper: _openRestockHelper,
-          ),
-        );
+    return NavigatorPopHandler(
+      onPopWithResult: (result) async {
+        await ToolsPage.navigatorKey.currentState?.maybePop();
       },
+      child: Navigator(
+        key: ToolsPage.navigatorKey,
+        onGenerateRoute: (_) {
+          return MaterialPageRoute<void>(
+            builder: (_) => _ToolsHomeView(
+              openNotes: _openNotes,
+              openCalculator: _openCalculator,
+              restockHelper: _openRestockHelper,
+            ),
+          );
+        },
+      ),
     );
   }
 }

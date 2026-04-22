@@ -1016,11 +1016,11 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
     final int? total = calculateCount(field1, field2);
     final int boxes = field1 ?? 0;
     final int stacks = field2 ?? 0;
-    return '$total (${boxes}bx, ${stacks}stk)';
+    return '$total (${stacks}stk, ${boxes}bx)';
   }
 
   @override
-  String get strategyText => 'Both ($perBox per box, $perStack per stack)';
+  String get strategyText => 'Both ($perStack per stack, $perBox per box)';
 
   @override
   void populateControllers(
@@ -1044,27 +1044,6 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
         children: [
           Expanded(
             child: TextField(
-              controller: controller1,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Stacks per box',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                if (value.isEmpty) {
-                  perBox = 1;
-                  areaModel.editItem(item, newStrategy: this);
-                } else {
-                  final int? intValue = int.tryParse(value);
-                  perBox = intValue ?? 1;
-                  areaModel.editItem(item, newStrategy: this);
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: TextField(
               controller: controller2,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
@@ -1078,6 +1057,27 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
                 } else {
                   final int? intValue = int.tryParse(value);
                   perStack = intValue ?? 1;
+                  areaModel.editItem(item, newStrategy: this);
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: TextField(
+              controller: controller1,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Stacks per box',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                if (value.isEmpty) {
+                  perBox = 1;
+                  areaModel.editItem(item, newStrategy: this);
+                } else {
+                  final int? intValue = int.tryParse(value);
+                  perBox = intValue ?? 1;
                   areaModel.editItem(item, newStrategy: this);
                 }
               },
@@ -1101,6 +1101,23 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
       children: [
         Expanded(
           child: TextField(
+            controller: controller2,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Stacks ($perStack per)',
+              labelStyle: const TextStyle(fontSize: 12),
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              final int? intValue = int.tryParse(value);
+              countModel.setField2(item, intValue);
+            },
+            onSubmitted: onSubmitted,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: TextField(
             controller: controller1,
             focusNode: focusNode,
             autofocus: true,
@@ -1113,23 +1130,6 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
             onChanged: (value) {
               final int? intValue = int.tryParse(value);
               countModel.setField1(item, intValue);
-            },
-            onSubmitted: onSubmitted,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: controller2,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Stacks ($perStack per)',
-              labelStyle: const TextStyle(fontSize: 12),
-              border: const OutlineInputBorder(),
-            ),
-            onChanged: (value) {
-              final int? intValue = int.tryParse(value);
-              countModel.setField2(item, intValue);
             },
             onSubmitted: onSubmitted,
           ),
@@ -1239,112 +1239,6 @@ class _BoxesAndStacksBumpDisplayState
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Boxes row
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove),
-                      onPressed: isNotCounted
-                          ? null
-                          : () {
-                              final int currentValue = boxes ?? 0;
-                              if (currentValue <= 0) {
-                                if (widget._item != null) {
-                                  countModel.setField1(widget._item!, null);
-                                } else {
-                                  countModel.setField1ByPath(
-                                    widget._path!,
-                                    null,
-                                  );
-                                }
-                                _boxController.text = '';
-                              } else {
-                                final int newValue = currentValue - 1;
-                                if (widget._item != null) {
-                                  countModel.setField1(widget._item!, newValue);
-                                } else {
-                                  countModel.setField1ByPath(
-                                    widget._path!,
-                                    newValue,
-                                  );
-                                }
-                                _boxController.text = newValue.toString();
-                              }
-                            },
-                      style: IconButton.styleFrom(
-                        padding: const EdgeInsets.all(8),
-                        minimumSize: const Size(40, 40),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(minWidth: 50),
-                      child: IntrinsicWidth(
-                        child: TextField(
-                          controller: _boxController,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleLarge,
-                          decoration: InputDecoration(
-                            labelText: widget._perBox * widget._perStack == 1
-                                ? null
-                                : 'x${widget._perBox * widget._perStack}',
-                            border: const OutlineInputBorder(),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                            ),
-                          ),
-                          onTap: () {
-                            _boxController.selection = TextSelection(
-                              baseOffset: 0,
-                              extentOffset: _boxController.text.length,
-                            );
-                          },
-                          onChanged: (value) {
-                            final int? intValue = int.tryParse(value);
-                            if (widget._item != null) {
-                              countModel.setField1(widget._item!, intValue);
-                            } else {
-                              countModel.setField1ByPath(
-                                widget._path!,
-                                intValue,
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: () {
-                        final currentValue = boxes;
-                        if (currentValue == null) {
-                          if (widget._item != null) {
-                            countModel.setField1(widget._item!, 1);
-                          } else {
-                            countModel.setField1ByPath(widget._path!, 1);
-                          }
-                          _boxController.text = '1';
-                        } else {
-                          final int newValue = currentValue + 1;
-                          if (widget._item != null) {
-                            countModel.setField1(widget._item!, newValue);
-                          } else {
-                            countModel.setField1ByPath(widget._path!, newValue);
-                          }
-                          _boxController.text = newValue.toString();
-                        }
-                      },
-                      style: IconButton.styleFrom(
-                        padding: const EdgeInsets.all(8),
-                        minimumSize: const Size(40, 40),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
                 // Stacks row
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1441,6 +1335,112 @@ class _BoxesAndStacksBumpDisplayState
                             countModel.setField2ByPath(widget._path!, newValue);
                           }
                           _stackController.text = newValue.toString();
+                        }
+                      },
+                      style: IconButton.styleFrom(
+                        padding: const EdgeInsets.all(8),
+                        minimumSize: const Size(40, 40),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Boxes row
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove),
+                      onPressed: isNotCounted
+                          ? null
+                          : () {
+                              final int currentValue = boxes ?? 0;
+                              if (currentValue <= 0) {
+                                if (widget._item != null) {
+                                  countModel.setField1(widget._item!, null);
+                                } else {
+                                  countModel.setField1ByPath(
+                                    widget._path!,
+                                    null,
+                                  );
+                                }
+                                _boxController.text = '';
+                              } else {
+                                final int newValue = currentValue - 1;
+                                if (widget._item != null) {
+                                  countModel.setField1(widget._item!, newValue);
+                                } else {
+                                  countModel.setField1ByPath(
+                                    widget._path!,
+                                    newValue,
+                                  );
+                                }
+                                _boxController.text = newValue.toString();
+                              }
+                            },
+                      style: IconButton.styleFrom(
+                        padding: const EdgeInsets.all(8),
+                        minimumSize: const Size(40, 40),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: 50),
+                      child: IntrinsicWidth(
+                        child: TextField(
+                          controller: _boxController,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleLarge,
+                          decoration: InputDecoration(
+                            labelText: widget._perBox * widget._perStack == 1
+                                ? null
+                                : 'x${widget._perBox * widget._perStack}',
+                            border: const OutlineInputBorder(),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                            ),
+                          ),
+                          onTap: () {
+                            _boxController.selection = TextSelection(
+                              baseOffset: 0,
+                              extentOffset: _boxController.text.length,
+                            );
+                          },
+                          onChanged: (value) {
+                            final int? intValue = int.tryParse(value);
+                            if (widget._item != null) {
+                              countModel.setField1(widget._item!, intValue);
+                            } else {
+                              countModel.setField1ByPath(
+                                widget._path!,
+                                intValue,
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: () {
+                        final currentValue = boxes;
+                        if (currentValue == null) {
+                          if (widget._item != null) {
+                            countModel.setField1(widget._item!, 1);
+                          } else {
+                            countModel.setField1ByPath(widget._path!, 1);
+                          }
+                          _boxController.text = '1';
+                        } else {
+                          final int newValue = currentValue + 1;
+                          if (widget._item != null) {
+                            countModel.setField1(widget._item!, newValue);
+                          } else {
+                            countModel.setField1ByPath(widget._path!, newValue);
+                          }
+                          _boxController.text = newValue.toString();
                         }
                       },
                       style: IconButton.styleFrom(

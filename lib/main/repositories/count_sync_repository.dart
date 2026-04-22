@@ -10,27 +10,21 @@ import 'repository.dart';
 class CountSyncRecord {
   CountSyncRecord({
     required this.name,
-    required this.profile,
     required this.updatedAt,
     required this.json,
     required this.actual,
+    this.profile,
     this.expected,
   });
 
   factory CountSyncRecord.fromJson(Json row) {
-    final requiredFields = <String>[
-      'name',
-      'profile',
-      'updated_at',
-      'json',
-      'actual',
-    ];
+    final requiredFields = <String>['name', 'updated_at', 'json', 'actual'];
     if (!requiredFields.every((field) => row.containsKey(field))) {
       throw ArgumentError('Invalid row data: missing required fields');
     }
 
     final name = row['name'] as String;
-    final profile = row['profile'] as String;
+    final profile = row['profile'] as String?;
     final DateTime updatedAt =
         DateTime.tryParse(row['updated_at'].toString())?.toUtc() ??
         (throw ArgumentError(
@@ -62,7 +56,7 @@ class CountSyncRecord {
   }
 
   final String name;
-  final String profile;
+  final String? profile;
   final DateTime updatedAt;
   final String json;
   final String? expected;
@@ -153,9 +147,7 @@ class SupabaseCountSyncRepository extends CountSyncRepository {
     required DateTime fromDate,
   }) async {
     final String endName = rowName(fromDate);
-    final String startName = rowName(
-      fromDate.subtract(Duration(days: days)),
-    );
+    final String startName = rowName(fromDate.subtract(Duration(days: days)));
 
     final PostgrestList response = await _client
         .from('counts')

@@ -471,11 +471,11 @@ class _ItemSettingsState extends State<ItemSettings> {
                     children: [
                       Expanded(
                         child: TextField(
-                          controller: _defaultCountController,
+                          controller: _defaultStacksController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
                             hintText: '0',
-                            labelText: 'Default boxes',
+                            labelText: 'Default stacks',
                             border: OutlineInputBorder(),
                           ),
                           onChanged: (value) {
@@ -486,11 +486,11 @@ class _ItemSettingsState extends State<ItemSettings> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: TextField(
-                          controller: _defaultStacksController,
+                          controller: _defaultCountController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
                             hintText: '0',
-                            labelText: 'Default stacks',
+                            labelText: 'Default boxes',
                             border: OutlineInputBorder(),
                           ),
                           onChanged: (value) {

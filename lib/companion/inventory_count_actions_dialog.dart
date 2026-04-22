@@ -370,6 +370,7 @@ class _InventoryCountActionsDialogState
                 : jsonEncode(count['json']);
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_isFillingOut || _isFillThenPrintRunning) return;
               final String? newExpected = count['expected'] == null
                   ? null
                   : count['expected'] is String
@@ -402,6 +403,28 @@ class _InventoryCountActionsDialogState
                           context,
                         ).textTheme.bodyMedium?.copyWith(color: profile.color),
                       ),
+                      if (time.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '·',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          time,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
                     ],
                   ),
                 ],

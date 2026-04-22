@@ -905,6 +905,18 @@ class Count extends HiveObject {
       }).toList(),
     };
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is Count &&
+        toJson().toString() == other.toJson().toString() &&
+        profile == other.profile;
+  }
+
+  @override
+  int get hashCode => Object.hash(toJson().toString(), profile);
 }
 
 @HiveType(typeId: 16)
@@ -923,15 +935,11 @@ class Profile extends HiveObject {
   }
 
   @override
-  // Cannot be made immutable because of Hive
-  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is Profile && other.name == name;
   }
 
   @override
-  // Cannot be made immutable because of Hive
-  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   int get hashCode => name.hashCode;
 }

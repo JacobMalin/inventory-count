@@ -44,13 +44,18 @@ class _BuildingSetupPageState extends State<BuildingSetupPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Navigator(
-      key: _navigatorKey,
-      onGenerateRoute: (_) {
-        return MaterialPageRoute<void>(
-          builder: (_) => AreasPage(select: select),
-        );
+    return NavigatorPopHandler(
+      onPopWithResult: (result) async {
+        await _navigatorKey.currentState?.maybePop();
       },
+      child: Navigator(
+        key: _navigatorKey,
+        onGenerateRoute: (_) {
+          return MaterialPageRoute<void>(
+            builder: (_) => AreasPage(select: select),
+          );
+        },
+      ),
     );
   }
 }

@@ -58,10 +58,14 @@ class _CountPageState extends State<CountPage> {
           body: CountList(
             hideCountedItems: countModel.hideCountedItems,
             onExpandCallbackChanged: (callback, {required isExpanded}) {
-              setState(() {
-                _expandUncountedCallback = callback;
-                _isFullyExpanded = isExpanded;
-              });
+              if (mounted &&
+                  (_expandUncountedCallback != callback ||
+                      _isFullyExpanded != isExpanded)) {
+                setState(() {
+                  _expandUncountedCallback = callback;
+                  _isFullyExpanded = isExpanded;
+                });
+              }
             },
           ),
           bottomNavigationBar: BottomAppBar(

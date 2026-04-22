@@ -35,13 +35,13 @@ class CountModel extends ChangeNotifier {
 
   Future<void> _prefetchLookbackDays() async {
     try {
-      final List<CountSyncRecord> records =
-          await _syncRepository.fetchRecentRows(
+      final List<CountSyncRecord> records = await _syncRepository
+          .fetchRecentRows(
             days: _lastCountLookbackDays,
             fromDate: selectedDate,
           );
 
-      for (final CountSyncRecord record in records) {
+      for (final record in records) {
         await _processRecord(record);
       }
     } on Exception {
@@ -91,10 +91,9 @@ class CountModel extends ChangeNotifier {
         return;
       }
 
-      final remoteCount = Count.fromJson(decoded);
-      if (response.profile.isNotEmpty) {
-        remoteCount.profile = Profile(response.profile);
-      }
+      final remoteCount = Count.fromJson(
+        decoded,
+      )..profile = response.profile != null ? Profile(response.profile!) : null;
 
       await _localRepository.writeCount(dateKey, remoteCount);
 
@@ -114,10 +113,7 @@ class CountModel extends ChangeNotifier {
               }
             }
             unawaited(
-              _localRepository.writeExpectedByNameForDate(
-                rowName,
-                newExpected,
-              ),
+              _localRepository.writeExpectedByNameForDate(rowName, newExpected),
             );
           }
         } on Exception {
@@ -172,8 +168,8 @@ class CountModel extends ChangeNotifier {
       _localRepository.readCount(date) ??
       Count(profile: isProfileRemembered ? rememberedProfile : null);
   set _thisCount(Count count) {
-    unawaited(_localRepository.writeCount(date, count));
     unawaited(_syncPendingToRemote());
+    unawaited(_localRepository.writeCount(date, count));
     WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
   }
 
@@ -436,11 +432,14 @@ class CountModel extends ChangeNotifier {
 
     try {
       final String exportName = DateFormat('yyyy-MM-dd').format(selectedDate);
+      // print('Syncing count for $exportName');
+      // print('Export name: $exportName');
+      // print('Updated at: ${DateTime.now().toUtc()}');
       await _syncRepository.upsertCount(
         CountSyncRecord(
           name: exportName,
           updatedAt: DateTime.now().toUtc(),
-          profile: selectedProfile?.name ?? 'Default',
+          profile: selectedProfile?.name,
           json: json,
           actual: actual,
         ),
