@@ -166,6 +166,30 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
     );
   }
 
+  int _sumTotals(String jsonData) {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(jsonData);
+    } on FormatException {
+      return 0;
+    }
+
+    if (decoded is! Map) return 0;
+
+    var sum = 0;
+    for (final Map category in decoded.values) {
+      for (final Map item in category.values) {
+        final dynamic total = item['Total'];
+        if (total == null) continue;
+        final int? value = int.tryParse(
+          total.toString().replaceAll(RegExp('[^0-9]'), ''),
+        );
+        if (value != null) sum += value;
+      }
+    }
+    return sum;
+  }
+
   String _formatCountName(String rawName) {
     final DateTime? isoParsed = DateTime.tryParse(rawName);
     if (isoParsed != null) {
@@ -481,6 +505,11 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
                 }
               }
 
+              final int totalSum = _sumTotals(count['json']);
+              final String formattedSum = NumberFormat.decimalPattern().format(
+                totalSum,
+              );
+
               return ListTile(
                 title: Text(
                   formattedCountName.isNotEmpty ? formattedCountName : 'Count',
@@ -498,7 +527,11 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
                         style: TextStyle(color: Profile(profile).color),
                       ),
                       TextSpan(
-                        text: ' • Last updated: $time',
+                        text: ' • Updated: $time',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      TextSpan(
+                        text: ' • $formattedSum counted',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

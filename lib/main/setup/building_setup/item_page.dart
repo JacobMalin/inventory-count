@@ -177,6 +177,7 @@ class ItemPage extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.edit),
                 onPressed: () async {
+                  final String originalName = _item.name;
                   final controller = TextEditingController(text: _item.name);
                   controller.selection = TextSelection(
                     baseOffset: 0,
@@ -199,8 +200,15 @@ class ItemPage extends StatelessWidget {
                       ),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            areaModel.editItem(_item, newName: originalName);
+                            Navigator.pop(context);
+                          },
                           child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('OK'),
                         ),
                       ],
                     ),

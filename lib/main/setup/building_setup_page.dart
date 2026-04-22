@@ -134,22 +134,22 @@ class _AreaListState extends State<AreaList> {
       extentOffset: controller.text.length,
     );
 
-    await showDialog<void>(
+    final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Rename Area'),
         content: TextField(
           controller: controller,
           autofocus: true,
-          onSubmitted: (_) => Navigator.pop(context),
+          onSubmitted: (_) => Navigator.pop(context, true),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Save'),
           ),
         ],
@@ -157,7 +157,7 @@ class _AreaListState extends State<AreaList> {
     );
 
     final String name = controller.text.trim();
-    if (name.isNotEmpty) {
+    if ((confirmed ?? false) && name.isNotEmpty) {
       areaModel.renameArea(area, name);
     }
   }
@@ -194,11 +194,13 @@ class _AreaListState extends State<AreaList> {
               title: const Text('Add Area'),
               tileColor: Theme.of(context).colorScheme.surface,
               onTap: () async {
+                final controller = TextEditingController();
                 await showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('Enter Area Name'),
                     content: TextField(
+                      controller: controller,
                       autofocus: true,
                       onSubmitted: (value) async {
                         if (value.isNotEmpty) {
@@ -212,6 +214,17 @@ class _AreaListState extends State<AreaList> {
                       TextButton(
                         onPressed: () => Navigator.pop(context),
                         child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final String name = controller.text;
+                          if (name.isNotEmpty) {
+                            areaModel.addArea(Area(name));
+                            Navigator.pop(context);
+                            await _scrollToBottom();
+                          }
+                        },
+                        child: const Text('OK'),
                       ),
                     ],
                   ),

@@ -91,6 +91,7 @@ class ShelfPage extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.edit),
                 onPressed: () async {
+                  final String originalName = _shelf.name;
                   final controller = TextEditingController(text: _shelf.name);
                   controller.selection = TextSelection(
                     baseOffset: 0,
@@ -111,8 +112,15 @@ class ShelfPage extends StatelessWidget {
                       ),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            areaModel.renameShelfInArea(_shelf, originalName);
+                            Navigator.pop(context);
+                          },
                           child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('OK'),
                         ),
                       ],
                     ),
@@ -248,22 +256,22 @@ class _ItemListState extends State<ItemList> {
       extentOffset: controller.text.length,
     );
 
-    await showDialog<void>(
+    final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Rename Item'),
         content: TextField(
           controller: controller,
           autofocus: true,
-          onSubmitted: (_) => Navigator.pop(context),
+          onSubmitted: (_) => Navigator.pop(context, true),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Save'),
           ),
         ],
@@ -271,7 +279,7 @@ class _ItemListState extends State<ItemList> {
     );
 
     final String name = controller.text.trim();
-    if (name.isNotEmpty) {
+    if ((confirmed ?? false) && name.isNotEmpty) {
       areaModel.editItem(item, newName: name);
     }
   }
@@ -420,11 +428,13 @@ class _ItemListState extends State<ItemList> {
               title: const Text('Add Item'),
               tileColor: Theme.of(context).colorScheme.surface,
               onTap: () async {
+                final controller = TextEditingController();
                 await showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('Enter Item Name'),
                     content: TextField(
+                      controller: controller,
                       autofocus: true,
                       onSubmitted: (name) async {
                         if (name.isNotEmpty) {
@@ -449,6 +459,31 @@ class _ItemListState extends State<ItemList> {
                       TextButton(
                         onPressed: () => Navigator.pop(context),
                         child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final String name = controller.text;
+                          if (name.isNotEmpty) {
+                            final int areaIndex = areaModel.getAreas().indexOf(
+                              widget._shelf.parent,
+                            );
+                            final int shelfIndex = widget._shelf.parent.indexOf(
+                              widget._shelf,
+                            );
+                            if (areaIndex == -1 || shelfIndex == -1) {
+                              return;
+                            }
+
+                            areaModel.addItemToShelf(
+                              areaIndex,
+                              shelfIndex,
+                              name,
+                            );
+                            Navigator.pop(context);
+                            await _scrollToBottom();
+                          }
+                        },
+                        child: const Text('OK'),
                       ),
                     ],
                   ),

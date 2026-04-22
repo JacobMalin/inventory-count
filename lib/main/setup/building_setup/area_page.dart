@@ -45,27 +45,30 @@ class AreaPage extends StatelessWidget {
                     extentOffset: controller.text.length,
                   );
 
-                  await showDialog(
+                  final bool? confirmed = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Rename Area'),
                       content: TextField(
                         controller: controller,
                         autofocus: true,
-                        onSubmitted: (_) => Navigator.pop(context),
+                        onSubmitted: (_) => Navigator.pop(context, true),
                       ),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Close'),
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('OK'),
                         ),
                       ],
                     ),
-                  ).then((_) {
-                    if (controller.text.isNotEmpty) {
-                      areaModel.renameArea(_area, controller.text);
-                    }
-                  });
+                  );
+                  if ((confirmed ?? false) && controller.text.isNotEmpty) {
+                    areaModel.renameArea(_area, controller.text);
+                  }
                 },
               ),
               IconButton(
@@ -164,22 +167,22 @@ class _ShelfListState extends State<ShelfList> {
       extentOffset: controller.text.length,
     );
 
-    await showDialog<void>(
+    final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Rename Shelf'),
         content: TextField(
           controller: controller,
           autofocus: true,
-          onSubmitted: (_) => Navigator.pop(context),
+          onSubmitted: (_) => Navigator.pop(context, true),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Save'),
           ),
         ],
@@ -187,7 +190,7 @@ class _ShelfListState extends State<ShelfList> {
     );
 
     final String name = controller.text.trim();
-    if (name.isNotEmpty) {
+    if ((confirmed ?? false) && name.isNotEmpty) {
       areaModel.renameShelfInArea(shelf, name);
     }
   }
@@ -199,22 +202,22 @@ class _ShelfListState extends State<ShelfList> {
       extentOffset: controller.text.length,
     );
 
-    await showDialog<void>(
+    final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Rename Item'),
         content: TextField(
           controller: controller,
           autofocus: true,
-          onSubmitted: (_) => Navigator.pop(context),
+          onSubmitted: (_) => Navigator.pop(context, true),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Save'),
           ),
         ],
@@ -222,7 +225,7 @@ class _ShelfListState extends State<ShelfList> {
     );
 
     final String name = controller.text.trim();
-    if (name.isNotEmpty) {
+    if ((confirmed ?? false) && name.isNotEmpty) {
       areaModel.editItem(item, newName: name);
     }
   }
@@ -448,11 +451,13 @@ class _ShelfListState extends State<ShelfList> {
                     title: const Text('Add Shelf'),
                     tileColor: Theme.of(context).colorScheme.surface,
                     onTap: () async {
+                      final controller = TextEditingController();
                       await showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
                           title: const Text('Enter Shelf Name'),
                           content: TextField(
+                            controller: controller,
                             autofocus: true,
                             onSubmitted: (name) async {
                               if (name.isNotEmpty) {
@@ -466,7 +471,18 @@ class _ShelfListState extends State<ShelfList> {
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Close'),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final String name = controller.text;
+                                if (name.isNotEmpty) {
+                                  areaModel.addShelfToArea(widget._area, name);
+                                  Navigator.pop(context);
+                                  await _scrollToBottom();
+                                }
+                              },
+                              child: const Text('OK'),
                             ),
                           ],
                         ),
@@ -480,11 +496,13 @@ class _ShelfListState extends State<ShelfList> {
                     title: const Text('Add Item'),
                     tileColor: Theme.of(context).colorScheme.surface,
                     onTap: () async {
+                      final controller = TextEditingController();
                       await showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
                           title: const Text('Enter Item Name'),
                           content: TextField(
+                            controller: controller,
                             autofocus: true,
                             onSubmitted: (name) async {
                               if (name.isNotEmpty) {
@@ -498,7 +516,18 @@ class _ShelfListState extends State<ShelfList> {
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Close'),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final String name = controller.text;
+                                if (name.isNotEmpty) {
+                                  areaModel.addItemToArea(widget._area, name);
+                                  Navigator.pop(context);
+                                  await _scrollToBottom();
+                                }
+                              },
+                              child: const Text('OK'),
                             ),
                           ],
                         ),
