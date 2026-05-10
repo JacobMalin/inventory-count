@@ -217,43 +217,35 @@ class _UpdateAppState extends State<UpdateApp> {
         '${_quoteCmdArg(extractionDirectoryPath)} '
         '${_quoteCmdArg(exeName)}"';
 
-    final ffi.Pointer<Utf16> appNamePtr = cmdExe.toNativeUtf16();
-    final ffi.Pointer<Utf16> cmdLinePtr = commandLine.toNativeUtf16();
-    final ffi.Pointer<STARTUPINFO> startupInfo = calloc<STARTUPINFO>();
-    final ffi.Pointer<PROCESS_INFORMATION> processInfo =
-        calloc<PROCESS_INFORMATION>();
+    using((arena) {
+      final PCWSTR appNamePtr = arena.pcwstr(cmdExe);
+      final PWSTR cmdLinePtr = arena.pwstr(commandLine);
+      final ffi.Pointer<STARTUPINFO> startupInfo = arena<STARTUPINFO>();
+      final ffi.Pointer<PROCESS_INFORMATION> processInfo =
+          arena<PROCESS_INFORMATION>();
 
-    try {
       startupInfo.ref.cb = ffi.sizeOf<STARTUPINFO>();
 
-      final int result = CreateProcess(
+      final Win32Result(:bool value, :WIN32_ERROR error) = CreateProcess(
         appNamePtr,
         cmdLinePtr,
-        ffi.nullptr,
-        ffi.nullptr,
-        FALSE,
+        null,
+        null,
+        false,
         CREATE_NO_WINDOW,
-        ffi.nullptr,
-        ffi.nullptr,
+        null,
+        null,
         startupInfo,
         processInfo,
       );
 
-      if (result == FALSE) {
-        throw Exception(
-          'Win32 CreateProcess failed with error ${GetLastError()}.',
-        );
+      if (!value) {
+        throw WindowsException(error.toHRESULT());
       }
 
       CloseHandle(processInfo.ref.hThread);
       CloseHandle(processInfo.ref.hProcess);
-    } finally {
-      calloc
-        ..free(appNamePtr)
-        ..free(cmdLinePtr)
-        ..free(startupInfo)
-        ..free(processInfo);
-    }
+    });
   }
 
   String _quoteCmdArg(String value) {

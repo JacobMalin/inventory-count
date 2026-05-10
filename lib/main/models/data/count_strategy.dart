@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/types/json.dart';
@@ -1004,7 +1004,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
   @override
   int? calculateCount(int? field1, int? field2) {
     if (field1 == null && field2 == null) return null;
-    return ((field1 ?? 0) * perBox + (field2 ?? 0)) * perStack;
+    return ((field2 ?? 0) * perBox + (field1 ?? 0)) * perStack;
   }
 
   @override
@@ -1014,8 +1014,8 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
   String? getLastDisplay(int? field1, int? field2) {
     if (field1 == null && field2 == null) return null;
     final int? total = calculateCount(field1, field2);
-    final int boxes = field1 ?? 0;
-    final int stacks = field2 ?? 0;
+    final int stacks = field1 ?? 0;
+    final int boxes = field2 ?? 0;
     return '$total (${stacks}stk, ${boxes}bx)';
   }
 
@@ -1027,8 +1027,8 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
     TextEditingController controller1,
     TextEditingController controller2,
   ) {
-    controller1.text = perBox == 1 ? '' : perBox.toString();
-    controller2.text = perStack == 1 ? '' : perStack.toString();
+    controller1.text = perStack == 1 ? '' : perStack.toString();
+    controller2.text = perBox == 1 ? '' : perBox.toString();
   }
 
   @override
@@ -1044,7 +1044,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
         children: [
           Expanded(
             child: TextField(
-              controller: controller2,
+              controller: controller1,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Items per stack',
@@ -1065,7 +1065,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
           const SizedBox(width: 16),
           Expanded(
             child: TextField(
-              controller: controller1,
+              controller: controller2,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Stacks per box',
@@ -1101,7 +1101,8 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
       children: [
         Expanded(
           child: TextField(
-            controller: controller2,
+            controller: controller1,
+            focusNode: focusNode,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'Stacks ($perStack per)',
@@ -1110,7 +1111,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
             ),
             onChanged: (value) {
               final int? intValue = int.tryParse(value);
-              countModel.setField2(item, intValue);
+              countModel.setField1(item, intValue);
             },
             onSubmitted: onSubmitted,
           ),
@@ -1118,9 +1119,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
         const SizedBox(width: 8),
         Expanded(
           child: TextField(
-            controller: controller1,
-            focusNode: focusNode,
-            autofocus: true,
+            controller: controller2,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'Boxes ($perBox stacks)',
@@ -1129,7 +1128,7 @@ class BoxesAndStacksCountStrategy extends CountStrategy {
             ),
             onChanged: (value) {
               final int? intValue = int.tryParse(value);
-              countModel.setField1(item, intValue);
+              countModel.setField2(item, intValue);
             },
             onSubmitted: onSubmitted,
           ),
@@ -1215,8 +1214,8 @@ class _BoxesAndStacksBumpDisplayState
             ? itemCountType
             : null;
         final Object? count = isNotCounted ? '-' : itemCount?.count;
-        final int? boxes = itemCount?.field1;
-        final int? stacks = itemCount?.field2;
+        final int? stacks = itemCount?.field1;
+        final int? boxes = itemCount?.field2;
         final String expectedBoxText = isNotCounted
             ? '-'
             : (boxes?.toString() ?? '');
@@ -1251,9 +1250,9 @@ class _BoxesAndStacksBumpDisplayState
                               final int currentValue = stacks ?? 0;
                               if (currentValue <= 0) {
                                 if (widget._item != null) {
-                                  countModel.setField2(widget._item!, null);
+                                  countModel.setField1(widget._item!, null);
                                 } else {
-                                  countModel.setField2ByPath(
+                                  countModel.setField1ByPath(
                                     widget._path!,
                                     null,
                                   );
@@ -1262,9 +1261,9 @@ class _BoxesAndStacksBumpDisplayState
                               } else {
                                 final int newValue = currentValue - 1;
                                 if (widget._item != null) {
-                                  countModel.setField2(widget._item!, newValue);
+                                  countModel.setField1(widget._item!, newValue);
                                 } else {
-                                  countModel.setField2ByPath(
+                                  countModel.setField1ByPath(
                                     widget._path!,
                                     newValue,
                                   );
@@ -1279,7 +1278,7 @@ class _BoxesAndStacksBumpDisplayState
                     ),
                     const SizedBox(width: 8),
                     ConstrainedBox(
-                      constraints: const BoxConstraints(minWidth: 50),
+                      constraints: const BoxConstraints(minWidth: 60),
                       child: IntrinsicWidth(
                         child: TextField(
                           controller: _stackController,
@@ -1304,9 +1303,9 @@ class _BoxesAndStacksBumpDisplayState
                           onChanged: (value) {
                             final int? intValue = int.tryParse(value);
                             if (widget._item != null) {
-                              countModel.setField2(widget._item!, intValue);
+                              countModel.setField1(widget._item!, intValue);
                             } else {
-                              countModel.setField2ByPath(
+                              countModel.setField1ByPath(
                                 widget._path!,
                                 intValue,
                               );
@@ -1322,17 +1321,17 @@ class _BoxesAndStacksBumpDisplayState
                         final currentValue = stacks;
                         if (currentValue == null) {
                           if (widget._item != null) {
-                            countModel.setField2(widget._item!, 1);
+                            countModel.setField1(widget._item!, 1);
                           } else {
-                            countModel.setField2ByPath(widget._path!, 1);
+                            countModel.setField1ByPath(widget._path!, 1);
                           }
                           _stackController.text = '1';
                         } else {
                           final int newValue = currentValue + 1;
                           if (widget._item != null) {
-                            countModel.setField2(widget._item!, newValue);
+                            countModel.setField1(widget._item!, newValue);
                           } else {
-                            countModel.setField2ByPath(widget._path!, newValue);
+                            countModel.setField1ByPath(widget._path!, newValue);
                           }
                           _stackController.text = newValue.toString();
                         }
@@ -1357,9 +1356,9 @@ class _BoxesAndStacksBumpDisplayState
                               final int currentValue = boxes ?? 0;
                               if (currentValue <= 0) {
                                 if (widget._item != null) {
-                                  countModel.setField1(widget._item!, null);
+                                  countModel.setField2(widget._item!, null);
                                 } else {
-                                  countModel.setField1ByPath(
+                                  countModel.setField2ByPath(
                                     widget._path!,
                                     null,
                                   );
@@ -1368,9 +1367,9 @@ class _BoxesAndStacksBumpDisplayState
                               } else {
                                 final int newValue = currentValue - 1;
                                 if (widget._item != null) {
-                                  countModel.setField1(widget._item!, newValue);
+                                  countModel.setField2(widget._item!, newValue);
                                 } else {
-                                  countModel.setField1ByPath(
+                                  countModel.setField2ByPath(
                                     widget._path!,
                                     newValue,
                                   );
@@ -1385,7 +1384,7 @@ class _BoxesAndStacksBumpDisplayState
                     ),
                     const SizedBox(width: 8),
                     ConstrainedBox(
-                      constraints: const BoxConstraints(minWidth: 50),
+                      constraints: const BoxConstraints(minWidth: 60),
                       child: IntrinsicWidth(
                         child: TextField(
                           controller: _boxController,
@@ -1410,9 +1409,9 @@ class _BoxesAndStacksBumpDisplayState
                           onChanged: (value) {
                             final int? intValue = int.tryParse(value);
                             if (widget._item != null) {
-                              countModel.setField1(widget._item!, intValue);
+                              countModel.setField2(widget._item!, intValue);
                             } else {
-                              countModel.setField1ByPath(
+                              countModel.setField2ByPath(
                                 widget._path!,
                                 intValue,
                               );
@@ -1428,17 +1427,17 @@ class _BoxesAndStacksBumpDisplayState
                         final currentValue = boxes;
                         if (currentValue == null) {
                           if (widget._item != null) {
-                            countModel.setField1(widget._item!, 1);
+                            countModel.setField2(widget._item!, 1);
                           } else {
-                            countModel.setField1ByPath(widget._path!, 1);
+                            countModel.setField2ByPath(widget._path!, 1);
                           }
                           _boxController.text = '1';
                         } else {
                           final int newValue = currentValue + 1;
                           if (widget._item != null) {
-                            countModel.setField1(widget._item!, newValue);
+                            countModel.setField2(widget._item!, newValue);
                           } else {
-                            countModel.setField1ByPath(widget._path!, newValue);
+                            countModel.setField2ByPath(widget._path!, newValue);
                           }
                           _boxController.text = newValue.toString();
                         }

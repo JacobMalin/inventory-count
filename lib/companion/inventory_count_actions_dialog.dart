@@ -122,7 +122,9 @@ class _InventoryCountActionsDialogState
           })
           .eq('name', widget._countKey)
           .eq('profile', profile.name);
-      _currentExpectedJsonString = jsonEncode(expected);
+      setState(() {
+        _currentExpectedJsonString = jsonEncode(expected);
+      });
 
       if (mounted) {
         setState(() {
@@ -371,13 +373,16 @@ class _InventoryCountActionsDialogState
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_isFillingOut || _isFillThenPrintRunning) return;
+              if (!mounted) return;
               final String? newExpected = count['expected'] == null
                   ? null
                   : count['expected'] is String
                   ? count['expected'] as String
                   : jsonEncode(count['expected']);
               if (_currentExpectedJsonString != newExpected) {
-                _currentExpectedJsonString = newExpected;
+                setState(() {
+                  _currentExpectedJsonString = newExpected;
+                });
               }
             });
 

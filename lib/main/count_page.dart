@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animated_tree_view/animated_tree_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -993,13 +995,6 @@ class _CountDialogState extends State<CountDialog> {
 
     _controller = TextEditingController(text: primaryText);
 
-    if (selectAll && primaryText.isNotEmpty) {
-      _controller.selection = TextSelection(
-        baseOffset: 0,
-        extentOffset: primaryText.length,
-      );
-    }
-
     _secondaryController = TextEditingController(
       text: switch (count) {
         ItemCount() => count.field2?.toString() ?? '',
@@ -1007,6 +1002,19 @@ class _CountDialogState extends State<CountDialog> {
         _ => '',
       },
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (selectAll && primaryText.isNotEmpty) {
+        _controller.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: primaryText.length,
+        );
+      } else {
+        _controller.selection = const TextSelection.collapsed(offset: 0);
+      }
+
+      _focusNode.requestFocus();
+    });
   }
 
   void _navigate(int direction) {
@@ -1024,13 +1032,9 @@ class _CountDialogState extends State<CountDialog> {
         _initializeControllers(selectAll: true);
       });
 
-      // Wait for the rebuilt input widget to mount before requesting focus.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         oldController.dispose();
         oldSecondaryController.dispose();
-
-        if (!mounted) return;
-        FocusScope.of(context).requestFocus(_focusNode);
       });
     }
   }

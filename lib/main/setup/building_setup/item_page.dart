@@ -352,11 +352,13 @@ class _ItemSettingsState extends State<ItemSettings> {
                 builder: (context, exportModel, child) {
                   final bool isValid = widget._item.getIsValid(exportModel);
                   final String? countName = widget._item.countName;
+                  final String exportName = countName ?? widget._item.name;
 
                   return Row(
                     children: [
                       Text(
-                        'Count Name',
+                        'Count Name'
+                        '${isValid ? ' ($exportName)' : ''}',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       if (!isValid) ...[

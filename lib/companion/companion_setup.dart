@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:win32/win32.dart';
 import 'package:window_manager/window_manager.dart';
@@ -54,9 +54,9 @@ Future<void> windowSetup() async {
 }
 
 bool isWindowOnValidMonitor() {
-  final int hwnd = GetForegroundWindow();
-  if (hwnd == 0) return false;
+  final HWND hwnd = GetForegroundWindow();
+  if (hwnd.isNull) return false;
 
-  final int monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONULL);
-  return monitor != 0; // If 0, the window is offscreen
+  final HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONULL);
+  return !monitor.isNull;
 }

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 
 import '../../../core/types/json.dart';
 import '../export_model.dart';
@@ -29,7 +29,7 @@ Future<void> hiveSetup() async {
 
   await Hive.openBox('areas');
   await Hive.openBox<Count>('counts');
-  await Hive.openBox<Map<String, int>>('expected');
+  await Hive.openBox('expected');
   await Hive.openBox('settings');
   await Hive.openBox('notes');
 }

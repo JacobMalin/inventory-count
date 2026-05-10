@@ -336,7 +336,7 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
 
       if (locate != true) return false;
 
-      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+      final FilePickerResult? result = await FilePicker.pickFiles(
         dialogTitle: 'Select Excel sheet',
         type: FileType.custom,
         allowedExtensions: ['xlsx', 'xls', 'xlsm'],

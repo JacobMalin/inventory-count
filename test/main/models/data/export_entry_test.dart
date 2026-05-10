@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:inventory_count/core/types/json.dart';
 import 'package:inventory_count/main/models/data/export_entry.dart';
 

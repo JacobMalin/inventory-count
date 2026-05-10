@@ -131,6 +131,7 @@ class CountModel extends ChangeNotifier {
   bool get hideCountedItems => _localRepository.readHideCountedItems();
   set hideCountedItems(bool value) {
     unawaited(_localRepository.writeHideCountedItems(value));
+    notifyListeners();
   }
 
   void setSelectedDate(DateTime date) {

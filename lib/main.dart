@@ -53,9 +53,7 @@ void main() async {
 
   runApp(
     DevicePreview(
-      // False positive
-      // ignore: avoid_redundant_argument_values
-      enabled: !kReleaseMode,
+      enabled: !kReleaseMode && Platform.isWindows,
       isToolbarVisible: false,
       builder: (context) => hiveError != null
           ? HiveErrorPage(errorMessage: hiveError)
