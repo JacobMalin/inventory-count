@@ -89,12 +89,10 @@ class _ExportSetupPageState extends State<ExportSetupPage> {
                     scrolledUnderElevation: 0,
                     backgroundColor: Theme.of(context).colorScheme.surface,
                   ),
-                  body: exportList.isEmpty
-                      ? const Center(child: Text('No items to export'))
-                      : ExportListBody(
-                          scrollController: _scrollController,
-                          scrollToBottom: _scrollToBottom,
-                        ),
+                  body: ExportListBody(
+                    scrollController: _scrollController,
+                    scrollToBottom: _scrollToBottom,
+                  ),
                   floatingActionButton: exportList.isEmpty
                       ? null
                       : ScrollActionButton(
@@ -214,60 +212,107 @@ class ExportListBody extends StatelessWidget {
     required ExportModel exportModel,
     required ExportEntry Function(String, String?) createEntry,
     bool includeOmniName = false,
+    bool requireTitleSelection = false,
   }) async {
     await showDialog(
       context: context,
       builder: (context) {
         final nameController = TextEditingController();
         final omniNameController = TextEditingController();
+        final List<ExportTitle> titles = exportModel.exportList
+            .whereType<ExportTitle>()
+            .toList();
+        ExportTitle? selectedTitle;
 
-        Future<void> submit() async {
-          if (nameController.text.isNotEmpty) {
-            final String? omniName = includeOmniName
-                ? (omniNameController.text.trim().isEmpty
-                      ? null
-                      : omniNameController.text.trim())
-                : null;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> submit() async {
+              final String name = nameController.text.trim();
+              final ExportTitle? title = selectedTitle;
+              if (name.isNotEmpty &&
+                  (!requireTitleSelection || title != null)) {
+                final String? omniName = includeOmniName
+                    ? (omniNameController.text.trim().isEmpty
+                          ? null
+                          : omniNameController.text.trim())
+                    : null;
 
-            await exportModel.add(
-              createEntry(nameController.text.trim(), omniName),
-            );
-            await _scrollToBottom();
-            if (!context.mounted) return;
-            Navigator.pop(context);
-          }
-        }
+                final ExportEntry entry = createEntry(name, omniName);
+                if (title != null) {
+                  await exportModel.addUnderTitle(entry, title);
+                } else {
+                  await exportModel.add(entry);
+                  await _scrollToBottom();
+                }
+                if (!context.mounted) return;
+                Navigator.pop(context);
+              }
+            }
 
-        return AlertDialog(
-          title: Text(title),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                autofocus: true,
-                decoration: InputDecoration(labelText: inputLabel),
-                onSubmitted: (_) => submit(),
-              ),
-              if (includeOmniName) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: omniNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Alternate Name (optional)',
+            final bool canAdd =
+                nameController.text.trim().isNotEmpty &&
+                (!requireTitleSelection || selectedTitle != null);
+
+            return AlertDialog(
+              title: Text(title),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    autofocus: !requireTitleSelection,
+                    decoration: InputDecoration(labelText: inputLabel),
+                    onChanged: (_) => setDialogState(() {}),
+                    onSubmitted: (_) => submit(),
                   ),
-                  onSubmitted: (_) => submit(),
+                  if (includeOmniName) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: omniNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Alternate Name (optional)',
+                      ),
+                      onSubmitted: (_) => submit(),
+                    ),
+                  ],
+                  if (requireTitleSelection) ...[
+                    const SizedBox(height: 12),
+                    if (titles.isEmpty)
+                      const Text('Add a title before adding an item.')
+                    else
+                      DropdownButtonFormField<ExportTitle>(
+                        initialValue: selectedTitle,
+                        decoration: const InputDecoration(
+                          labelText: 'Add under title',
+                        ),
+                        items: [
+                          for (final ExportTitle title in titles)
+                            DropdownMenuItem<ExportTitle>(
+                              value: title,
+                              child: Text(title.name),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedTitle = value;
+                          });
+                        },
+                      ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: canAdd ? submit : null,
+                  child: const Text('Add'),
                 ),
               ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(onPressed: submit, child: const Text('Add')),
-          ],
+            );
+          },
         );
       },
     );
@@ -307,6 +352,7 @@ class ExportListBody extends StatelessWidget {
                         createEntry: (name, omniName) =>
                             ExportItem(name, omniName: omniName),
                         includeOmniName: true,
+                        requireTitleSelection: true,
                       ),
                     ),
                   ),
@@ -314,15 +360,20 @@ class ExportListBody extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: ReorderableListView(
-                scrollController: _scrollController,
-                key: const PageStorageKey('exportListView'),
-                buildDefaultDragHandles: false,
-                onReorderItem: (oldIndex, newIndex) async {
-                  await exportModel.reorder(oldIndex, newIndex);
-                },
-                children: _buildExportTiles(exportModel.exportList, areaModel),
-              ),
+              child: exportModel.exportList.isEmpty
+                  ? const Center(child: Text('No items to export'))
+                  : ReorderableListView(
+                      scrollController: _scrollController,
+                      key: const PageStorageKey('exportListView'),
+                      buildDefaultDragHandles: false,
+                      onReorderItem: (oldIndex, newIndex) async {
+                        await exportModel.reorder(oldIndex, newIndex);
+                      },
+                      children: _buildExportTiles(
+                        exportModel.exportList,
+                        areaModel,
+                      ),
+                    ),
             ),
           ],
         );

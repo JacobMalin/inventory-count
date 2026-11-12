@@ -100,10 +100,7 @@ class AreaTile extends StatelessWidget {
                 _buildPhaseIndicators(phases),
                 const SizedBox(width: 8),
               ],
-              SlidableReorderHandle(
-                index: _index,
-                hideWhenSlidableOpen: false,
-              ),
+              SlidableReorderHandle(index: _index, hideWhenSlidableOpen: false),
             ],
           ),
           onTap: () => _select(object: _area),
@@ -156,10 +153,7 @@ class ShelfTile extends StatelessWidget {
                 _buildPhaseIndicators(phases),
                 const SizedBox(width: 8),
               ],
-              SlidableReorderHandle(
-                index: _index,
-                hideWhenSlidableOpen: false,
-              ),
+              SlidableReorderHandle(index: _index, hideWhenSlidableOpen: false),
             ],
           ),
           onTap: () => _select(object: _shelf),
@@ -199,7 +193,15 @@ class ItemTile extends StatelessWidget {
           key: Key(_item.path),
           leading: const Icon(Icons.inventory, color: Colors.blue),
           tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          title: Text(_item.name),
+          title: Text(
+            _item.name,
+            style: !isValid || _item.isHidden
+                ? TextStyle(
+                    decoration: TextDecoration.lineThrough,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  )
+                : null,
+          ),
           subtitle: Text(
             _item.defaultCount != null
                 ? '${_item.strategy.strategyText} • '
@@ -209,7 +211,7 @@ class ItemTile extends StatelessWidget {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (!isValid) ...[
+              if (!isValid || _item.isHidden) ...[
                 Icon(
                   Icons.visibility_off,
                   size: 20,
@@ -266,10 +268,7 @@ class ItemTile extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 8),
-              SlidableReorderHandle(
-                index: _index,
-                hideWhenSlidableOpen: false,
-              ),
+              SlidableReorderHandle(index: _index, hideWhenSlidableOpen: false),
             ],
           ),
           onTap: () => _select(object: _item),

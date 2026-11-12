@@ -387,6 +387,7 @@ class Item extends StorageObject {
     CountStrategy? strategy,
     this.countName,
     this.defaultCount,
+    this.isHidden = false,
     CountPhase? countPhase,
     this.personalCountPhase,
     int duplicateOrder = 1,
@@ -434,6 +435,7 @@ class Item extends StorageObject {
         strategy: strategy,
         countName: json['countName'] as String?,
         defaultCount: defaultCount,
+        isHidden: json['isHidden'] as bool? ?? false,
         duplicateOrder: json['duplicateOrder'] as int? ?? 1,
         countPhase:
             countPhaseIndex >= 0 && countPhaseIndex < CountPhase.values.length
@@ -480,11 +482,15 @@ class Item extends StorageObject {
   @HiveField(7)
   int? _duplicateOrder;
 
+  @HiveField(8)
+  bool isHidden;
+
   int get duplicateOrder => _duplicateOrder ?? 1;
   set duplicateOrder(int value) => _duplicateOrder = value;
 
   @HiveField(2)
   // @Deprecated('Used to be itemId, but is no longer used')
+  // ignore: unused_element
   bool get _deprecated => false;
 
   late StorageObject parent;
@@ -514,6 +520,7 @@ class Item extends StorageObject {
       'defaultCount': defaultCount?.toJson(),
       'countPhase': countPhase.index,
       'personalCountPhase': personalCountPhase?.index,
+      'isHidden': isHidden,
     };
   }
 

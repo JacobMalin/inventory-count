@@ -357,31 +357,76 @@ class _ItemSettingsState extends State<ItemSettings> {
                   final String? countName = widget._item.countName;
                   final String exportName = countName ?? widget._item.name;
 
-                  return Row(
+                  final List<String> statusMessages = [];
+                  if (!isValid) {
+                    statusMessages.add(
+                      countName == null
+                          ? 'No export selected'
+                          : 'Export "$countName" is hidden',
+                    );
+                  }
+                  if (widget._item.isHidden) {
+                    statusMessages.add('Item is hidden');
+                  }
+                  final String? statusMessage = statusMessages.isEmpty
+                      ? null
+                      : statusMessages.join(', ');
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Count Name'
-                        '${isValid ? ' ($exportName)' : ''}',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      if (!isValid) ...[
-                        const SizedBox(width: 16),
-                        Icon(
-                          Icons.visibility_off,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          countName == null
-                              ? 'No export selected'
-                              : 'Export "$countName" is hidden',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                            fontSize: 14,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Count Name'
+                              '${isValid ? ' ($exportName)' : ''}',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
                           ),
+                          IconButton(
+                            constraints: const BoxConstraints.tightFor(
+                              width: 40,
+                              height: 40,
+                            ),
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () {
+                              areaModel.editItem(
+                                widget._item,
+                                newIsHidden: !widget._item.isHidden,
+                              );
+                            },
+                            icon: Icon(
+                              widget._item.isHidden
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              size: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      if (statusMessage != null)
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.visibility_off,
+                              size: 20,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                statusMessage,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
                     ],
                   );
                 },

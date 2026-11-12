@@ -9,6 +9,7 @@ import 'models/count_model.dart';
 import 'models/data/count_strategy.dart';
 import 'models/data/inventory_models.dart';
 import 'models/export_model.dart';
+import 'setup/building_setup/item_page.dart';
 
 abstract class StorageObjectTreeData {
   int get uncountedItems;
@@ -191,7 +192,8 @@ class _CountListState extends State<CountList> {
               final ItemCountType? count = countModel.getCount(item);
 
               // Skip counted items if hideCountedItems is true
-              if (widget._hideCountedItems && count != null ||
+              if (item.isHidden ||
+                  widget._hideCountedItems && count != null ||
                   !item.getIsValid(exportModel)) {
                 continue;
               }
@@ -225,7 +227,8 @@ class _CountListState extends State<CountList> {
           final ItemCountType? count = countModel.getCount(shelfOrItem);
 
           // Skip counted items if hideCountedItems is true
-          if (widget._hideCountedItems && count != null ||
+          if (shelfOrItem.isHidden ||
+              widget._hideCountedItems && count != null ||
               !shelfOrItem.getIsValid(exportModel)) {
             continue;
           }
@@ -1017,6 +1020,21 @@ class _CountDialogState extends State<CountDialog> {
     });
   }
 
+  Future<void> _openItemSettings() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ItemPage(
+          item: _currentItem,
+          select: ({object}) {
+            if (object == null) {
+              Navigator.of(context).pop();
+            }
+          },
+        ),
+      ),
+    );
+  }
+
   void _navigate(int direction) {
     final int currentIndex = widget._allItems.indexWhere(
       (item) => item.path == _currentItem.path,
@@ -1218,6 +1236,17 @@ class _CountDialogState extends State<CountDialog> {
                                 ),
                               );
                             },
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            constraints: const BoxConstraints.tightFor(
+                              width: 40,
+                              height: 56,
+                            ),
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.more_vert),
+                            onPressed: _openItemSettings,
                           ),
                         ],
                       ),

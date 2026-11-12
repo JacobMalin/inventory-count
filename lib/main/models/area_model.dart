@@ -437,6 +437,7 @@ class AreaModel extends ChangeNotifier {
     ItemCount? newDefaultCount,
     CountPhase? newCountPhase,
     CountPhase? newPersonalCountPhase,
+    bool? newIsHidden,
     bool? newDoubleChecked,
     bool clearDefaultCount = false,
     bool clearPersonalCountPhase = false,
@@ -447,6 +448,9 @@ class AreaModel extends ChangeNotifier {
       item.name = newName;
 
       countListNeedsUpdate = true;
+    }
+    if (newIsHidden != null) {
+      item.isHidden = newIsHidden;
     }
     if (newStrategy != null) {
       item.strategy = newStrategy;

@@ -103,6 +103,7 @@ class ItemAdapter extends TypeAdapter<Item> {
       strategy: fields[1] as CountStrategy?,
       countName: fields[3] as String?,
       defaultCount: fields[4] as ItemCount?,
+      isHidden: fields[8] == null ? false : fields[8] as bool,
       countPhase: fields[5] as CountPhase?,
       personalCountPhase: fields[6] as CountPhase?,
     ).._duplicateOrder = fields[7] as int?;
@@ -126,8 +127,8 @@ class ItemAdapter extends TypeAdapter<Item> {
       ..write(obj.personalCountPhase)
       ..writeByte(7)
       ..write(obj._duplicateOrder)
-      ..writeByte(2)
-      ..write(obj._deprecated);
+      ..writeByte(8)
+      ..write(obj.isHidden);
   }
 
   @override

@@ -80,6 +80,27 @@ class ExportModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> addUnderTitle(ExportEntry value, ExportTitle title) async {
+    final List<ExportEntry> currentExportList = exportList;
+    final int titleIndex = currentExportList.indexWhere(
+      (entry) => identical(entry, title),
+    );
+    if (titleIndex == -1) {
+      throw StateError('The selected export title is no longer available.');
+    }
+
+    var insertionIndex = titleIndex + 1;
+    while (insertionIndex < currentExportList.length &&
+        currentExportList[insertionIndex] is! ExportTitle) {
+      insertionIndex++;
+    }
+    currentExportList.insert(insertionIndex, value);
+
+    await _localRepository.writeExportList(currentExportList);
+    _updateSupabase();
+    notifyListeners();
+  }
+
   Future<void> reorder(int oldIndex, int newIndex) async {
     final List<ExportEntry> currentExportList = exportList;
     final ExportEntry item = currentExportList.removeAt(oldIndex);

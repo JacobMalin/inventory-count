@@ -524,8 +524,11 @@ class _ItemListState extends State<ItemList> {
                                     label: 'Edit',
                                   ),
                                   SlidableAction(
-                                    onPressed: (_) async {
-                                      await _moveItem(areaModel, item);
+                                    onPressed: (_) {
+                                      areaModel.editItem(
+                                        item,
+                                        newIsHidden: !item.isHidden,
+                                      );
                                     },
                                     backgroundColor: Theme.of(
                                       context,
@@ -533,6 +536,21 @@ class _ItemListState extends State<ItemList> {
                                     foregroundColor: Theme.of(
                                       context,
                                     ).colorScheme.onSecondaryContainer,
+                                    icon: item.isHidden
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
+                                    label: item.isHidden ? 'Show' : 'Hide',
+                                  ),
+                                  SlidableAction(
+                                    onPressed: (_) async {
+                                      await _moveItem(areaModel, item);
+                                    },
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.tertiaryContainer,
+                                    foregroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.onTertiaryContainer,
                                     icon: Icons.drive_file_move,
                                     label: 'Move',
                                   ),

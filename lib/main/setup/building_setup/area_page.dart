@@ -586,10 +586,10 @@ class _ShelfListState extends State<ShelfList> {
                                       },
                                       backgroundColor: Theme.of(
                                         context,
-                                      ).colorScheme.secondaryContainer,
+                                      ).colorScheme.tertiaryContainer,
                                       foregroundColor: Theme.of(
                                         context,
-                                      ).colorScheme.onSecondaryContainer,
+                                      ).colorScheme.onTertiaryContainer,
                                       icon: Icons.drive_file_move,
                                       label: 'Move',
                                     ),
@@ -650,6 +650,30 @@ class _ShelfListState extends State<ShelfList> {
                                       ).colorScheme.onSurfaceVariant,
                                       icon: Icons.edit,
                                       label: 'Edit',
+                                    ),
+                                    SlidableAction(
+                                      onPressed: (_) {
+                                        final item =
+                                            widget._area[index] as Item;
+                                        areaModel.editItem(
+                                          item,
+                                          newIsHidden: !item.isHidden,
+                                        );
+                                      },
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.secondaryContainer,
+                                      foregroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.onSecondaryContainer,
+                                      icon:
+                                          (widget._area[index] as Item).isHidden
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                      label:
+                                          (widget._area[index] as Item).isHidden
+                                          ? 'Show'
+                                          : 'Hide',
                                     ),
                                     SlidableAction(
                                       onPressed: (_) async {
