@@ -1,5 +1,6 @@
 import 'package:dropdown_search/dropdown_search.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as flutter;
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/area_model.dart';
@@ -393,22 +394,34 @@ class _ItemSettingsState extends State<ItemSettings> {
                   final String? currentCountName = widget._item.countName;
                   final dropdownValue = currentCountName;
 
-                  return DropdownSearch<String>(
-                    selectedItem: dropdownValue,
-                    items: (f, cs) => exportItemNames,
-                    popupProps: PopupProps.autocomplete(
-                      autoCompleteProps: AutocompleteProps(
-                        groupId: UniqueKey(),
+                  return flutter.Localizations.override(
+                    context: context,
+                    delegates: const [
+                      flutter.DefaultMaterialLocalizations.delegate,
+                    ],
+                    child: flutter.Material(
+                      type: flutter.MaterialType.transparency,
+                      child: DropdownSearch<String>(
+                        selectedItem: dropdownValue,
+                        items: (f, cs) => exportItemNames,
+                        popupProps: PopupProps.autocomplete(
+                          autoCompleteProps: AutocompleteProps(
+                            groupId: UniqueKey(),
+                          ),
+                        ),
+
+                        onSelected: (value) {
+                          if (value == null) {
+                            areaModel.editItem(widget._item, newCountName: '');
+                          } else {
+                            areaModel.editItem(
+                              widget._item,
+                              newCountName: value,
+                            );
+                          }
+                        },
                       ),
                     ),
-
-                    onSelected: (value) {
-                      if (value == null) {
-                        areaModel.editItem(widget._item, newCountName: '');
-                      } else {
-                        areaModel.editItem(widget._item, newCountName: value);
-                      }
-                    },
                   );
                 },
               ),

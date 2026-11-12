@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/area_model.dart';
@@ -498,6 +498,7 @@ class _ItemListState extends State<ItemList> {
                       child: ReorderableListView(
                         scrollController: _scrollController,
                         key: const PageStorageKey('shelfItemsListView'),
+                        buildDefaultDragHandles: false,
                         children: <Widget>[
                           for (
                             int index = 0;
@@ -557,11 +558,12 @@ class _ItemListState extends State<ItemList> {
                               child: ItemTile(
                                 key: Key('$index'),
                                 item: item,
+                                index: index,
                                 select: widget._select,
                               ),
                             ))(widget._shelf[index]),
                         ],
-                        onReorder: (oldIndex, newIndex) {
+                        onReorderItem: (oldIndex, newIndex) {
                           if (newIndex > oldIndex) {
                             newIndex -= 1;
                           }

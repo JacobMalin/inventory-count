@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../models/area_model.dart';
@@ -239,6 +239,7 @@ class _AreaListState extends State<AreaList> {
                       child: ReorderableListView(
                         scrollController: _scrollController,
                         key: const PageStorageKey('areaListView'),
+                        buildDefaultDragHandles: false,
                         children: <Widget>[
                           for (
                             int index = 0;
@@ -289,11 +290,12 @@ class _AreaListState extends State<AreaList> {
                               child: AreaTile(
                                 key: Key('$index'),
                                 area: areaModel.getArea(index),
+                                index: index,
                                 select: widget._select,
                               ),
                             ),
                         ],
-                        onReorder: (oldIndex, newIndex) {
+                        onReorderItem: (oldIndex, newIndex) {
                           if (newIndex > oldIndex) {
                             newIndex -= 1;
                           }

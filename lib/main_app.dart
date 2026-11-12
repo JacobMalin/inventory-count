@@ -1,5 +1,5 @@
 import 'package:device_preview/device_preview.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'main/count_page.dart';
@@ -101,18 +101,8 @@ class _HomePageState extends State<HomePage> {
                           tooltip: '',
                         ),
                         NavigationDestination(
-                          icon: Icon(Icons.print),
-                          label: 'Export',
-                          tooltip: '',
-                        ),
-                        NavigationDestination(
                           icon: Icon(Icons.settings),
                           label: 'Setup',
-                          tooltip: '',
-                        ),
-                        NavigationDestination(
-                          icon: Icon(Icons.build),
-                          label: 'Tools',
                           tooltip: '',
                         ),
                       ],
@@ -128,9 +118,7 @@ class _HomePageState extends State<HomePage> {
               ? [
                   const CountPage(),
                   const FixPage(),
-                  const ExportPage(),
                   const SetupPage(),
-                  const ToolsPage(),
                 ][_currentPageIndex]
               : const SelectProfile(),
         );

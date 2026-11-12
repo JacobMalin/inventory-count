@@ -1,5 +1,8 @@
 import 'package:dropdown_search/dropdown_search.dart';
-import 'package:flutter/material.dart';
+// Needed by DropdownSearch since it conflucts with the new material_ui package.
+// ignore: deprecated_member_use
+import 'package:flutter/material.dart' as material;
+import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
@@ -135,9 +138,9 @@ class _SelectProfileState extends State<SelectProfile> {
                     itemAsString: (profile) =>
                         profile?.name ?? 'None (start empty)',
                     decoratorProps: const DropDownDecoratorProps(
-                      decoration: InputDecoration(
+                      decoration: material.InputDecoration(
                         hintText: 'Base on existing profile',
-                        border: OutlineInputBorder(),
+                        border: material.OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
@@ -149,7 +152,7 @@ class _SelectProfileState extends State<SelectProfile> {
                       constraints: const BoxConstraints(maxHeight: 400),
                       showSearchBox: profileList.length > 5,
                       searchFieldProps: const TextFieldProps(
-                        decoration: InputDecoration(
+                        decoration: material.InputDecoration(
                           hintText: 'Search profiles...',
                           prefixIcon: Icon(Icons.search),
                         ),
@@ -399,9 +402,9 @@ class _SelectProfileState extends State<SelectProfile> {
                   selectedItem: sourceProfile,
                   itemAsString: (profile) => profile?.name ?? '',
                   decoratorProps: const DropDownDecoratorProps(
-                    decoration: InputDecoration(
+                    decoration: material.InputDecoration(
                       hintText: 'Select profile',
-                      border: OutlineInputBorder(),
+                      border: material.OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 8,
@@ -413,7 +416,7 @@ class _SelectProfileState extends State<SelectProfile> {
                     constraints: const BoxConstraints(maxHeight: 400),
                     showSearchBox: profileList.length > 5,
                     searchFieldProps: const TextFieldProps(
-                      decoration: InputDecoration(
+                      decoration: material.InputDecoration(
                         hintText: 'Search profiles...',
                         prefixIcon: Icon(Icons.search),
                       ),

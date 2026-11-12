@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'companion/inventory_counts_page.dart';
 import 'companion/update_app.dart';

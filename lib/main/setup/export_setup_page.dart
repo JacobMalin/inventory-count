@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../models/area_model.dart';
 import '../models/data/export_entry.dart';
 import '../models/export_model.dart';
+import '../widgets/slidable_reorder_handle.dart';
 
 class ExportSetupPage extends StatefulWidget {
   const ExportSetupPage({super.key});
@@ -316,7 +317,8 @@ class ExportListBody extends StatelessWidget {
               child: ReorderableListView(
                 scrollController: _scrollController,
                 key: const PageStorageKey('exportListView'),
-                onReorder: (oldIndex, newIndex) async {
+                buildDefaultDragHandles: false,
+                onReorderItem: (oldIndex, newIndex) async {
                   if (newIndex > oldIndex) {
                     newIndex -= 1;
                   }
@@ -548,7 +550,7 @@ class ExportTile extends StatelessWidget {
       _ => null,
     };
 
-    return Consumer<ExportModel>(
+    final Widget tile = Consumer<ExportModel>(
       builder: (context, exportModel, child) {
         return Material(
           child: Slidable(
@@ -588,7 +590,7 @@ class ExportTile extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                   ],
-                  const Icon(Icons.drag_handle),
+                  SlidableReorderHandle(index: _index),
                 ],
               ),
               onTap: () async {
@@ -612,5 +614,11 @@ class ExportTile extends StatelessWidget {
         );
       },
     );
+
+    return switch (Theme.of(context).platform) {
+      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia =>
+        ReorderableDelayedDragStartListener(index: _index, child: tile),
+      _ => tile,
+    };
   }
 }

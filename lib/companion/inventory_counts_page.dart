@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/types/json.dart';
@@ -336,12 +336,12 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
 
       if (locate != true) return false;
 
-      final FilePickerResult? result = await FilePicker.pickFiles(
+      final List<PlatformFile> result = await FilePicker.pickFiles(
         dialogTitle: 'Select Excel sheet',
         type: FileType.custom,
         allowedExtensions: ['xlsx', 'xls', 'xlsm'],
       );
-      final String? path = result?.files.single.path;
+      final String? path = result.singleOrNull?.path;
       if (path == null) return false;
       windowModel.countExcelPath = path;
     }

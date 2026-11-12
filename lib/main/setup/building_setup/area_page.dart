@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/area_model.dart';
@@ -545,158 +545,161 @@ class _ShelfListState extends State<ShelfList> {
                       child: ReorderableListView(
                         scrollController: _scrollController,
                         key: const PageStorageKey('areaContentListView'),
+                        buildDefaultDragHandles: false,
                         children: <Widget>[
                           for (
                             int index = 0;
                             index < (widget._area.numItemsAndShelves);
                             index += 1
                           )
-                            widget._area[index] is Shelf
-                                ? Slidable(
-                                    key: ValueKey(
-                                      'area_${widget._area.hashCode}_'
-                                      'shelf_$index',
+                            if (widget._area[index] is Shelf)
+                              Slidable(
+                                key: ValueKey(
+                                  'area_${widget._area.hashCode}_'
+                                  'shelf_$index',
+                                ),
+                                endActionPane: ActionPane(
+                                  motion: const DrawerMotion(),
+                                  children: [
+                                    SlidableAction(
+                                      onPressed: (_) async {
+                                        await _renameShelf(
+                                          areaModel,
+                                          widget._area[index] as Shelf,
+                                        );
+                                      },
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      foregroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                      icon: Icons.edit,
+                                      label: 'Edit',
                                     ),
-                                    endActionPane: ActionPane(
-                                      motion: const DrawerMotion(),
-                                      children: [
-                                        SlidableAction(
-                                          onPressed: (_) async {
-                                            await _renameShelf(
-                                              areaModel,
-                                              widget._area[index] as Shelf,
+                                    SlidableAction(
+                                      onPressed: (_) async {
+                                        await _moveShelf(
+                                          areaModel,
+                                          widget._area[index] as Shelf,
+                                        );
+                                      },
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.secondaryContainer,
+                                      foregroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.onSecondaryContainer,
+                                      icon: Icons.drive_file_move,
+                                      label: 'Move',
+                                    ),
+                                    SlidableAction(
+                                      onPressed: (_) async {
+                                        final shelf =
+                                            widget._area[index] as Shelf;
+                                        final bool shouldDelete =
+                                            await _confirmDelete(
+                                              type: 'Shelf',
+                                              name: shelf.name,
                                             );
-                                          },
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.surfaceContainerHighest,
-                                          foregroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                          icon: Icons.edit,
-                                          label: 'Edit',
-                                        ),
-                                        SlidableAction(
-                                          onPressed: (_) async {
-                                            await _moveShelf(
-                                              areaModel,
-                                              widget._area[index] as Shelf,
+                                        if (shouldDelete) {
+                                          areaModel.removeShelfOrItemFromArea(
+                                            shelf,
+                                          );
+                                        }
+                                      },
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.errorContainer,
+                                      foregroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.onErrorContainer,
+                                      icon: Icons.delete,
+                                      label: 'Delete',
+                                    ),
+                                  ],
+                                ),
+                                child: ShelfTile(
+                                  key: Key('$index'),
+                                  select: widget._select,
+                                  shelf: widget._area[index] as Shelf,
+                                  index: index,
+                                ),
+                              )
+                            else
+                              Slidable(
+                                key: ValueKey(
+                                  'area_${widget._area.hashCode}_'
+                                  'item_$index',
+                                ),
+                                endActionPane: ActionPane(
+                                  motion: const DrawerMotion(),
+                                  children: [
+                                    SlidableAction(
+                                      onPressed: (_) async {
+                                        await _renameItem(
+                                          areaModel,
+                                          widget._area[index] as Item,
+                                        );
+                                      },
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      foregroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                      icon: Icons.edit,
+                                      label: 'Edit',
+                                    ),
+                                    SlidableAction(
+                                      onPressed: (_) async {
+                                        await _moveItem(
+                                          areaModel,
+                                          widget._area[index] as Item,
+                                        );
+                                      },
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.secondaryContainer,
+                                      foregroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.onSecondaryContainer,
+                                      icon: Icons.drive_file_move,
+                                      label: 'Move',
+                                    ),
+                                    SlidableAction(
+                                      onPressed: (_) async {
+                                        final item =
+                                            widget._area[index] as Item;
+                                        final bool shouldDelete =
+                                            await _confirmDelete(
+                                              type: 'Item',
+                                              name: item.name,
                                             );
-                                          },
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.secondaryContainer,
-                                          foregroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.onSecondaryContainer,
-                                          icon: Icons.drive_file_move,
-                                          label: 'Move',
-                                        ),
-                                        SlidableAction(
-                                          onPressed: (_) async {
-                                            final shelf =
-                                                widget._area[index] as Shelf;
-                                            final bool shouldDelete =
-                                                await _confirmDelete(
-                                                  type: 'Shelf',
-                                                  name: shelf.name,
-                                                );
-                                            if (shouldDelete) {
-                                              areaModel
-                                                  .removeShelfOrItemFromArea(
-                                                    shelf,
-                                                  );
-                                            }
-                                          },
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.errorContainer,
-                                          foregroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.onErrorContainer,
-                                          icon: Icons.delete,
-                                          label: 'Delete',
-                                        ),
-                                      ],
+                                        if (shouldDelete) {
+                                          areaModel.removeItem(item);
+                                        }
+                                      },
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.errorContainer,
+                                      foregroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.onErrorContainer,
+                                      icon: Icons.delete,
+                                      label: 'Delete',
                                     ),
-                                    child: ShelfTile(
-                                      key: Key('$index'),
-                                      select: widget._select,
-                                      shelf: widget._area[index] as Shelf,
-                                    ),
-                                  )
-                                : Slidable(
-                                    key: ValueKey(
-                                      'area_${widget._area.hashCode}_'
-                                      'item_$index',
-                                    ),
-                                    endActionPane: ActionPane(
-                                      motion: const DrawerMotion(),
-                                      children: [
-                                        SlidableAction(
-                                          onPressed: (_) async {
-                                            await _renameItem(
-                                              areaModel,
-                                              widget._area[index] as Item,
-                                            );
-                                          },
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.surfaceContainerHighest,
-                                          foregroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                          icon: Icons.edit,
-                                          label: 'Edit',
-                                        ),
-                                        SlidableAction(
-                                          onPressed: (_) async {
-                                            await _moveItem(
-                                              areaModel,
-                                              widget._area[index] as Item,
-                                            );
-                                          },
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.secondaryContainer,
-                                          foregroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.onSecondaryContainer,
-                                          icon: Icons.drive_file_move,
-                                          label: 'Move',
-                                        ),
-                                        SlidableAction(
-                                          onPressed: (_) async {
-                                            final item =
-                                                widget._area[index] as Item;
-                                            final bool shouldDelete =
-                                                await _confirmDelete(
-                                                  type: 'Item',
-                                                  name: item.name,
-                                                );
-                                            if (shouldDelete) {
-                                              areaModel.removeItem(item);
-                                            }
-                                          },
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.errorContainer,
-                                          foregroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.onErrorContainer,
-                                          icon: Icons.delete,
-                                          label: 'Delete',
-                                        ),
-                                      ],
-                                    ),
-                                    child: ItemTile(
-                                      key: Key('$index'),
-                                      item: widget._area[index] as Item,
-                                      select: widget._select,
-                                    ),
-                                  ),
+                                  ],
+                                ),
+                                child: ItemTile(
+                                  key: Key('$index'),
+                                  item: widget._area[index] as Item,
+                                  index: index,
+                                  select: widget._select,
+                                ),
+                              ),
                         ],
-                        onReorder: (oldIndex, newIndex) {
+                        onReorderItem: (oldIndex, newIndex) {
                           if (newIndex > oldIndex) {
                             newIndex -= 1;
                           }

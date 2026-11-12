@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'companion/companion_setup.dart';
@@ -21,7 +21,7 @@ void main() async {
 
   await Supabase.initialize(
     url: 'https://qvlnvdgtmvjgjcsgfiiq.supabase.co',
-    anonKey: 'sb_publishable_6GGLYRmVrTZ5yLI64u1vmQ_jkm5imVL',
+    publishableKey: 'sb_publishable_6GGLYRmVrTZ5yLI64u1vmQ_jkm5imVL',
   );
 
   // Environment variable is set via --dart-define=COMPANION=true to build the

@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/area_model.dart';
 import '../../models/data/inventory_models.dart';
 import '../../models/export_model.dart';
+import '../../widgets/slidable_reorder_handle.dart';
 
 String _getPhaseText(CountPhase phase) {
   switch (phase) {
@@ -51,17 +52,20 @@ Widget _buildPhaseIndicators(Set<CountPhase> phases) {
 class AreaTile extends StatelessWidget {
   const AreaTile({
     required Area area,
+    required int index,
     required Future<void> Function({StorageObject? object}) select,
     super.key,
   }) : _area = area,
+       _index = index,
        _select = select;
 
   final Area _area;
+  final int _index;
   final Future<void> Function({StorageObject? object}) _select;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AreaModel>(
+    final Widget tile = Consumer<AreaModel>(
       builder: (context, areaModel, child) {
         final int numShelves = _area.numShelves;
         final int numItems = _area.numItems;
@@ -96,30 +100,42 @@ class AreaTile extends StatelessWidget {
                 _buildPhaseIndicators(phases),
                 const SizedBox(width: 8),
               ],
-              const Icon(Icons.drag_handle),
+              SlidableReorderHandle(
+                index: _index,
+                hideWhenSlidableOpen: false,
+              ),
             ],
           ),
           onTap: () => _select(object: _area),
         );
       },
     );
+
+    return switch (Theme.of(context).platform) {
+      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia =>
+        ReorderableDelayedDragStartListener(index: _index, child: tile),
+      _ => tile,
+    };
   }
 }
 
 class ShelfTile extends StatelessWidget {
   const ShelfTile({
     required Shelf shelf,
+    required int index,
     required void Function({StorageObject? object}) select,
     super.key,
   }) : _shelf = shelf,
+       _index = index,
        _select = select;
 
   final Shelf _shelf;
+  final int _index;
   final void Function({StorageObject? object}) _select;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AreaModel>(
+    final Widget tile = Consumer<AreaModel>(
       builder: (context, areaModel, child) {
         // Collect all phases from items in shelf
         final phases = <CountPhase>{};
@@ -140,30 +156,42 @@ class ShelfTile extends StatelessWidget {
                 _buildPhaseIndicators(phases),
                 const SizedBox(width: 8),
               ],
-              const Icon(Icons.drag_handle),
+              SlidableReorderHandle(
+                index: _index,
+                hideWhenSlidableOpen: false,
+              ),
             ],
           ),
           onTap: () => _select(object: _shelf),
         );
       },
     );
+
+    return switch (Theme.of(context).platform) {
+      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia =>
+        ReorderableDelayedDragStartListener(index: _index, child: tile),
+      _ => tile,
+    };
   }
 }
 
 class ItemTile extends StatelessWidget {
   const ItemTile({
     required Item item,
+    required int index,
     required void Function({StorageObject? object}) select,
     super.key,
   }) : _item = item,
+       _index = index,
        _select = select;
 
   final Item _item;
+  final int _index;
   final void Function({StorageObject? object}) _select;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<AreaModel, ExportModel>(
+    final Widget tile = Consumer2<AreaModel, ExportModel>(
       builder: (context, areaModel, exportModel, child) {
         final bool isValid = _item.getIsValid(exportModel);
 
@@ -238,12 +266,21 @@ class ItemTile extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.drag_handle),
+              SlidableReorderHandle(
+                index: _index,
+                hideWhenSlidableOpen: false,
+              ),
             ],
           ),
           onTap: () => _select(object: _item),
         );
       },
     );
+
+    return switch (Theme.of(context).platform) {
+      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia =>
+        ReorderableDelayedDragStartListener(index: _index, child: tile),
+      _ => tile,
+    };
   }
 }

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:win32/win32.dart';
 import 'package:window_manager/window_manager.dart';
