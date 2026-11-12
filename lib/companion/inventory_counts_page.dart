@@ -166,20 +166,26 @@ class _InventoryCountsPageState extends State<InventoryCountsPage> {
     );
   }
 
-  int _sumTotals(String jsonData) {
-    Object? decoded;
-    try {
-      decoded = jsonDecode(jsonData);
-    } on FormatException {
-      return 0;
+  int _sumTotals(Object? jsonData) {
+    final Object? decoded;
+    if (jsonData is String) {
+      try {
+        decoded = jsonDecode(jsonData);
+      } on FormatException {
+        return 0;
+      }
+    } else {
+      decoded = jsonData;
     }
 
     if (decoded is! Map) return 0;
 
     var sum = 0;
-    for (final Map category in decoded.values) {
-      for (final Map item in category.values) {
-        final dynamic total = item['Total'];
+    for (final Object? categoryValue in decoded.values) {
+      if (categoryValue is! Map) continue;
+      for (final Object? itemValue in categoryValue.values) {
+        if (itemValue is! Map) continue;
+        final Object? total = itemValue['Total'];
         if (total == null) continue;
         final int? value = int.tryParse(
           total.toString().replaceAll(RegExp('[^0-9]'), ''),
