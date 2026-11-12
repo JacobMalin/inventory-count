@@ -319,9 +319,6 @@ class ExportListBody extends StatelessWidget {
                 key: const PageStorageKey('exportListView'),
                 buildDefaultDragHandles: false,
                 onReorderItem: (oldIndex, newIndex) async {
-                  if (newIndex > oldIndex) {
-                    newIndex -= 1;
-                  }
                   await exportModel.reorder(oldIndex, newIndex);
                 },
                 children: _buildExportTiles(exportModel.exportList, areaModel),

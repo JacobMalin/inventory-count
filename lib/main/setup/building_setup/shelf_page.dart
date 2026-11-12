@@ -564,10 +564,6 @@ class _ItemListState extends State<ItemList> {
                             ))(widget._shelf[index]),
                         ],
                         onReorderItem: (oldIndex, newIndex) {
-                          if (newIndex > oldIndex) {
-                            newIndex -= 1;
-                          }
-
                           final int areaIndex = areaModel.getAreas().indexOf(
                             widget._shelf.parent,
                           );

@@ -700,10 +700,6 @@ class _ShelfListState extends State<ShelfList> {
                               ),
                         ],
                         onReorderItem: (oldIndex, newIndex) {
-                          if (newIndex > oldIndex) {
-                            newIndex -= 1;
-                          }
-
                           areaModel.moveShelfOrItemInArea(
                             widget._area,
                             oldIndex,

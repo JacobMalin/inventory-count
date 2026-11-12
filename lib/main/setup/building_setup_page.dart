@@ -296,10 +296,6 @@ class _AreaListState extends State<AreaList> {
                             ),
                         ],
                         onReorderItem: (oldIndex, newIndex) {
-                          if (newIndex > oldIndex) {
-                            newIndex -= 1;
-                          }
-
                           areaModel.moveArea(
                             areaModel.getArea(oldIndex),
                             newIndex,

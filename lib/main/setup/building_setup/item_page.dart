@@ -1,4 +1,6 @@
 import 'package:dropdown_search/dropdown_search.dart';
+// Nessesary for dropdown search
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart' as flutter;
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
