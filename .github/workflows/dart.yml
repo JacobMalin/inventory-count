@@ -254,6 +254,12 @@ jobs:
           restore-keys: |
             pub-cache-${{ runner.os }}-
       
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
         with:
           channel: 'stable'
